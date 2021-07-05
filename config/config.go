@@ -17,8 +17,8 @@ type Config struct {
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest          bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers            int           `envconfig:"KAFKA_NUM_WORKERS"`
-	HelloCalledGroup           string        `envconfig:"HELLO_CALLED_GROUP"`
-	HelloCalledTopic           string        `envconfig:"HELLO_CALLED_TOPIC"`
+	InstanceCompleteGroup      string        `envconfig:"INSTANCE_COMPLETE_GROUP"`
+	InstanceCompleteTopic      string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 }
 
@@ -40,8 +40,8 @@ func Get() (*Config, error) {
 		KafkaVersion:               "1.0.2",
 		KafkaOffsetOldest:          true,
 		KafkaNumWorkers:            1,
-		HelloCalledGroup:           "dp-cantabular-csv-exporter",
-		HelloCalledTopic:           "hello-called",
+		InstanceCompleteGroup:      "dp-cantabular-csv-exporter",
+		InstanceCompleteTopic:      "cantabular-dataset-instance-complete",
 		OutputFilePath:             "/tmp/helloworld.txt",
 	}
 

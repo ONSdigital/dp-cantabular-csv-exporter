@@ -11,10 +11,8 @@ import (
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
 
-// TODO: remove or replace hello called logic with app specific
-// Handler represents a handler for processing a single event.
 type Handler interface {
-	Handle(ctx context.Context, cfg *config.Config, helloCalled *HelloCalled) error
+	Handle(ctx context.Context, cfg *config.Config, instanceComplete *InstanceComplete) error
 }
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
@@ -73,8 +71,8 @@ func processMessage(ctx context.Context, message kafka.Message, handler Handler,
 }
 
 // unmarshal converts a event instance to []byte.
-func unmarshal(message kafka.Message) (*HelloCalled, error) {
-	var event HelloCalled
-	err := schema.HelloCalledEvent.Unmarshal(message.GetData(), &event)
+func unmarshal(message kafka.Message) (*InstanceComplete, error) {
+	var event InstanceComplete
+	err := schema.InstanceCompleteEvent.Unmarshal(message.GetData(), &event)
 	return &event, err
 }

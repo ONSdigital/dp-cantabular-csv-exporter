@@ -10,10 +10,10 @@ import (
 )
 
 // TODO: remove hello called example test
-func TestHelloCalledHandler_Handle(t *testing.T) {
+func TestInstanceCompleteHandler_Handle(t *testing.T) {
 
 	Convey("Given a successful event handler, when Handle is triggered", t, func() {
-		eventHandler := &event.HelloCalledHandler{}
+		eventHandler := &event.InstanceCompleteHandler{}
 		filePath := "/tmp/helloworld.txt"
 		os.Remove(filePath)
 		err := eventHandler.Handle(testCtx, &config.Config{OutputFilePath: filePath}, &testEvent)
@@ -21,7 +21,7 @@ func TestHelloCalledHandler_Handle(t *testing.T) {
 	})
 
 	Convey("handler returns an error when cannot write to file", t, func() {
-		eventHandler := &event.HelloCalledHandler{}
+		eventHandler := &event.InstanceCompleteHandler{}
 		filePath := ""
 		err := eventHandler.Handle(testCtx, &config.Config{OutputFilePath: filePath}, &testEvent)
 		So(err, ShouldNotBeNil)

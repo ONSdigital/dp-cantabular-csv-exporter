@@ -62,17 +62,17 @@ func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
 	return nil
 }
 
-func (c *Component) convertToHelloEvents(table *godog.Table) ([]*event.HelloCalled, error) {
+func (c *Component) convertToHelloEvents(table *godog.Table) ([]*event.InstanceComplete, error) {
 	assist := assistdog.NewDefault()
-	events, err := assist.CreateSlice(&event.HelloCalled{}, table)
+	events, err := assist.CreateSlice(&event.InstanceComplete{}, table)
 	if err != nil {
 		return nil, err
 	}
-	return events.([]*event.HelloCalled), nil
+	return events.([]*event.InstanceComplete), nil
 }
 
-func (c *Component) sendToConsumer(e *event.HelloCalled) error {
-	bytes, err := schema.HelloCalledEvent.Marshal(e)
+func (c *Component) sendToConsumer(e *event.InstanceComplete) error {
+	bytes, err := schema.InstanceCompleteEvent.Marshal(e)
 	if err != nil {
 		return err
 	}

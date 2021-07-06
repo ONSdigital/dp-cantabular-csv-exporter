@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
+// InstanceCompleteHandler is the handle for the InstanceCompleteHandler event
 type InstanceCompleteHandler struct {
 }
 

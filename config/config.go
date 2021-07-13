@@ -20,6 +20,7 @@ type Config struct {
 	InstanceCompleteGroup      string        `envconfig:"INSTANCE_COMPLETE_GROUP"`
 	InstanceCompleteTopic      string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 }
 
 var cfg *Config
@@ -43,6 +44,7 @@ func Get() (*Config, error) {
 		InstanceCompleteGroup:      "dp-cantabular-csv-exporter",
 		InstanceCompleteTopic:      "cantabular-dataset-instance-complete",
 		OutputFilePath:             "/tmp/helloworld.txt",
+		ServiceAuthToken:           "",
 	}
 
 	return cfg, envconfig.Process("", cfg)

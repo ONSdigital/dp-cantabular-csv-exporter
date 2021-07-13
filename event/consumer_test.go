@@ -21,7 +21,7 @@ var testCtx = context.Background()
 var errHandler = errors.New("Handler Error")
 
 var testEvent = event.InstanceComplete{
-	InstanceId: "World",
+	InstanceID: "World",
 }
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
@@ -32,7 +32,6 @@ var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
 	},
 }
 
-// TODO: remove or replace hello called logic with app specific
 func TestConsume(t *testing.T) {
 
 	Convey("Given kafka consumer and event handler mocks", t, func() {

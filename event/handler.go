@@ -2,15 +2,25 @@ package event
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 
+	"github.com/ONSdigital/dp-api-clients-go/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // InstanceCompleteHandler is the handle for the InstanceCompleteHandler event
 type InstanceCompleteHandler struct {
+	cfg      config.Config
+	ctblr    CantabularClient
+	datasets DatasetAPIClient
+}
+
+func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d DatasetAPIClient) *InstanceCompleteHandler {
+	return &InstanceCompleteHandler{
+		cfg:      cfg,
+		ctblr:    c,
+		datasets: d,
+	}
 }
 
 // Handle takes a single event.
@@ -18,17 +28,16 @@ func (h *InstanceCompleteHandler) Handle(ctx context.Context, cfg *config.Config
 	logData := log.Data{
 		"event": event,
 	}
-	log.Event(ctx, "event handler called", log.INFO, logData)
+	log.Info(ctx, "event handler called", logData)
 
-	greeting := fmt.Sprintf("Hello, %s!", event.InstanceId)
-	err = ioutil.WriteFile(cfg.OutputFilePath, []byte(greeting), 0644)
+	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", event.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return err
 	}
 
-	logData["greeting"] = greeting
-	log.Event(ctx, "hello world example handler called successfully", log.INFO, logData)
-	log.Event(ctx, "event successfully handled", log.INFO, logData)
+	log.Info(ctx, "instance obtained from dataset API", log.Data{
+		"instance": instance,
+	})
 
 	return nil
 }

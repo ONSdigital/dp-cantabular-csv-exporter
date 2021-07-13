@@ -68,6 +68,6 @@ func scanEvent(scanner *bufio.Scanner) *event.InstanceComplete {
 	name := scanner.Text()
 
 	return &event.InstanceComplete{
-		InstanceId: name,
+		InstanceID: name,
 	}
 }

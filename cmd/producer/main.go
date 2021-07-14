@@ -21,7 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	// Get Config
-	config, err := config.Get()
+	cfg, err := config.Get()
 	if err != nil {
 		log.Event(ctx, "error getting config", log.FATAL, log.Error(err))
 		os.Exit(1)
@@ -29,11 +29,11 @@ func main() {
 
 	// Create Kafka Producer
 	pChannels := kafka.CreateProducerChannels()
-	kafkaProducer, err := kafka.NewProducer(ctx, config.KafkaAddr, config.InstanceCompleteTopic, pChannels, &kafka.ProducerConfig{
-		KafkaVersion: &config.KafkaVersion,
+	kafkaProducer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, cfg.InstanceCompleteTopic, pChannels, &kafka.ProducerConfig{
+		KafkaVersion: &cfg.KafkaVersion,
 	})
 	if err != nil {
-		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": config.InstanceCompleteTopic})
+		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": cfg.InstanceCompleteTopic})
 		os.Exit(1)
 	}
 
@@ -53,9 +53,11 @@ func main() {
 		}
 
 		// Send bytes to Output channel, after calling Initialise just in case it is not initialised.
-		kafkaProducer.Initialise(ctx)
+		// Wait for producer to be initialised
+		<-kafkaProducer.Channels().Ready
 		kafkaProducer.Channels().Output <- bytes
 	}
+
 }
 
 // scanEvent creates a HelloCalled event according to the user input

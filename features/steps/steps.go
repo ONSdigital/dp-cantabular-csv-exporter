@@ -18,8 +18,6 @@ import (
 )
 
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
-	// ctx.Step(`^these hello events are consumed:$`, c.theseHelloEventsAreConsumed)
-	// ctx.Step(`^I should receive a hello-world response$`, c.iShouldReceiveAHelloworldResponse)
 }
 
 func (c *Component) iShouldReceiveAHelloworldResponse() error {

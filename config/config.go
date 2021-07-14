@@ -6,7 +6,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// TODO: remove hello call config options
 // Config represents service configuration for dp-cantabular-csv-exporter
 type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`

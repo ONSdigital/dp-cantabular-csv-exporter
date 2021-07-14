@@ -15,6 +15,7 @@ type InstanceCompleteHandler struct {
 	datasets DatasetAPIClient
 }
 
+// NewInstanceCompleteHandler creates a new InstanceCompleteHandler
 func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d DatasetAPIClient) *InstanceCompleteHandler {
 	return &InstanceCompleteHandler{
 		cfg:      cfg,

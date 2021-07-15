@@ -19,3 +19,11 @@ type CantabularClient interface {
 type DatasetAPIClient interface {
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 }
+
+type dataLogger interface {
+	LogData() map[string]interface{}
+}
+
+type coder interface {
+	Code() int
+}

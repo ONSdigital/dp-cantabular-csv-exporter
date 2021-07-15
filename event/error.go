@@ -2,7 +2,10 @@ package event
 
 import "github.com/ONSdigital/log.go/v2/log"
 
-// Error is the handler package's error type
+// Error is the handler package's error type. Is not meant to be compared as a
+// a type, but information should be extracted via the interfaces
+// it implements with callback functions. Is not guaranteed to remain exported
+// so shouldn't be treated as such.
 type Error struct {
 	err     error
 	logData map[string]interface{}
@@ -19,7 +22,7 @@ func NewError(err error, logData map[string]interface{}) *Error {
 // Error implements the Go standard error interface
 func (e *Error) Error() string {
 	if e.err == nil {
-		return ""
+		return "nil"
 	}
 	return e.err.Error()
 }

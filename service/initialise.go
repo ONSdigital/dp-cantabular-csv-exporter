@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
@@ -43,6 +45,19 @@ func (e *ExternalServiceList) GetKafkaConsumer(ctx context.Context, cfg *config.
 	}
 	e.KafkaConsumer = true
 	return consumer, nil
+}
+
+func (e *ExternalServiceList) GetCantabularClient(ctx context.Context, cfg *config.Config) CantabularClient {
+	return cantabular.NewClient(
+		dphttp.NewClient(),
+		cantabular.Config{
+			Host: cfg.CantabularURL,
+		},
+	)
+}
+
+func (e *ExternalServiceList) GetDatasetAPIClient(ctx context.Context, cfg *config.Config) DatasetAPIClient {
+	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
 // GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true

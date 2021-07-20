@@ -44,8 +44,11 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 		return nil, err
 	}
 
+	cantabularClient := serviceList.GetCantabularClient(ctx, cfg)
+	datasetAPIClient := serviceList.GetDatasetAPIClient(ctx, cfg)
+
 	// Event Handler for Kafka Consumer
-	event.Consume(ctx, consumer, &event.InstanceCompleteHandler{}, cfg)
+	event.Consume(ctx, consumer, event.NewInstanceCompleteHandler(*cfg, cantabularClient, datasetAPIClient), cfg)
 
 	// Kafka error logging go-routine
 	consumer.Channels().LogErrors(ctx, "kafka consumer")

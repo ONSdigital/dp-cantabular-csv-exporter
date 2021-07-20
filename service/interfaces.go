@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -37,4 +38,11 @@ type HealthChecker interface {
 // EventConsumer defines the required methods from event Consumer
 type EventConsumer interface {
 	Close(ctx context.Context) (err error)
+}
+
+type CantabularClient interface {
+}
+
+type DatasetAPIClient interface {
+	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 }

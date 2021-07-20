@@ -3,8 +3,7 @@ package event
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 )
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
@@ -12,7 +11,6 @@ import (
 
 // CantabularClient contains the required method for the Cantabular Client
 type CantabularClient interface {
-	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
 }
 
 // DatasetAPIClient contains the required method for the Dataset API Client

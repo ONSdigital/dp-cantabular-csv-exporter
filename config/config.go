@@ -20,6 +20,8 @@ type Config struct {
 	InstanceCompleteTopic      string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
+	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
+	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 }
 
 var cfg *Config
@@ -44,6 +46,8 @@ func Get() (*Config, error) {
 		InstanceCompleteTopic:      "cantabular-dataset-instance-complete",
 		OutputFilePath:             "/tmp/helloworld.txt",
 		ServiceAuthToken:           "",
+		CantabularURL:              "localhost:8491",
+		DatasetAPIURL:              "localhost:22000",
 	}
 
 	return cfg, envconfig.Process("", cfg)

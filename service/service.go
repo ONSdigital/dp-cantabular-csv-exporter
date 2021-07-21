@@ -60,7 +60,7 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 		return nil, err
 	}
 
-	if err := registerCheckers(ctx, hc, consumer); err != nil {
+	if err := registerCheckers(ctx, hc, consumer, cantabularClient, datasetAPIClient); err != nil {
 		return nil, errors.Wrap(err, "unable to register checkers")
 	}
 
@@ -148,15 +148,23 @@ func (svc *Service) Close(ctx context.Context) error {
 	return nil
 }
 
-func registerCheckers(ctx context.Context,
-	hc HealthChecker,
-	consumer kafka.IConsumerGroup) (err error) {
+func registerCheckers(ctx context.Context, hc HealthChecker, consumer kafka.IConsumerGroup, cantabularClient CantabularClient, datasetAPIClient DatasetAPIClient) error {
 
 	hasErrors := false
 
 	if err := hc.AddCheck("Kafka consumer", consumer.Checker); err != nil {
 		hasErrors = true
 		log.Event(ctx, "error adding check for Kafka", log.ERROR, log.Error(err))
+	}
+
+	if err := hc.AddCheck("cantabular client", cantabularClient.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error adding check for cantabular client", log.ERROR, log.Error(err))
+	}
+
+	if err := hc.AddCheck("dataset API client", datasetAPIClient.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error adding check for dataset API client", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {

@@ -22,8 +22,9 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 	Convey("Given a successful event handler", t, func() {
 		ctblrClient := cantabularClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
+		s3Client := S3ClientHappy()
 
-		eventHandler := event.NewInstanceCompleteHandler(testCfg, &ctblrClient, &datasetAPIClient)
+		eventHandler := event.NewInstanceCompleteHandler(testCfg, &ctblrClient, &datasetAPIClient, &s3Client)
 
 		Convey("Then when Handle is triggered, one Post call is performed to Dataset API for each Cantabular variable", func() {
 			err := eventHandler.Handle(ctx, &testCfg, &event.InstanceComplete{
@@ -41,6 +42,10 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 
 func cantabularClientHappy() mock.CantabularClientMock {
 	return mock.CantabularClientMock{}
+}
+
+func S3ClientHappy() mock.CantabularClientMock {
+	return mock.S3ClientMock{}
 }
 
 func datasetAPIClientHappy() mock.DatasetAPIClientMock {

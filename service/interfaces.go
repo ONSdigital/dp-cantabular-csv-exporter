@@ -48,3 +48,7 @@ type DatasetAPIClient interface {
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 	Checker(context.Context, *healthcheck.CheckState) error
 }
+
+type S3Client interface {
+	Checker(context.Context, *healthcheck.CheckState) error
+}

@@ -13,14 +13,16 @@ type InstanceCompleteHandler struct {
 	cfg      config.Config
 	ctblr    CantabularClient
 	datasets DatasetAPIClient
+	s3       S3Client
 }
 
 // NewInstanceCompleteHandler creates a new InstanceCompleteHandler
-func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d DatasetAPIClient) *InstanceCompleteHandler {
+func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceCompleteHandler {
 	return &InstanceCompleteHandler{
 		cfg:      cfg,
 		ctblr:    c,
 		datasets: d,
+		s3:       s,
 	}
 }
 

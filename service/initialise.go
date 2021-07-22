@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
+	dps3 "github.com/ONSdigital/dp-s3"
 )
 
 // ExternalServiceList holds the initialiser and initialisation state of external services.
@@ -58,6 +59,14 @@ func (e *ExternalServiceList) GetCantabularClient(ctx context.Context, cfg *conf
 
 func (e *ExternalServiceList) GetDatasetAPIClient(ctx context.Context, cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
+}
+
+func (e *ExternalServiceList) GetS3Client(ctx context.Context, cfg *config.Config) (S3Client, error) {
+	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
+	if err != nil {
+		return nil, err
+	}
+	return s3Client, nil
 }
 
 // GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true

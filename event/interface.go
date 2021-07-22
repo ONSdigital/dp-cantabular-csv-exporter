@@ -13,6 +13,9 @@ import (
 type CantabularClient interface {
 }
 
+type S3Client interface {
+}
+
 // DatasetAPIClient contains the required method for the Dataset API Client
 type DatasetAPIClient interface {
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)

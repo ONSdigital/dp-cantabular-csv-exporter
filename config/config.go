@@ -22,6 +22,8 @@ type Config struct {
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
+	AWSRegion                  string        `envconfig:"AWS_REGION"`
+	UploadBucketName           string        `envconfig:"UPLOAD_BUCKET_NAME"`
 }
 
 var cfg *Config
@@ -48,6 +50,8 @@ func Get() (*Config, error) {
 		ServiceAuthToken:           "",
 		CantabularURL:              "localhost:8491",
 		DatasetAPIURL:              "localhost:22000",
+		AWSRegion:                  "eu-west-1",
+		UploadBucketName:           "dp-cantabular-csv-exporter",
 	}
 
 	return cfg, envconfig.Process("", cfg)

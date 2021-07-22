@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
@@ -64,7 +65,7 @@ func (e *ExternalServiceList) GetDatasetAPIClient(ctx context.Context, cfg *conf
 func (e *ExternalServiceList) GetS3Client(ctx context.Context, cfg *config.Config) (S3Client, error) {
 	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create S3 Client: %w", err)
 	}
 	return s3Client, nil
 }

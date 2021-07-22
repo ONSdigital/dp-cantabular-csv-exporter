@@ -46,10 +46,10 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 
 	cantabularClient := serviceList.GetCantabularClient(ctx, cfg)
 	datasetAPIClient := serviceList.GetDatasetAPIClient(ctx, cfg)
-	S3Client, err := serviceList.GetS3Client(ctx, cfg)
+	s3Client, err := serviceList.GetS3Client(ctx, cfg)
 
 	// Event Handler for Kafka Consumer
-	event.Consume(ctx, consumer, event.NewInstanceCompleteHandler(*cfg, cantabularClient, datasetAPIClient, S3Client), cfg)
+	event.Consume(ctx, consumer, event.NewInstanceCompleteHandler(*cfg, cantabularClient, datasetAPIClient, s3Client), cfg)
 
 	// Kafka error logging go-routine
 	consumer.Channels().LogErrors(ctx, "kafka consumer")
@@ -61,7 +61,7 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 		return nil, err
 	}
 
-	if err := registerCheckers(ctx, hc, consumer, cantabularClient, datasetAPIClient); err != nil {
+	if err := registerCheckers(ctx, hc, consumer, cantabularClient, datasetAPIClient, s3Client); err != nil {
 		return nil, errors.Wrap(err, "unable to register checkers")
 	}
 
@@ -149,7 +149,7 @@ func (svc *Service) Close(ctx context.Context) error {
 	return nil
 }
 
-func registerCheckers(ctx context.Context, hc HealthChecker, consumer kafka.IConsumerGroup, cantabularClient CantabularClient, datasetAPIClient DatasetAPIClient) error {
+func registerCheckers(ctx context.Context, hc HealthChecker, consumer kafka.IConsumerGroup, cantabularClient CantabularClient, datasetAPIClient DatasetAPIClient, s3Client S3Client) error {
 
 	hasErrors := false
 
@@ -166,6 +166,11 @@ func registerCheckers(ctx context.Context, hc HealthChecker, consumer kafka.ICon
 	if err := hc.AddCheck("dataset API client", datasetAPIClient.Checker); err != nil {
 		hasErrors = true
 		log.Event(ctx, "error adding check for dataset API client", log.ERROR, log.Error(err))
+	}
+
+	if err := hc.AddCheck("s3 client", s3Client.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error adding check for s3 client", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {

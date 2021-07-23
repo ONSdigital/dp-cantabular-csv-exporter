@@ -22,7 +22,7 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 	Convey("Given a successful event handler", t, func() {
 		ctblrClient := cantabularClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		s3Client := S3ClientHappy()
+		s3Client := s3ClientHappy()
 
 		eventHandler := event.NewInstanceCompleteHandler(testCfg, &ctblrClient, &datasetAPIClient, &s3Client)
 
@@ -44,7 +44,7 @@ func cantabularClientHappy() mock.CantabularClientMock {
 	return mock.CantabularClientMock{}
 }
 
-func S3ClientHappy() mock.CantabularClientMock {
+func s3ClientHappy() mock.S3ClientMock {
 	return mock.S3ClientMock{}
 }
 

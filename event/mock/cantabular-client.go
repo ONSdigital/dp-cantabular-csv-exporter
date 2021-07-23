@@ -13,16 +13,16 @@ var _ event.CantabularClient = &CantabularClientMock{}
 
 // CantabularClientMock is a mock implementation of event.CantabularClient.
 //
-//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
+// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-//         // make and configure a mocked event.CantabularClient
-//         mockedCantabularClient := &CantabularClientMock{
-//         }
+// 		// make and configure a mocked event.CantabularClient
+// 		mockedCantabularClient := &CantabularClientMock{
+// 		}
 //
-//         // use mockedCantabularClient in code that requires event.CantabularClient
-//         // and then make assertions.
+// 		// use mockedCantabularClient in code that requires event.CantabularClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type CantabularClientMock struct {
 	// calls tracks calls to the methods.
 	calls struct {

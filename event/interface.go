@@ -8,6 +8,7 @@ import (
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/s3-client.go -pkg mock . S3Client
 
 // CantabularClient contains the required method for the Cantabular Client
 type CantabularClient interface {

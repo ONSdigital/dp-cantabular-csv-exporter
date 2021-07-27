@@ -17,7 +17,6 @@ import (
 
 type Component struct {
 	componenttest.ErrorFeature
-	serviceList   *service.ExternalServiceList
 	KafkaConsumer kafka.IConsumerGroup
 	killChannel   chan os.Signal
 	apiFeature    *componenttest.APIFeature
@@ -27,7 +26,6 @@ type Component struct {
 }
 
 func NewComponent() *Component {
-
 	c := &Component{errorChan: make(chan error)}
 
 	consumer := kafkatest.NewMessageConsumer(false)
@@ -40,14 +38,6 @@ func NewComponent() *Component {
 	}
 
 	c.cfg = cfg
-
-	initMock := &mock.InitialiserMock{
-		DoGetKafkaConsumerFunc: c.DoGetConsumer,
-		DoGetHealthCheckFunc:   c.DoGetHealthCheck,
-		DoGetHTTPServerFunc:    c.DoGetHTTPServer,
-	}
-
-	c.serviceList = service.NewServiceList(initMock)
 
 	return c
 }

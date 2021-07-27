@@ -40,17 +40,15 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	svc.cfg = cfg
 
-	// Get Kafka consumer
 	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
-
-	svc.cantabularClient = GetCantabularClient(ctx, cfg)
-	svc.datasetAPIClient = GetDatasetAPIClient(ctx, cfg)
-
-	if svc.s3Client, err = GetS3Client(ctx, cfg); err != nil {
+	if svc.s3Client, err = GetS3Client(cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 client: %w", err)
 	}
+
+	svc.cantabularClient = GetCantabularClient(cfg)
+	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
@@ -170,15 +168,15 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for Kafka: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("cantabular client", svc.cantabularClient.Checker); err != nil {
+	if err := svc.healthCheck.AddCheck("Cantabular client", svc.cantabularClient.Checker); err != nil {
 		return fmt.Errorf("error adding check for cantabular client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("dataset API client", svc.datasetAPIClient.Checker); err != nil {
+	if err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("s3 client", svc.s3Client.Checker); err != nil {
+	if err := svc.healthCheck.AddCheck("S3 client", svc.s3Client.Checker); err != nil {
 		return fmt.Errorf("error adding check for s3 client: %w", err)
 	}
 

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/cucumber/godog"
 	"github.com/rdumont/assistdog"
@@ -32,7 +31,6 @@ func (c *Component) iShouldReceiveAHelloworldResponse() error {
 }
 
 func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
-
 	observationEvents, err := c.convertToHelloEvents(table)
 	if err != nil {
 		return err
@@ -42,7 +40,7 @@ func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
 
 	// run application in separate goroutine
 	go func() {
-		c.svc, err = service.Run(context.Background(), c.serviceList, "", "", "", c.errorChan)
+		c.svc.Start(context.Background(), c.errorChan)
 	}()
 
 	// consume extracted observations

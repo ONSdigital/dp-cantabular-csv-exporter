@@ -49,7 +49,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 }
 
 // GetCantabularClient gets and ininitalises the Cantabular Client
-var GetCantabularClient= func(ctx context.Context, cfg *config.Config) CantabularClient {
+var GetCantabularClient= func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
 		dphttp.NewClient(),
 		cantabular.Config{
@@ -59,12 +59,12 @@ var GetCantabularClient= func(ctx context.Context, cfg *config.Config) Cantabula
 }
 
 // GetDatasetAPIClient gets and ininitalises the DatasetAPI Client
-var GetDatasetAPIClient = func(ctx context.Context, cfg *config.Config) DatasetAPIClient {
+var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
 // GetS3Client gets and ininitalises the S3 Client
-var GetS3Client = func(ctx context.Context, cfg *config.Config) (S3Client, error) {
+var GetS3Client = func(cfg *config.Config) (S3Client, error) {
 	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 Client: %w", err)

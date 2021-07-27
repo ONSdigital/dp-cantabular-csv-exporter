@@ -10,9 +10,8 @@ import (
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 
-	serviceMock "github.com/ONSdigital/dp-import-cantabular-dataset/service/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -69,20 +68,6 @@ func TestInit(t *testing.T) {
 				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 					return nil
 				},
-			}
-		}
-
-		GetRecipeAPIClient = func(cfg *config.Config) RecipeAPIClient {
-			return &serviceMock.RecipeAPIClientMock{
-				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
-					return nil
-				},
-			}
-		}
-
-		GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor {
-			return &serviceMock.ProcessorMock{
-				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
 			}
 		}
 
@@ -146,11 +131,11 @@ func TestInit(t *testing.T) {
 				So(svc.server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 4)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Recipe API client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 client")
 				})
 			})
 		})
@@ -171,10 +156,6 @@ func TestStart(t *testing.T) {
 			StartFunc: func(ctx context.Context) {},
 		}
 
-		processorMock := &serviceMock.ProcessorMock{
-			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
-		}
-
 		serverWg := &sync.WaitGroup{}
 		serverMock := &serviceMock.HTTPServerMock{}
 
@@ -183,7 +164,6 @@ func TestStart(t *testing.T) {
 			server:      serverMock,
 			healthCheck: hcMock,
 			consumer:    consumerMock,
-			processor:   processorMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {
@@ -225,12 +205,10 @@ func TestClose(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		hcStopped := false
-		consumerListening := true
 
-		// kafka consumer mock, sets consumerListening when StopListeningToConsumer is called
+		// kafka consumer mock
 		consumerMock := &kafkatest.IConsumerGroupMock{
 			StopListeningToConsumerFunc: func(ctx context.Context) error {
-				consumerListening = false
 				return nil
 			},
 			CloseFunc: func(ctx context.Context) error { return nil },

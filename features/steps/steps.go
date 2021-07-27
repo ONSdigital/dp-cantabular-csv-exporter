@@ -68,7 +68,7 @@ func (c *Component) convertToHelloEvents(table *godog.Table) ([]*event.InstanceC
 }
 
 func (c *Component) sendToConsumer(e *event.InstanceComplete) error {
-	bytes, err := schema.InstanceCompleteEvent.Marshal(e)
+	bytes, err := schema.InstanceComplete.Marshal(e)
 	if err != nil {
 		return err
 	}

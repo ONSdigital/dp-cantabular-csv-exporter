@@ -17,6 +17,7 @@ import (
 //go:generate moq -out mock/health_check.go -pkg mock . HealthChecker
 //go:generate moq -out mock/canabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/processor.go -pkg mock . Processor
 
 // Initialiser defines the methods to initialise external services
 type Initialiser interface {

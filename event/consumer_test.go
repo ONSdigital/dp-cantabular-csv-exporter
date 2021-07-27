@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event/mock"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
+
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -33,9 +33,14 @@ var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
 }
 
 func TestConsume(t *testing.T) {
+	cfg, err := config.Get()
+	if err != nil {
+		t.Fatalf("failed to get config: %s", err)
+	}
+
+	var proc = event.NewProcessor(*cfg)
 
 	Convey("Given kafka consumer and event handler mocks", t, func() {
-
 		cgChannels := &kafka.ConsumerGroupChannels{Upstream: make(chan kafka.Message, 2)}
 		mockConsumer := &kafkatest.IConsumerGroupMock{
 			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return cgChannels },
@@ -43,21 +48,19 @@ func TestConsume(t *testing.T) {
 
 		handlerWg := &sync.WaitGroup{}
 		mockEventHandler := &mock.HandlerMock{
-			HandleFunc: func(ctx context.Context, config *config.Config, event *event.InstanceComplete) error {
+			HandleFunc: func(ctx context.Context, event *event.InstanceComplete) error {
 				defer handlerWg.Done()
 				return nil
 			},
 		}
 
 		Convey("And a kafka message with the valid schema being sent to the Upstream channel", func() {
-
 			message := kafkatest.NewMessage(marshal(testEvent), 0)
 			mockConsumer.Channels().Upstream <- message
 
 			Convey("When consume message is called", func() {
-
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, &config.Config{KafkaNumWorkers: 1})
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {
@@ -83,7 +86,7 @@ func TestConsume(t *testing.T) {
 			Convey("When consume messages is called", func() {
 
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, &config.Config{KafkaNumWorkers: 1})
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("Only the valid event is sent to the mockEventHandler ", func() {
@@ -103,7 +106,7 @@ func TestConsume(t *testing.T) {
 		})
 
 		Convey("With a failing handler and a kafka message with the valid schema being sent to the Upstream channel", func() {
-			mockEventHandler.HandleFunc = func(ctx context.Context, config *config.Config, event *event.InstanceComplete) error {
+			mockEventHandler.HandleFunc = func(ctx context.Context, event *event.InstanceComplete) error {
 				defer handlerWg.Done()
 				return errHandler
 			}
@@ -113,7 +116,7 @@ func TestConsume(t *testing.T) {
 			Convey("When consume message is called", func() {
 
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, &config.Config{KafkaNumWorkers: 1})
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {
@@ -133,7 +136,7 @@ func TestConsume(t *testing.T) {
 
 // marshal helper method to marshal a event into a []byte
 func marshal(event event.InstanceComplete) []byte {
-	bytes, err := schema.InstanceCompleteEvent.Marshal(event)
+	bytes, err := schema.InstanceComplete.Marshal(event)
 	So(err, ShouldBeNil)
 	return bytes
 }

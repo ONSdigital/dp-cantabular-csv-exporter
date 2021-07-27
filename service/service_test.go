@@ -8,12 +8,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -68,6 +70,12 @@ func TestInit(t *testing.T) {
 				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 					return nil
 				},
+			}
+		}
+
+		GetProcessor = func(cfg *config.Config) Processor {
+			return &serviceMock.ProcessorMock{
+				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
 			}
 		}
 
@@ -152,6 +160,10 @@ func TestStart(t *testing.T) {
 			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return &kafka.ConsumerGroupChannels{} },
 		}
 
+		processorMock := &serviceMock.ProcessorMock{
+			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
+		}
+
 		hcMock := &serviceMock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
@@ -164,6 +176,7 @@ func TestStart(t *testing.T) {
 			server:      serverMock,
 			healthCheck: hcMock,
 			consumer:    consumerMock,
+			processor:   processorMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {

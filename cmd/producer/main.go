@@ -46,7 +46,7 @@ func main() {
 		e := scanEvent(scanner)
 		log.Event(ctx, "sending hello-called event", log.INFO, log.Data{"helloCalledEvent": e})
 
-		bytes, err := schema.InstanceCompleteEvent.Marshal(e)
+		bytes, err := schema.InstanceComplete.Marshal(e)
 		if err != nil {
 			log.Event(ctx, "hello-called event error", log.FATAL, log.Error(err))
 			os.Exit(1)

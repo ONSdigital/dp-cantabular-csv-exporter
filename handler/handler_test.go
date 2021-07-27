@@ -12,8 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testCfg = config.Config}
-
+var testCfg = config.Config{}
 
 var ctx = context.Background()
 
@@ -27,7 +26,7 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Client)
 
 		Convey("Then when Handle is triggered, one Post call is performed to Dataset API for each Cantabular variable", func() {
-			err := eventHandler.Handle(ctx, &testCfg, &event.InstanceComplete{
+			err := eventHandler.Handle(ctx, &event.InstanceComplete{
 				InstanceID: "test-instance-id",
 			})
 			So(err, ShouldBeNil)

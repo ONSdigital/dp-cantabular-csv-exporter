@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
@@ -48,8 +49,7 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 	datasetAPIClient := serviceList.GetDatasetAPIClient(ctx, cfg)
 	s3Client, err := serviceList.GetS3Client(ctx, cfg)
 	if err != nil {
-		log.Event(ctx, "failed to initialise s3 client", log.FATAL, log.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to initialise s3 client: %w", err)
 	}
 
 	// Event Handler for Kafka Consumer

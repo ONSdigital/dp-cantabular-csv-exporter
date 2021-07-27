@@ -27,7 +27,7 @@ func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d Dataset
 }
 
 // Handle takes a single event.
-func (h *InstanceCompleteHandler) Handle(ctx context.Context, cfg *config.Config, event *InstanceComplete) (err error) {
+func (h *InstanceCompleteHandler) Handle(ctx context.Context, event *InstanceComplete) (err error) {
 	logData := log.Data{
 		"event": event,
 	}

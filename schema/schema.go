@@ -4,7 +4,7 @@ import (
 	"github.com/ONSdigital/dp-kafka/v2/avro"
 )
 
-var instanceCompleteEvent = `{
+var instanceComplete = `{
   "type": "record",
   "name": "cantabular-dataset-instance-complete",
   "fields": [
@@ -13,6 +13,6 @@ var instanceCompleteEvent = `{
 }`
 
 // InstanceCompleteEvent is the Avro schema for Instance Complete messages.
-var InstanceCompleteEvent = &avro.Schema{
-	Definition: instanceCompleteEvent,
+var InstanceComplete = &avro.Schema{
+	Definition: instanceComplete,
 }

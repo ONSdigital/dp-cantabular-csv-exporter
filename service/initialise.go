@@ -7,6 +7,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
@@ -48,7 +49,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 	return consumer, nil
 }
 
-// GetCantabularClient gets and ininitalises the Cantabular Client
+// GetCantabularClient gets and initialises the Cantabular Client
 var GetCantabularClient= func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
 		dphttp.NewClient(),
@@ -58,12 +59,12 @@ var GetCantabularClient= func(cfg *config.Config) CantabularClient {
 	)
 }
 
-// GetDatasetAPIClient gets and ininitalises the DatasetAPI Client
+// GetDatasetAPIClient gets and initialises the DatasetAPI Client
 var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-// GetS3Client gets and ininitalises the S3 Client
+// GetS3Client gets and initialises the S3 Client
 var GetS3Client = func(cfg *config.Config) (S3Client, error) {
 	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
 	if err != nil {
@@ -71,6 +72,12 @@ var GetS3Client = func(cfg *config.Config) (S3Client, error) {
 	}
 	return s3Client, nil
 }
+
+// GetProcessor gets and initialises the event Processor
+var GetProcessor = func(cfg *config.Config, d DatasetAPIClient) Processor {
+	return event.NewProcessor(*cfg, d)
+}
+
 
 // GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true
 var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {

@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 )
@@ -47,4 +50,8 @@ type DatasetAPIClient interface {
 
 type S3Client interface {
 	Checker(context.Context, *healthcheck.CheckState) error
+}
+
+type Processor interface{
+	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
 }

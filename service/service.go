@@ -21,6 +21,7 @@ type Service struct {
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
 	shutdownTimeout  time.Duration
+	processor        Processor
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
 	s3Client         S3Client
@@ -50,6 +51,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
+	svc.processor = GetProcessor(cfg, svc.datasetAPIClient)
+
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
@@ -74,7 +77,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	svc.consumer.Channels().LogErrors(ctx, "kafka consumer")
 
 	// Event Handler for Kafka Consumer
-	event.Consume(
+	svc.processor.Consume(
 		ctx,
 		svc.consumer,
 		event.NewInstanceCompleteHandler(
@@ -83,7 +86,6 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.datasetAPIClient,
 			svc.s3Client,
 		),
-		svc.cfg,
 	)
 
 	svc.healthCheck.Start(ctx)

@@ -47,6 +47,10 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 	cantabularClient := serviceList.GetCantabularClient(ctx, cfg)
 	datasetAPIClient := serviceList.GetDatasetAPIClient(ctx, cfg)
 	s3Client, err := serviceList.GetS3Client(ctx, cfg)
+	if err != nil {
+		log.Event(ctx, "failed to initialise s3 client", log.FATAL, log.Error(err))
+		return nil, err
+	}
 
 	// Event Handler for Kafka Consumer
 	event.Consume(ctx, consumer, event.NewInstanceCompleteHandler(*cfg, cantabularClient, datasetAPIClient, s3Client), cfg)

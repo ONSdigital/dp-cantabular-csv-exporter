@@ -1,4 +1,4 @@
-package event_test
+package handler_test
 
 import (
 	"context"
@@ -7,13 +7,13 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event/mock"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testCfg = config.Config{
-	ServiceAuthToken: "testToken",
-}
+var testCfg = config.Config}
+
 
 var ctx = context.Background()
 
@@ -24,7 +24,7 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 		datasetAPIClient := datasetAPIClientHappy()
 		s3Client := s3ClientHappy()
 
-		eventHandler := event.NewInstanceCompleteHandler(testCfg, &ctblrClient, &datasetAPIClient, &s3Client)
+		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Client)
 
 		Convey("Then when Handle is triggered, one Post call is performed to Dataset API for each Cantabular variable", func() {
 			err := eventHandler.Handle(ctx, &testCfg, &event.InstanceComplete{

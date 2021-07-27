@@ -74,8 +74,8 @@ var GetS3Client = func(cfg *config.Config) (S3Client, error) {
 }
 
 // GetProcessor gets and initialises the event Processor
-var GetProcessor = func(cfg *config.Config, d DatasetAPIClient) Processor {
-	return event.NewProcessor(*cfg, d)
+var GetProcessor = func(cfg *config.Config) Processor {
+	return event.NewProcessor(*cfg)
 }
 
 

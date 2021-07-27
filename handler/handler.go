@@ -1,15 +1,19 @@
-package event
+package handler
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
+
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 )
 
 // InstanceCompleteHandler is the handle for the InstanceCompleteHandler event
-type InstanceCompleteHandler struct {
+type InstanceComplete struct {
 	cfg      config.Config
 	ctblr    CantabularClient
 	datasets DatasetAPIClient
@@ -17,8 +21,8 @@ type InstanceCompleteHandler struct {
 }
 
 // NewInstanceCompleteHandler creates a new InstanceCompleteHandler
-func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceCompleteHandler {
-	return &InstanceCompleteHandler{
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceComplete {
+	return &InstanceComplete{
 		cfg:      cfg,
 		ctblr:    c,
 		datasets: d,
@@ -27,15 +31,15 @@ func NewInstanceCompleteHandler(cfg config.Config, c CantabularClient, d Dataset
 }
 
 // Handle takes a single event.
-func (h *InstanceCompleteHandler) Handle(ctx context.Context, event *InstanceComplete) (err error) {
+func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete) error {
 	logData := log.Data{
-		"event": event,
+		"event": e,
 	}
 	log.Info(ctx, "event handler called", logData)
 
-	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", event.InstanceID, headers.IfMatchAnyETag)
+	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get instance: %w", err)
 	}
 
 	log.Info(ctx, "instance obtained from dataset API", log.Data{

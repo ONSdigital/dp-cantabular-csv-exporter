@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
@@ -51,7 +51,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
-	svc.processor = GetProcessor(cfg, svc.datasetAPIClient)
+	svc.processor = GetProcessor(cfg)
 
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
@@ -80,7 +80,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	svc.processor.Consume(
 		ctx,
 		svc.consumer,
-		event.NewInstanceCompleteHandler(
+		handler.NewInstanceComplete(
 			*svc.cfg,
 			svc.cantabularClient,
 			svc.datasetAPIClient,

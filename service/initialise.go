@@ -14,42 +14,42 @@ import (
 	dps3 "github.com/ONSdigital/dp-s3"
 )
 
-// ExternalServiceList holds the initialiser and initialisation state of external services.
-type ExternalServiceList struct {
-	HealthCheck   bool
-	KafkaConsumer bool
-	Init          Initialiser
-}
-
-// NewServiceList creates a new service list with the provided initialiser
-func NewServiceList(initialiser Initialiser) *ExternalServiceList {
-	return &ExternalServiceList{
-		HealthCheck:   false,
-		KafkaConsumer: false,
-		Init:          initialiser,
-	}
-}
-
-// Init implements the Initialiser interface to initialise dependencies
-type Init struct{}
-
 // GetHTTPServer creates an http server and sets the Server flag to true
-func (e *ExternalServiceList) GetHTTPServer(bindAddr string, router http.Handler) HTTPServer {
-	s := e.Init.DoGetHTTPServer(bindAddr, router)
+var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
+	s := dphttp.NewServer(bindAddr, router)
+	s.HandleOSSignals = false
 	return s
 }
 
 // GetKafkaConsumer creates a Kafka consumer and sets the consumer flag to true
-func (e *ExternalServiceList) GetKafkaConsumer(ctx context.Context, cfg *config.Config) (dpkafka.IConsumerGroup, error) {
-	consumer, err := e.Init.DoGetKafkaConsumer(ctx, cfg)
+var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IConsumerGroup, error) {
+	cgChannels := dpkafka.CreateConsumerGroupChannels(1)
+
+	kafkaOffset := dpkafka.OffsetNewest
+	if cfg.KafkaOffsetOldest {
+		kafkaOffset = dpkafka.OffsetOldest
+	}
+
+	consumer, err := dpkafka.NewConsumerGroup(
+		ctx,
+		cfg.KafkaAddr,
+		cfg.InstanceCompleteTopic,
+		cfg.InstanceCompleteGroup,
+		cgChannels,
+		&dpkafka.ConsumerGroupConfig{
+			KafkaVersion: &cfg.KafkaVersion,
+				Offset:       &kafkaOffset,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	e.KafkaConsumer = true
+
 	return consumer, nil
 }
 
-func (e *ExternalServiceList) GetCantabularClient(ctx context.Context, cfg *config.Config) CantabularClient {
+// GetCantabularClient gets and ininitalises the Cantabular Client
+var GetCantabularClient= func(ctx context.Context, cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
 		dphttp.NewClient(),
 		cantabular.Config{
@@ -58,11 +58,13 @@ func (e *ExternalServiceList) GetCantabularClient(ctx context.Context, cfg *conf
 	)
 }
 
-func (e *ExternalServiceList) GetDatasetAPIClient(ctx context.Context, cfg *config.Config) DatasetAPIClient {
+// GetDatasetAPIClient gets and ininitalises the DatasetAPI Client
+var GetDatasetAPIClient = func(ctx context.Context, cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-func (e *ExternalServiceList) GetS3Client(ctx context.Context, cfg *config.Config) (S3Client, error) {
+// GetS3Client gets and ininitalises the S3 Client
+var GetS3Client = func(ctx context.Context, cfg *config.Config) (S3Client, error) {
 	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 Client: %w", err)
@@ -71,53 +73,12 @@ func (e *ExternalServiceList) GetS3Client(ctx context.Context, cfg *config.Confi
 }
 
 // GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true
-func (e *ExternalServiceList) GetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
-	hc, err := e.Init.DoGetHealthCheck(cfg, buildTime, gitCommit, version)
-	if err != nil {
-		return nil, err
-	}
-	e.HealthCheck = true
-	return hc, nil
-}
-
-// DoGetHTTPServer creates an HTTP Server with the provided bind address and router
-func (e *Init) DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer {
-	s := dphttp.NewServer(bindAddr, router)
-	s.HandleOSSignals = false
-	return s
-}
-
-// DoGetKafkaConsumer returns a Kafka Consumer group
-func (e *Init) DoGetKafkaConsumer(ctx context.Context, cfg *config.Config) (dpkafka.IConsumerGroup, error) {
-	cgChannels := dpkafka.CreateConsumerGroupChannels(1)
-	kafkaOffset := dpkafka.OffsetNewest
-	if cfg.KafkaOffsetOldest {
-		kafkaOffset = dpkafka.OffsetOldest
-	}
-	kafkaConsumer, err := dpkafka.NewConsumerGroup(
-		ctx,
-		cfg.KafkaAddr,
-		cfg.InstanceCompleteTopic,
-		cfg.InstanceCompleteGroup,
-		cgChannels,
-		&dpkafka.ConsumerGroupConfig{
-			KafkaVersion: &cfg.KafkaVersion,
-			Offset:       &kafkaOffset,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return kafkaConsumer, nil
-}
-
-// DoGetHealthCheck creates a healthcheck with versionInfo
-func (e *Init) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
+var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
 	if err != nil {
 		return nil, err
 	}
+
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 	return &hc, nil
 }

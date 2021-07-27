@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"os"
+	"fmt"
 	"os/signal"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/pkg/errors"
 )
 
 const serviceName = "dp-cantabular-csv-exporter"
@@ -34,14 +35,21 @@ func main() {
 func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, os.Kill)
-
-	// Run the service, providing an error channel for fatal errors
 	svcErrors := make(chan error, 1)
-	svcList := service.NewServiceList(&service.Init{})
-	svc, err := service.Run(ctx, svcList, BuildTime, GitCommit, Version, svcErrors)
+
+	// Read config
+	cfg, err := config.Get()
 	if err != nil {
-		return errors.Wrap(err, "running service failed")
+		return fmt.Errorf("unable to retrieve service configuration: %w", err)
 	}
+
+	// Run the service
+	svc := service.New()
+	if err := svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
+		return fmt.Errorf("running service failed with error: %w", err)
+	}
+	svc.Start(ctx, svcErrors)
+
 
 	// blocks until an os interrupt or a fatal error occurs
 	select {

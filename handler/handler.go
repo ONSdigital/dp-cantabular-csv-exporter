@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/placeholder"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -36,14 +39,110 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 	log.Info(ctx, "event handler called", logData)
 
+	// ========================================================================
+	// Ticket #5175
+	// Retrieve isntance from Mongo
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
-		return fmt.Errorf("failed to get instance: %w", err)
+		return &Error{
+			err: fmt.Errorf("failed to get instance: %w", err),
+			logData: log.Data{
+				"instance_id": e.InstanceID,
+			},
+		}
 	}
 
 	log.Info(ctx, "instance obtained from dataset API", log.Data{
-		"instance": instance,
+		"instance_id": instance.ID,
 	})
 
+	// Query Cantabular for counts
+	resp, err := placeholder.QueryDataset(ctx, placeholder.QueryDatasetRequest{
+		Dataset:   "",         // get CantabularBlob name from event/instance
+		Variables: []string{}, // get variable names from instance
+	})
+	if err != nil {
+		return fmt.Errorf("failed to query dataset: %w", err)
+	}
+
+	// Validate response
+	if err := h.ValidateQueryResponse(resp); err != nil {
+		return fmt.Errorf("failed to validate query response: %w", err)
+	}
+	// ========================================================================
+
+	// ========================================================================
+	// Ticket #5178
+	// Convert Cantabular Response To CSV file
+	csv, err := h.ParseQueryResponse(resp)
+	if err != nil {
+		return fmt.Errorf("failed to generate table from query response: %w", err)
+	}
+	// ========================================================================
+
+	// When planning the tickets we thought there would be another conversion
+	// step here but it turns out the sensible code example is for directly
+	// creating a CSV file, not just parsing the response into a generic struct.
+
+	// ========================================================================
+	// Ticket #5180
+	// Upload CSV file to S3
+	url, err := h.UploadCSVFile(csv)
+	if err != nil {
+		return fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err)
+	}
+	// ========================================================================
+
+	// ========================================================================
+	// Ticket #5181
+	// Update instance with link to file
+	if err := h.UpdateInstance(url); err != nil {
+		return fmt.Errorf("failed to update instance: %w", err)
+	}
+
+	// Generate output kafka message
+	if err := h.ProduceExportCompleteEvent(); err != nil {
+		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
+	}
+	// ========================================================================
+	return nil
+}
+
+func (h *InstanceComplete) ValidateQueryResponse(resp *placeholder.QueryDatasetResponse) error {
+	if resp == nil {
+		return errors.New("nil response")
+	}
+
+	// Perform any validation we may wish to
+	return nil
+}
+
+func (h *InstanceComplete) ParseQueryResponse(resp *placeholder.QueryDatasetResponse) (bufio.ReadWriter, error) {
+	// Here is where we implement the example set out by Sensible Code here:
+	// https://github.com/cantabular/examples/blob/master/golang/main.go
+	// and referenced in the high level design doc
+
+	// Using a bufio.ReadWriter we should be able to use an object that can be written
+	// to by the csv package and then uploaded directly with the S3 package.
+	var csv bufio.ReadWriter
+	return csv, nil
+}
+
+func (h *InstanceComplete) UploadCSVFile(file bufio.ReadWriter) (string, error) {
+	// Here we upload the file to S3. We should be able to upload any io.Reader
+	// as a file directly
+	return "http://s3.aws/link-to-file.csv", nil
+}
+
+func (h *InstanceComplete) UpdateInstance(url string) error {
+	// It's unclear whether there is a direct api call within the
+	// datasetAPIClient that can update the instance with a link or not.
+	// Will have to directly modify the document if not.
+	return nil
+}
+
+func (h *InstanceComplete) ProduceExportCompleteEvent() error {
+	// Here we produce the final kafka message signifying the export complete
+	// What that message needs to look like is unknown at this point
 	return nil
 }

@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"os"
 	"fmt"
+	"os"
 	"os/signal"
 
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -49,7 +49,6 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("running service failed with error: %w", err)
 	}
 	svc.Start(ctx, svcErrors)
-
 
 	// blocks until an os interrupt or a fatal error occurs
 	select {

@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
-
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 
-	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
-// InstanceCompleteHandler is the handle for the InstanceCompleteHandler event
+// InstanceComplete is the handle for the InstanceCompleteHandler event
 type InstanceComplete struct {
 	cfg      config.Config
 	ctblr    CantabularClient
@@ -20,7 +19,7 @@ type InstanceComplete struct {
 	s3       S3Client
 }
 
-// NewInstanceCompleteHandler creates a new InstanceCompleteHandler
+// NewInstanceComplete creates a new InstanceCompleteHandler
 func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:      cfg,

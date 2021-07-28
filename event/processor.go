@@ -6,12 +6,12 @@ import (
 
 // Processor handles consuming and processing Kafka messages
 type Processor struct {
-	cfg        config.Config
+	cfg config.Config
 }
 
 // NewProcessor returns a new Processor
 func NewProcessor(cfg config.Config) *Processor {
 	return &Processor{
-		cfg:        cfg,
+		cfg: cfg,
 	}
 }

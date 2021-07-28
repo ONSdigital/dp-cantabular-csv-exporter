@@ -12,7 +12,7 @@ var instanceComplete = `{
   ]
 }`
 
-// InstanceCompleteEvent is the Avro schema for Instance Complete messages.
+// InstanceComplete is the Avro schema for Instance Complete messages.
 var InstanceComplete = &avro.Schema{
 	Definition: instanceComplete,
 }

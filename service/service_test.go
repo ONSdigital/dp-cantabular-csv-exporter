@@ -12,8 +12,8 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -236,7 +236,7 @@ func TestClose(t *testing.T) {
 		serverMock := &serviceMock.HTTPServerMock{
 			ShutdownFunc: func(ctx context.Context) error {
 				if !hcStopped {
-					return fmt.Errorf("Server stopped before healthcheck")
+					return fmt.Errorf("server stopped before healthcheck")
 				}
 				return nil
 			},

@@ -53,6 +53,6 @@ type S3Client interface {
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type Processor interface{
+type Processor interface {
 	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
 }

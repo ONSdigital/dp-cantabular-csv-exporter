@@ -7,8 +7,8 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -39,7 +39,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 		cgChannels,
 		&dpkafka.ConsumerGroupConfig{
 			KafkaVersion: &cfg.KafkaVersion,
-				Offset:       &kafkaOffset,
+			Offset:       &kafkaOffset,
 		},
 	)
 	if err != nil {
@@ -50,7 +50,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 }
 
 // GetCantabularClient gets and initialises the Cantabular Client
-var GetCantabularClient= func(cfg *config.Config) CantabularClient {
+var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
 		dphttp.NewClient(),
 		cantabular.Config{
@@ -77,7 +77,6 @@ var GetS3Client = func(cfg *config.Config) (S3Client, error) {
 var GetProcessor = func(cfg *config.Config) Processor {
 	return event.NewProcessor(*cfg)
 }
-
 
 // GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true
 var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {

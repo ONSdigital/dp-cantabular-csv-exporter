@@ -14,7 +14,7 @@ import (
 type CantabularClient interface {
 }
 
-// CantabularClient contains the required method for the S3 Client
+// S3Client contains the required method for the S3 Client
 type S3Client interface {
 }
 

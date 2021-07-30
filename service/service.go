@@ -24,7 +24,7 @@ type Service struct {
 	processor        Processor
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
-	s3Client         S3Client
+	s3Uploader       S3Uploader
 }
 
 func New() *Service {
@@ -44,7 +44,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
-	if svc.s3Client, err = GetS3Client(cfg); err != nil {
+	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 client: %w", err)
 	}
 
@@ -84,7 +84,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			*svc.cfg,
 			svc.cantabularClient,
 			svc.datasetAPIClient,
-			svc.s3Client,
+			svc.s3Uploader,
 		),
 	)
 
@@ -178,7 +178,7 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("S3 client", svc.s3Client.Checker); err != nil {
+	if err := svc.healthCheck.AddCheck("S3 client", svc.s3Uploader.Checker); err != nil {
 		return fmt.Errorf("error adding check for s3 client: %w", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
@@ -15,8 +16,9 @@ import (
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
 //go:generate moq -out mock/health_check.go -pkg mock . HealthChecker
-//go:generate moq -out mock/canabular_client.go -pkg mock . CantabularClient
+//go:generate moq -out mock/cantabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/s3_uploader.go -pkg mock . S3Uploader
 //go:generate moq -out mock/processor.go -pkg mock . Processor
 
 // Initialiser defines the methods to initialise external services
@@ -49,7 +51,9 @@ type DatasetAPIClient interface {
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type S3Client interface {
+type S3Uploader interface {
+	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	BucketName() string
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 

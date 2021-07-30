@@ -5,10 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/placeholder"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -19,11 +22,11 @@ type InstanceComplete struct {
 	cfg      config.Config
 	ctblr    CantabularClient
 	datasets DatasetAPIClient
-	s3       S3Client
+	s3       S3Uploader
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:      cfg,
 		ctblr:    c,
@@ -84,14 +87,11 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// step here but it turns out the sensible code example is for directly
 	// creating a CSV file, not just parsing the response into a generic struct.
 
-	// ========================================================================
-	// Ticket #5180
 	// Upload CSV file to S3
-	url, err := h.UploadCSVFile(csv)
+	url, err := h.UploadCSVFile(ctx, e.InstanceID, &csv)
 	if err != nil {
 		return fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err)
 	}
-	// ========================================================================
 
 	// ========================================================================
 	// Ticket #5181
@@ -128,10 +128,35 @@ func (h *InstanceComplete) ParseQueryResponse(resp *placeholder.QueryDatasetResp
 	return csv, nil
 }
 
-func (h *InstanceComplete) UploadCSVFile(file bufio.ReadWriter) (string, error) {
-	// Here we upload the file to S3. We should be able to upload any io.Reader
-	// as a file directly
-	return "http://s3.aws/link-to-file.csv", nil
+// UploadCSVFile uploads the provided file content to AWS S3
+// The file name is the instance ID and a uuid
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter) (string, error) {
+
+	if instanceID == "" {
+		return "", errors.New("empty instance id not allowed")
+	}
+	if file == nil {
+		return "", errors.New("no file content has been provided")
+	}
+
+	bucketName := h.s3.BucketName()
+	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
+
+	log.Info(ctx, "uploading file to S3", log.Data{
+		"bucket": bucketName,
+		"name":   filename,
+	})
+
+	result, err := h.s3.Upload(&s3manager.UploadInput{
+		Body:   file.Reader,
+		Bucket: &bucketName,
+		Key:    &filename,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file to S3: %w", err)
+	}
+
+	return url.PathUnescape(result.Location)
 }
 
 func (h *InstanceComplete) UpdateInstance(url string) error {
@@ -145,4 +170,9 @@ func (h *InstanceComplete) ProduceExportCompleteEvent() error {
 	// Here we produce the final kafka message signifying the export complete
 	// What that message needs to look like is unknown at this point
 	return nil
+}
+
+// GenerateUUID returns a new V4 unique ID
+var GenerateUUID = func() string {
+	return uuid.NewV4().String()
 }

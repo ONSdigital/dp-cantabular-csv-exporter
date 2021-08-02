@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/placeholder"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -185,5 +185,5 @@ func (h *InstanceComplete) ProduceExportCompleteEvent() error {
 
 // GenerateUUID returns a new V4 unique ID
 var GenerateUUID = func() string {
-	return uuid.NewV4().String()
+	return uuid.NewString()
 }

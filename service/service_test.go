@@ -143,7 +143,7 @@ func TestInit(t *testing.T) {
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
 					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Cantabular client")
 					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 uploader")
 				})
 			})
 		})

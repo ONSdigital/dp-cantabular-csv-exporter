@@ -90,7 +90,13 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// Upload CSV file to S3
 	url, err := h.UploadCSVFile(ctx, e.InstanceID, &csv)
 	if err != nil {
-		return fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err)
+		return &Error{
+			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
+			logData: log.Data{
+				"bucket":      h.s3.BucketName(),
+				"instance_id": e.InstanceID,
+			},
+		}
 	}
 
 	// ========================================================================
@@ -131,7 +137,6 @@ func (h *InstanceComplete) ParseQueryResponse(resp *placeholder.QueryDatasetResp
 // UploadCSVFile uploads the provided file content to AWS S3
 // The file name is the instance ID and a uuid
 func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter) (string, error) {
-
 	if instanceID == "" {
 		return "", errors.New("empty instance id not allowed")
 	}
@@ -143,8 +148,8 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
 
 	log.Info(ctx, "uploading file to S3", log.Data{
-		"bucket": bucketName,
-		"name":   filename,
+		"bucket":   bucketName,
+		"filename": filename,
 	})
 
 	result, err := h.s3.Upload(&s3manager.UploadInput{
@@ -153,7 +158,13 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		Key:    &filename,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file to S3: %w", err)
+		return "", &Error{
+			err: fmt.Errorf("failed to upload file to S3: %w", err),
+			logData: log.Data{
+				"bucket":   bucketName,
+				"filename": filename,
+			},
+		}
 	}
 
 	return url.PathUnescape(result.Location)

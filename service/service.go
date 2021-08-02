@@ -45,7 +45,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
 	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
-		return fmt.Errorf("failed to initialise s3 client: %w", err)
+		return fmt.Errorf("failed to initialise s3 uploader: %w", err)
 	}
 
 	svc.cantabularClient = GetCantabularClient(cfg)
@@ -178,8 +178,8 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("S3 client", svc.s3Uploader.Checker); err != nil {
-		return fmt.Errorf("error adding check for s3 client: %w", err)
+	if err := svc.healthCheck.AddCheck("S3 uploader", svc.s3Uploader.Checker); err != nil {
+		return fmt.Errorf("error adding check for s3 uploader: %w", err)
 	}
 
 	return nil

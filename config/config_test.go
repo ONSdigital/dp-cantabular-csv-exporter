@@ -30,6 +30,9 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaNumWorkers, ShouldEqual, 1)
 				So(cfg.InstanceCompleteGroup, ShouldEqual, "dp-cantabular-csv-exporter")
 				So(cfg.InstanceCompleteTopic, ShouldEqual, "cantabular-dataset-instance-complete")
+				So(cfg.VaultPath, ShouldEqual, "secret/shared/psk")
+				So(cfg.VaultAddress, ShouldEqual, "http://localhost:8200")
+				So(cfg.VaultToken, ShouldEqual, "")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

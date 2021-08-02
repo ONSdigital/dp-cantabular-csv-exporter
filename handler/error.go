@@ -13,6 +13,14 @@ type Error struct {
 	logData map[string]interface{}
 }
 
+// NewError creates a new Error
+func NewError(err error, logData map[string]interface{}) *Error {
+	return &Error{
+		err:     err,
+		logData: logData,
+	}
+}
+
 // Error implements the Go standard error interface
 func (e *Error) Error() string {
 	if e.err == nil {

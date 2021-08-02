@@ -13,6 +13,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -90,10 +91,15 @@ func TestUploadCSVFile(t *testing.T) {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, fmt.Errorf("failed to upload file to S3: %w", errS3))
+				So(err, ShouldResemble, handler.NewError(
+					fmt.Errorf("failed to upload file to S3: %w", errS3),
+					log.Data{
+						"bucket":   testBucket,
+						"filename": fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
+					},
+				))
 			})
 		})
-
 	})
 
 	Convey("Given an empty event handler", t, func() {

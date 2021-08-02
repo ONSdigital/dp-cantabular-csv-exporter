@@ -12,15 +12,16 @@ require (
 	github.com/ONSdigital/dp-kafka/v2 v2.2.1
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-s3 v1.6.0
-	github.com/ONSdigital/dp-vault v1.2.0 // indirect
+	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/ONSdigital/log.go/v2 v2.0.5
 	github.com/aws/aws-sdk-go v1.40.11
 	github.com/cucumber/godog v0.11.0
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/hashicorp/vault/api v1.0.5-0.20200527182800-ad90e0b39d2f
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
-	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect

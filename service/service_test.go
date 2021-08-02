@@ -15,8 +15,8 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	vault "github.com/ONSdigital/dp-vault"
-	vaultapi "github.com/ONSdigital/dp-vault/api"
 	vaultmock "github.com/ONSdigital/dp-vault/mock"
+	vaultapi "github.com/hashicorp/vault/api"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

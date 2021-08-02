@@ -8,7 +8,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	vault "github.com/ONSdigital/dp-vault"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 )
@@ -23,7 +22,7 @@ type Service struct {
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
 	s3Uploader       S3Uploader
-	vaultClient      *vault.Client
+	vaultClient      VaultClient
 }
 
 func New() *Service {
@@ -87,6 +86,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.cantabularClient,
 			svc.datasetAPIClient,
 			svc.s3Uploader,
+			svc.vaultClient,
 		),
 	)
 

@@ -14,9 +14,6 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	vault "github.com/ONSdigital/dp-vault"
-	vaultmock "github.com/ONSdigital/dp-vault/mock"
-	vaultapi "github.com/hashicorp/vault/api"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -83,15 +80,12 @@ func TestInit(t *testing.T) {
 			}, nil
 		}
 
-		vaultMock := &vaultmock.APIClientMock{
-			HealthFunc: func() (*vaultapi.HealthResponse, error) {
-				return &vaultapi.HealthResponse{
-					Initialized: true,
-				}, nil
-			},
-		}
-		GetVault = func(cfg *config.Config) (*vault.Client, error) {
-			return vault.CreateClientWithAPIClient(vaultMock), nil
+		GetVault = func(cfg *config.Config) (VaultClient, error) {
+			return &serviceMock.VaultClientMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}, nil
 		}
 
 		GetProcessor = func(cfg *config.Config) Processor {

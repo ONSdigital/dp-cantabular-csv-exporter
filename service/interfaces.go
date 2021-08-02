@@ -19,6 +19,7 @@ import (
 //go:generate moq -out mock/cantabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
 //go:generate moq -out mock/s3_uploader.go -pkg mock . S3Uploader
+//go:generate moq -out mock/vault.go -pkg mock . VaultClient
 //go:generate moq -out mock/processor.go -pkg mock . Processor
 
 // Initialiser defines the methods to initialise external services
@@ -59,4 +60,8 @@ type S3Uploader interface {
 
 type Processor interface {
 	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
+}
+
+type VaultClient interface {
+	Checker(context.Context, *healthcheck.CheckState) error
 }

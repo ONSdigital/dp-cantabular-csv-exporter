@@ -42,7 +42,7 @@ func TestInstanceCompleteHandler_Handle(t *testing.T) {
 		datasetAPIClient := datasetAPIClientHappy()
 		s3Uploader := s3UploaderHappy()
 
-		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Uploader)
+		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Uploader, nil)
 
 		Convey("Then when Handle is triggered, one Post call is performed to Dataset API for each Cantabular variable", func() {
 			err := eventHandler.Handle(ctx, &event.InstanceComplete{
@@ -62,7 +62,7 @@ func TestUploadCSVFile(t *testing.T) {
 	Convey("Given an event handler with a successful S3Uploader", t, func() {
 		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
 			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent)
@@ -85,7 +85,7 @@ func TestUploadCSVFile(t *testing.T) {
 	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
 		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderUnhappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent)
@@ -103,7 +103,7 @@ func TestUploadCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an empty event handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvFileContent)

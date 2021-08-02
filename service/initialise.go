@@ -67,7 +67,7 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-// GetS3Uploader gets and initialises the S3 Uploader
+// GetS3Uploader creates an S3 Uploader
 var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
 	uploader, err := dps3.NewUploader(cfg.AWSRegion, cfg.UploadBucketName, false)
 	if err != nil {
@@ -76,7 +76,8 @@ var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
 	return uploader, nil
 }
 
-var GetVault = func(cfg *config.Config) (*vault.Client, error) {
+// GetVault creates a VaultClient
+var GetVault = func(cfg *config.Config) (VaultClient, error) {
 	return vault.CreateClient(cfg.VaultToken, cfg.VaultAddress, VaultRetries)
 }
 

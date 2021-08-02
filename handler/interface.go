@@ -25,3 +25,7 @@ type S3Uploader interface {
 type DatasetAPIClient interface {
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 }
+
+// VaultClient contains the required methods for the Vault Client
+type VaultClient interface {
+}

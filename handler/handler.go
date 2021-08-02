@@ -19,19 +19,21 @@ import (
 
 // InstanceComplete is the handle for the InstanceCompleteHandler event
 type InstanceComplete struct {
-	cfg      config.Config
-	ctblr    CantabularClient
-	datasets DatasetAPIClient
-	s3       S3Uploader
+	cfg         config.Config
+	ctblr       CantabularClient
+	datasets    DatasetAPIClient
+	s3          S3Uploader
+	vaultClient VaultClient
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient) *InstanceComplete {
 	return &InstanceComplete{
-		cfg:      cfg,
-		ctblr:    c,
-		datasets: d,
-		s3:       s,
+		cfg:         cfg,
+		ctblr:       c,
+		datasets:    d,
+		s3:          s,
+		vaultClient: v,
 	}
 }
 

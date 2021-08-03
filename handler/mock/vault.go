@@ -4,50 +4,39 @@
 package mock
 
 import (
-	"context"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"sync"
 )
 
 var (
-	lockVaultClientMockChecker  sync.RWMutex
 	lockVaultClientMockWriteKey sync.RWMutex
 )
 
-// VaultClientMock is a mock implementation of service.VaultClient.
+// Ensure, that VaultClientMock does implement handler.VaultClient.
+// If this is not the case, regenerate this file with moq.
+var _ handler.VaultClient = &VaultClientMock{}
+
+// VaultClientMock is a mock implementation of handler.VaultClient.
 //
 //     func TestSomethingThatUsesVaultClient(t *testing.T) {
 //
-//         // make and configure a mocked service.VaultClient
+//         // make and configure a mocked handler.VaultClient
 //         mockedVaultClient := &VaultClientMock{
-//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
-// 	               panic("mock out the Checker method")
-//             },
 //             WriteKeyFunc: func(path string, key string, value string) error {
 // 	               panic("mock out the WriteKey method")
 //             },
 //         }
 //
-//         // use mockedVaultClient in code that requires service.VaultClient
+//         // use mockedVaultClient in code that requires handler.VaultClient
 //         // and then make assertions.
 //
 //     }
 type VaultClientMock struct {
-	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
-
 	// WriteKeyFunc mocks the WriteKey method.
 	WriteKeyFunc func(path string, key string, value string) error
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Checker holds details about calls to the Checker method.
-		Checker []struct {
-			// In1 is the in1 argument value.
-			In1 context.Context
-			// In2 is the in2 argument value.
-			In2 *healthcheck.CheckState
-		}
 		// WriteKey holds details about calls to the WriteKey method.
 		WriteKey []struct {
 			// Path is the path argument value.
@@ -58,41 +47,6 @@ type VaultClientMock struct {
 			Value string
 		}
 	}
-}
-
-// Checker calls CheckerFunc.
-func (mock *VaultClientMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
-	if mock.CheckerFunc == nil {
-		panic("VaultClientMock.CheckerFunc: method is nil but VaultClient.Checker was just called")
-	}
-	callInfo := struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
-	}{
-		In1: in1,
-		In2: in2,
-	}
-	lockVaultClientMockChecker.Lock()
-	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockVaultClientMockChecker.Unlock()
-	return mock.CheckerFunc(in1, in2)
-}
-
-// CheckerCalls gets all the calls that were made to Checker.
-// Check the length with:
-//     len(mockedVaultClient.CheckerCalls())
-func (mock *VaultClientMock) CheckerCalls() []struct {
-	In1 context.Context
-	In2 *healthcheck.CheckState
-} {
-	var calls []struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
-	}
-	lockVaultClientMockChecker.RLock()
-	calls = mock.calls.Checker
-	lockVaultClientMockChecker.RUnlock()
-	return calls
 }
 
 // WriteKey calls WriteKeyFunc.

@@ -3,9 +3,12 @@ package handler
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
@@ -16,6 +19,9 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
 )
+
+// Encrypted determines if files need to be encrypted with a newly generated key when they are stored in S3
+const Encrypted = false
 
 // InstanceComplete is the handle for the InstanceCompleteHandler event
 type InstanceComplete struct {
@@ -90,7 +96,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3
-	url, err := h.UploadCSVFile(ctx, e.InstanceID, &csv)
+	url, err := h.UploadCSVFile(ctx, e.InstanceID, &csv, Encrypted)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -138,7 +144,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *placeholder.QueryDatasetResp
 
 // UploadCSVFile uploads the provided file content to AWS S3
 // The file name is the instance ID and a uuid
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter) (string, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter, encrypted bool) (string, error) {
 	if instanceID == "" {
 		return "", errors.New("empty instance id not allowed")
 	}
@@ -148,10 +154,49 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 
 	bucketName := h.s3.BucketName()
 	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
-
 	log.Info(ctx, "uploading file to S3", log.Data{
 		"bucket":   bucketName,
 		"filename": filename,
+	})
+
+	if encrypted {
+		log.Event(ctx, "uploading private file to S3", log.INFO, log.Data{
+			"bucket": h.s3.BucketName(),
+			"name":   filename,
+		})
+
+		psk := CreatePSK()
+		vaultPath := fmt.Sprintf("%s/%s", h.cfg.VaultPath, path.Base(filename))
+		vaultKey := "key"
+
+		log.Event(ctx, "writing key to vault", log.INFO, log.Data{
+			"vault_path": vaultPath,
+		})
+		if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
+			return "", err
+		}
+
+		result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
+			Body:   file.Reader,
+			Bucket: &bucketName,
+			Key:    &filename,
+		}, psk)
+		if err != nil {
+			return "", &Error{
+				err: fmt.Errorf("failed to upload file to S3: %w", err),
+				logData: log.Data{
+					"bucket":    bucketName,
+					"filename":  filename,
+					"encrypted": true,
+				},
+			}
+		}
+		return url.PathUnescape(result.Location)
+	}
+
+	log.Event(ctx, "uploading public file to S3", log.INFO, log.Data{
+		"bucket": h.s3.BucketName(),
+		"name":   filename,
 	})
 
 	result, err := h.s3.Upload(&s3manager.UploadInput{
@@ -163,8 +208,9 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		return "", &Error{
 			err: fmt.Errorf("failed to upload file to S3: %w", err),
 			logData: log.Data{
-				"bucket":   bucketName,
-				"filename": filename,
+				"bucket":    bucketName,
+				"filename":  filename,
+				"encrypted": false,
 			},
 		}
 	}
@@ -188,4 +234,12 @@ func (h *InstanceComplete) ProduceExportCompleteEvent() error {
 // GenerateUUID returns a new V4 unique ID
 var GenerateUUID = func() string {
 	return uuid.NewString()
+}
+
+// CreatePSK returns a new random array of 16 bytes
+var CreatePSK = func() []byte {
+	key := make([]byte, 16)
+	rand.Read(key)
+
+	return key
 }

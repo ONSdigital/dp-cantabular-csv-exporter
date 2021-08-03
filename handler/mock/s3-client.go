@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	lockS3UploaderMockBucketName sync.RWMutex
-	lockS3UploaderMockUpload     sync.RWMutex
+	lockS3UploaderMockBucketName    sync.RWMutex
+	lockS3UploaderMockUpload        sync.RWMutex
+	lockS3UploaderMockUploadWithPSK sync.RWMutex
 )
 
 // Ensure, that S3UploaderMock does implement handler.S3Uploader.
@@ -30,6 +31,9 @@ var _ handler.S3Uploader = &S3UploaderMock{}
 //             UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 // 	               panic("mock out the Upload method")
 //             },
+//             UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+// 	               panic("mock out the UploadWithPSK method")
+//             },
 //         }
 //
 //         // use mockedS3Uploader in code that requires handler.S3Uploader
@@ -43,6 +47,9 @@ type S3UploaderMock struct {
 	// UploadFunc mocks the Upload method.
 	UploadFunc func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
+	// UploadWithPSKFunc mocks the UploadWithPSK method.
+	UploadWithPSKFunc func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// BucketName holds details about calls to the BucketName method.
@@ -54,6 +61,13 @@ type S3UploaderMock struct {
 			Input *s3manager.UploadInput
 			// Options is the options argument value.
 			Options []func(*s3manager.Uploader)
+		}
+		// UploadWithPSK holds details about calls to the UploadWithPSK method.
+		UploadWithPSK []struct {
+			// Input is the input argument value.
+			Input *s3manager.UploadInput
+			// Psk is the psk argument value.
+			Psk []byte
 		}
 	}
 }
@@ -116,5 +130,40 @@ func (mock *S3UploaderMock) UploadCalls() []struct {
 	lockS3UploaderMockUpload.RLock()
 	calls = mock.calls.Upload
 	lockS3UploaderMockUpload.RUnlock()
+	return calls
+}
+
+// UploadWithPSK calls UploadWithPSKFunc.
+func (mock *S3UploaderMock) UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+	if mock.UploadWithPSKFunc == nil {
+		panic("S3UploaderMock.UploadWithPSKFunc: method is nil but S3Uploader.UploadWithPSK was just called")
+	}
+	callInfo := struct {
+		Input *s3manager.UploadInput
+		Psk   []byte
+	}{
+		Input: input,
+		Psk:   psk,
+	}
+	lockS3UploaderMockUploadWithPSK.Lock()
+	mock.calls.UploadWithPSK = append(mock.calls.UploadWithPSK, callInfo)
+	lockS3UploaderMockUploadWithPSK.Unlock()
+	return mock.UploadWithPSKFunc(input, psk)
+}
+
+// UploadWithPSKCalls gets all the calls that were made to UploadWithPSK.
+// Check the length with:
+//     len(mockedS3Uploader.UploadWithPSKCalls())
+func (mock *S3UploaderMock) UploadWithPSKCalls() []struct {
+	Input *s3manager.UploadInput
+	Psk   []byte
+} {
+	var calls []struct {
+		Input *s3manager.UploadInput
+		Psk   []byte
+	}
+	lockS3UploaderMockUploadWithPSK.RLock()
+	calls = mock.calls.UploadWithPSK
+	lockS3UploaderMockUploadWithPSK.RUnlock()
 	return calls
 }

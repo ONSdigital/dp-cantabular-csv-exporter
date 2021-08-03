@@ -69,7 +69,7 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 
 // GetS3Uploader creates an S3 Uploader
 var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
-	uploader, err := dps3.NewUploader(cfg.AWSRegion, cfg.UploadBucketName, false)
+	uploader, err := dps3.NewUploader(cfg.AWSRegion, cfg.UploadBucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 Client: %w", err)
 	}

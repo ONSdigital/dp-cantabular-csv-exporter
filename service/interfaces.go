@@ -54,6 +54,7 @@ type DatasetAPIClient interface {
 
 type S3Uploader interface {
 	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
 	BucketName() string
 	Checker(context.Context, *healthcheck.CheckState) error
 }
@@ -63,5 +64,6 @@ type Processor interface {
 }
 
 type VaultClient interface {
+	WriteKey(path, key, value string) error
 	Checker(context.Context, *healthcheck.CheckState) error
 }

@@ -65,7 +65,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -88,14 +88,15 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to upload file to S3: %w", errS3),
 					log.Data{
-						"bucket":   testBucket,
-						"filename": fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
+						"bucket":    testBucket,
+						"filename":  fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
+						"encrypted": false,
 					},
 				))
 			})
@@ -106,7 +107,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvFileContent)
+			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvFileContent, false)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
@@ -114,7 +115,7 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 
 		Convey("When UploadCSVFile is triggered with a nil csv reader", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil, false)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("no file content has been provided"))

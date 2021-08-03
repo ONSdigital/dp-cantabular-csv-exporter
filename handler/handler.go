@@ -154,26 +154,23 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 
 	bucketName := h.s3.BucketName()
 	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
-	log.Info(ctx, "uploading file to S3", log.Data{
-		"bucket":   bucketName,
-		"filename": filename,
-	})
+
+	logData := log.Data{
+		"bucket":    bucketName,
+		"filename":  filename,
+		"encrypted": encrypted,
+	}
 
 	if encrypted {
-		log.Event(ctx, "uploading private file to S3", log.INFO, log.Data{
-			"bucket": h.s3.BucketName(),
-			"name":   filename,
-		})
+		log.Event(ctx, "uploading private file to S3", log.INFO, logData)
 
 		psk := CreatePSK()
 		vaultPath := fmt.Sprintf("%s/%s", h.cfg.VaultPath, path.Base(filename))
 		vaultKey := "key"
 
-		log.Event(ctx, "writing key to vault", log.INFO, log.Data{
-			"vault_path": vaultPath,
-		})
+		log.Event(ctx, "writing key to vault", log.INFO, log.Data{"vault_path": vaultPath})
 		if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
-			return "", err
+			return "", NewError(fmt.Errorf("failed to write key to vault: %w", err), logData)
 		}
 
 		result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
@@ -182,22 +179,12 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 			Key:    &filename,
 		}, psk)
 		if err != nil {
-			return "", &Error{
-				err: fmt.Errorf("failed to upload file to S3: %w", err),
-				logData: log.Data{
-					"bucket":    bucketName,
-					"filename":  filename,
-					"encrypted": true,
-				},
-			}
+			return "", NewError(fmt.Errorf("failed to upload file to S3: %w", err), logData)
 		}
 		return url.PathUnescape(result.Location)
 	}
 
-	log.Event(ctx, "uploading public file to S3", log.INFO, log.Data{
-		"bucket": h.s3.BucketName(),
-		"name":   filename,
-	})
+	log.Event(ctx, "uploading public file to S3", log.INFO, logData)
 
 	result, err := h.s3.Upload(&s3manager.UploadInput{
 		Body:   file.Reader,
@@ -205,14 +192,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		Key:    &filename,
 	})
 	if err != nil {
-		return "", &Error{
-			err: fmt.Errorf("failed to upload file to S3: %w", err),
-			logData: log.Data{
-				"bucket":    bucketName,
-				"filename":  filename,
-				"encrypted": false,
-			},
-		}
+		return "", NewError(fmt.Errorf("failed to upload file to S3: %w", err), logData)
 	}
 
 	return url.PathUnescape(result.Location)

@@ -1,6 +1,5 @@
 BINPATH ?= build
 
-VAULT_ADDR?=http://127.0.0.1:8200
 BUILD_TIME=$(shell date +%s)
 GIT_COMMIT=$(shell git rev-parse HEAD)
 VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)

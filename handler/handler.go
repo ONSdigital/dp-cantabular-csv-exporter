@@ -96,7 +96,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3
-	url, err := h.UploadCSVFile(ctx, e.InstanceID, &csv, Encrypted)
+	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, &csv, Encrypted)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -110,7 +110,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// ========================================================================
 	// Ticket #5181
 	// Update instance with link to file
-	if err := h.UpdateInstance(url); err != nil {
+	if err := h.UpdateInstance(uploadedUrl); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -164,7 +164,10 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	if encrypted {
 		log.Event(ctx, "uploading private file to S3", log.INFO, logData)
 
-		psk := CreatePSK()
+		psk, err := CreatePSK()
+		if err != nil {
+			return "", NewError(fmt.Errorf("failed to generate a PSK for encryption: %w", err), logData)
+		}
 		vaultPath := fmt.Sprintf("%s/%s", h.cfg.VaultPath, path.Base(filename))
 		vaultKey := "key"
 
@@ -217,9 +220,10 @@ var GenerateUUID = func() string {
 }
 
 // CreatePSK returns a new random array of 16 bytes
-var CreatePSK = func() []byte {
+var CreatePSK = func() ([]byte, error) {
 	key := make([]byte, 16)
-	rand.Read(key)
-
-	return key
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
+	}
+	return key, nil
 }

@@ -33,9 +33,13 @@ var (
 	}
 	testCsvBody        = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
 	testCsvFileContent = bufio.NewReadWriter(testCsvBody, nil)
+	testPsk            = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	errS3              = errors.New("test S3Upload error")
 	errVault           = errors.New("test Vault error")
+	errPsk             = errors.New("test PSK error")
 )
+
+var originalCreatePSK = handler.CreatePSK
 
 var ctx = context.Background()
 
@@ -105,7 +109,7 @@ func TestUploadCSVFile(t *testing.T) {
 
 			Convey("Then the expected key is stored in vault", func() {
 				So(vaultClient.WriteKeyCalls(), ShouldHaveLength, 1)
-				expectedPsk := hex.EncodeToString(createPSK())
+				expectedPsk := hex.EncodeToString(testPsk)
 				So(vaultClient.WriteKeyCalls()[0].Path, ShouldResemble, expectedVaultPath)
 				So(vaultClient.WriteKeyCalls()[0].Key, ShouldResemble, "key")
 				So(vaultClient.WriteKeyCalls()[0].Value, ShouldResemble, expectedPsk)
@@ -117,7 +121,7 @@ func TestUploadCSVFile(t *testing.T) {
 				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
 				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Bucket, ShouldResemble, testBucket)
 				So(s3Uploader.UploadWithPSKCalls()[0].Input.Body, ShouldResemble, testCsvBody)
-				So(s3Uploader.UploadWithPSKCalls()[0].Psk, ShouldResemble, createPSK())
+				So(s3Uploader.UploadWithPSKCalls()[0].Psk, ShouldResemble, testPsk)
 			})
 		})
 	})
@@ -208,6 +212,40 @@ func TestUploadCSVFile(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("Given an event handler and a failing createPSK function", t, func() {
+		s3Uploader := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testCfg.UploadBucketName },
+		}
+		handler.CreatePSK = func() ([]byte, error) {
+			return nil, errPsk
+		}
+		defer func() { handler.CreatePSK = createPSK }()
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
+
+		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldResemble, fmt.Sprintf("failed to generate a PSK for encryption: %s", errPsk.Error()))
+			})
+		})
+	})
+}
+
+func TestCreatePSK(t *testing.T) {
+	Convey("CreatePSK should return a byte array of size 16 with no error", t, func() {
+		psk, err := originalCreatePSK()
+		So(err, ShouldBeNil)
+		So(psk, ShouldHaveLength, 16)
+
+		Convey("Runing CreatePSK again should return a different value", func() {
+			psk1, err1 := originalCreatePSK()
+			So(err1, ShouldBeNil)
+			So(psk1, ShouldNotResemble, psk)
+		})
+	})
 }
 
 func cantabularClientHappy() mock.CantabularClientMock {
@@ -290,6 +328,6 @@ var generateUUID = func() string {
 }
 
 // createPSK returns a mocked array of 16 bytes
-var createPSK = func() []byte {
-	return []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+var createPSK = func() ([]byte, error) {
+	return testPsk, nil
 }

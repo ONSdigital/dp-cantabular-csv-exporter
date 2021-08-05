@@ -1,0 +1,10 @@
+./channels.go
+./config.go
+./consumer_group.go
+./consumer_group_handler.go
+./errors.go
+./global.go
+./healthcheck.go
+./message.go
+./producer.go
+./sarama_interface.go

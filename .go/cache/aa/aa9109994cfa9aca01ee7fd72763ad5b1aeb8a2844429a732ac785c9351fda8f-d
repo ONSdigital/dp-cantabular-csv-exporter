@@ -1,0 +1,10 @@
+./auth.go
+./data.go
+./doc.go
+./error.go
+./event_mock.go
+./go_logger.go
+./http.go
+./log.go
+./middleware.go
+./severity.go

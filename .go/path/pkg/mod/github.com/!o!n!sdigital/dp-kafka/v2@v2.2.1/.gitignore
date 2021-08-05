@@ -1,0 +1,13 @@
+# Mac OSX
+*.DS_Store
+
+# ides
+.idea/
+.vagrant
+.vscode
+*.iml
+
+*.swp
+
+# kafka cluster data (docker volumes)
+examples/zk-single-kafka-multiple/

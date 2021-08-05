@@ -1,0 +1,6 @@
+./client.go
+./errors.go
+./healthcheck.go
+./ifaces.go
+./uploader.go
+./url.go

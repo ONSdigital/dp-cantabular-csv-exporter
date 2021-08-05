@@ -1,0 +1,14 @@
+./codegen.go
+./data_file.go
+./datum_reader.go
+./datum_utils.go
+./datum_writer.go
+./decoder.go
+./doc.go
+./encoder.go
+./errors.go
+./generic_record.go
+./schema.go
+./schema_loader.go
+./schema_prepared.go
+./schema_prepared_specific.go

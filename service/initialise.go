@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dps3 "github.com/ONSdigital/dp-s3"
 	vault "github.com/ONSdigital/dp-vault"
@@ -18,14 +19,14 @@ import (
 
 const VaultRetries = 3
 
-// GetHTTPServer creates an http server and sets the Server flag to true
+// GetHTTPServer creates an http server and sets the Server
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 	s := dphttp.NewServer(bindAddr, router)
 	s.HandleOSSignals = false
 	return s
 }
 
-// GetKafkaConsumer creates a Kafka consumer and sets the consumer flag to true
+// GetKafkaConsumer creates a Kafka consumer
 var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IConsumerGroup, error) {
 	cgChannels := dpkafka.CreateConsumerGroupChannels(1)
 
@@ -34,7 +35,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 		kafkaOffset = dpkafka.OffsetOldest
 	}
 
-	consumer, err := dpkafka.NewConsumerGroup(
+	return dpkafka.NewConsumerGroup(
 		ctx,
 		cfg.KafkaAddr,
 		cfg.InstanceCompleteTopic,
@@ -45,11 +46,18 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 			Offset:       &kafkaOffset,
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	return consumer, nil
+// GetKafkaProducer creates a Kafka producer
+var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (dpkafka.IProducer, error) {
+	pChannels := dpkafka.CreateProducerChannels()
+	return dpkafka.NewProducer(
+		ctx,
+		cfg.KafkaAddr,
+		cfg.CommonOutputCreatedTopic,
+		pChannels,
+		&kafka.ProducerConfig{},
+	)
 }
 
 // GetCantabularClient gets and initialises the Cantabular Client
@@ -86,7 +94,7 @@ var GetProcessor = func(cfg *config.Config) Processor {
 	return event.NewProcessor(*cfg)
 }
 
-// GetHealthCheck creates a healthcheck with versionInfo and sets teh HealthCheck flag to true
+// GetHealthCheck creates a healthcheck with versionInfo
 var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
 	if err != nil {

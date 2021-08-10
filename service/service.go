@@ -18,6 +18,7 @@ type Service struct {
 	server           HTTPServer
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
+	producer         kafka.IProducer
 	processor        Processor
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
@@ -40,7 +41,10 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cfg = cfg
 
 	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
-		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
+		return fmt.Errorf("failed to create kafka consumer: %w", err)
+	}
+	if svc.producer, err = GetKafkaProducer(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
 	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 uploader: %w", err)
@@ -87,6 +91,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.datasetAPIClient,
 			svc.s3Uploader,
 			svc.vaultClient,
+			svc.producer,
 		),
 	)
 

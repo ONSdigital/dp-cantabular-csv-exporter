@@ -18,6 +18,7 @@ type Config struct {
 	KafkaNumWorkers            int           `envconfig:"KAFKA_NUM_WORKERS"`
 	InstanceCompleteGroup      string        `envconfig:"INSTANCE_COMPLETE_GROUP"`
 	InstanceCompleteTopic      string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
+	CommonOutputCreatedTopic   string        `envconfig:"COMMON_OUTPUT_CREATED_TOPIC`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
@@ -49,6 +50,7 @@ func Get() (*Config, error) {
 		KafkaNumWorkers:            1,
 		InstanceCompleteGroup:      "dp-cantabular-csv-exporter",
 		InstanceCompleteTopic:      "cantabular-dataset-instance-complete",
+		CommonOutputCreatedTopic:   "common-output-created",
 		OutputFilePath:             "/tmp/helloworld.txt",
 		ServiceAuthToken:           "",
 		CantabularURL:              "localhost:8491",

@@ -62,14 +62,20 @@ func main() {
 
 // scanEvent creates a HelloCalled event according to the user input
 func scanEvent(scanner *bufio.Scanner) *event.InstanceComplete {
-	fmt.Println("--- [Send Kafka HelloCalled] ---")
+	fmt.Println("--- [Send Kafka InstanceComplete] ---")
 
 	fmt.Println("Please type the instance_id")
 	fmt.Printf("$ ")
 	scanner.Scan()
 	name := scanner.Text()
 
+	fmt.Println("Please type the cantabular_blob")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	blob := scanner.Text()
+
 	return &event.InstanceComplete{
-		InstanceID: name,
+		InstanceID:     name,
+		CantabularBlob: blob,
 	}
 }

@@ -12,6 +12,7 @@ type Config struct {
 	GracefulShutdownTimeout    time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
+	DefaultRequestTimeout      time.Duration `envconfig:"DEFAULT_REQUEST_TIMEOUT"`
 	KafkaAddr                  []string      `envconfig:"KAFKA_ADDR"                     json:"-"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest          bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
@@ -21,6 +22,7 @@ type Config struct {
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
+	CantabularExtURL           string        `envconfig:"CANTABULAR_EXT_API_URL"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	AWSRegion                  string        `envconfig:"AWS_REGION"`
 	UploadBucketName           string        `envconfig:"UPLOAD_BUCKET_NAME"`
@@ -36,10 +38,11 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
-		BindAddr:                   "localhost:26300",
+		BindAddr:                   ":26300",
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
+		DefaultRequestTimeout:      10 * time.Second,
 		KafkaAddr:                  []string{"localhost:9092"},
 		KafkaVersion:               "1.0.2",
 		KafkaOffsetOldest:          true,
@@ -48,8 +51,9 @@ func Get() (*Config, error) {
 		InstanceCompleteTopic:      "cantabular-dataset-instance-complete",
 		OutputFilePath:             "/tmp/helloworld.txt",
 		ServiceAuthToken:           "",
-		CantabularURL:              "localhost:8491",
-		DatasetAPIURL:              "localhost:22000",
+		CantabularURL:              "http://localhost:8491",
+		CantabularExtURL:           "http://localhost:8492",
+		DatasetAPIURL:              "http://localhost:22000",
 		AWSRegion:                  "eu-west-1",
 		UploadBucketName:           "dp-cantabular-csv-exporter",
 	}

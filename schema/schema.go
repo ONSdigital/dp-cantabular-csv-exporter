@@ -8,7 +8,8 @@ var instanceComplete = `{
   "type": "record",
   "name": "cantabular-dataset-instance-complete",
   "fields": [
-    {"name": "instance_id", "type": "string", "default": ""}
+    {"name": "instance_id",     "type": "string", "default": ""},
+    {"name": "cantabular_blob", "type": "string", "default": ""}
   ]
 }`
 

@@ -29,6 +29,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 						"failed to process message",
 						log.ERROR,
 						log.Data{
+							"error":       fmt.Sprintf("%s", err),
 							"log_data":    unwrapLogData(err),
 							"status_code": statusCode(err),
 						},

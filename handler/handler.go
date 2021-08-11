@@ -8,8 +8,9 @@ import (
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/placeholder"
-
+	
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
 )
@@ -40,15 +41,11 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	log.Info(ctx, "event handler called", logData)
 
 	// ========================================================================
-	// Ticket #5175
-	// Retrieve isntance from Mongo
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return &Error{
-			err: fmt.Errorf("failed to get instance: %w", err),
-			logData: log.Data{
-				"instance_id": e.InstanceID,
-			},
+			err:     fmt.Errorf("failed to get instance: %w", err),
+			logData: logData,
 		}
 	}
 
@@ -56,18 +53,32 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		"instance_id": instance.ID,
 	})
 
-	// Query Cantabular for counts
-	resp, err := placeholder.QueryDataset(ctx, placeholder.QueryDatasetRequest{
-		Dataset:   "",         // get CantabularBlob name from event/instance
-		Variables: []string{}, // get variable names from instance
-	})
-	if err != nil {
-		return fmt.Errorf("failed to query dataset: %w", err)
+	req := cantabular.StaticDatasetQueryRequest{
+		Dataset:   e.CantabularBlob,
+		Variables: h.getVariablesFromInstance(instance),
 	}
+
+	logData["request"] = req
+
+	// Query Cantabular for counts
+	resp, err := h.ctblr.StaticDatasetQuery(ctx, req)
+	if err != nil {
+		return &Error{
+			err: fmt.Errorf("failed to query dataset: %w", err),
+			logData: logData,
+		}
+	}
+
+	log.Info(ctx, "response from Cantabular Extended API GraphQL query", log.Data{
+		"resp": resp,
+	})
 
 	// Validate response
 	if err := h.ValidateQueryResponse(resp); err != nil {
-		return fmt.Errorf("failed to validate query response: %w", err)
+		return &Error{
+			err: fmt.Errorf("failed to validate query response: %w", err),
+			logData: logData,
+		}
 	}
 	// ========================================================================
 
@@ -108,7 +119,17 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	return nil
 }
 
-func (h *InstanceComplete) ValidateQueryResponse(resp *placeholder.QueryDatasetResponse) error {
+func (h *InstanceComplete) getVariablesFromInstance(i dataset.Instance) []string {
+	var vars []string
+
+	for _, v := range i.Dimensions{
+		vars = append(vars, v.Variable)
+	}
+
+	return vars
+}
+
+func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQuery) error {
 	if resp == nil {
 		return errors.New("nil response")
 	}
@@ -117,7 +138,7 @@ func (h *InstanceComplete) ValidateQueryResponse(resp *placeholder.QueryDatasetR
 	return nil
 }
 
-func (h *InstanceComplete) ParseQueryResponse(resp *placeholder.QueryDatasetResponse) (bufio.ReadWriter, error) {
+func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (bufio.ReadWriter, error) {
 	// Here is where we implement the example set out by Sensible Code here:
 	// https://github.com/cantabular/examples/blob/master/golang/main.go
 	// and referenced in the high level design doc

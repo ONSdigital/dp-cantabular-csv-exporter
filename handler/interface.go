@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 )
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
@@ -12,6 +13,7 @@ import (
 
 // CantabularClient contains the required method for the Cantabular Client
 type CantabularClient interface {
+	StaticDatasetQuery(context.Context, cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
 }
 
 // S3Client contains the required method for the S3 Client
@@ -20,5 +22,5 @@ type S3Client interface {
 
 // DatasetAPIClient contains the required method for the Dataset API Client
 type DatasetAPIClient interface {
-	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
+	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (i dataset.Instance, eTag string, err error)
 }

@@ -2,6 +2,7 @@ package event
 
 import (
 	"errors"
+	"reflect"
 	"net/http"
 
 	"github.com/ONSdigital/log.go/v2/log"
@@ -55,7 +56,7 @@ func unwrapLogData(err error) log.Data {
 	for _, d := range data {
 		for k, v := range d {
 			if val, ok := logData[k]; ok {
-				if val != v {
+				if !reflect.DeepEqual(val, v) {
 					if s, ok := val.([]interface{}); ok {
 						s = append(s, v)
 						logData[k] = s

@@ -31,7 +31,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 		kafkaOffset = dpkafka.OffsetOldest
 	}
 
-	consumer, err := dpkafka.NewConsumerGroup(
+	return dpkafka.NewConsumerGroup(
 		ctx,
 		cfg.KafkaAddr,
 		cfg.InstanceCompleteTopic,
@@ -42,20 +42,18 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IC
 			Offset:       &kafkaOffset,
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return consumer, nil
 }
 
 // GetCantabularClient gets and initialises the Cantabular Client
 var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
-		dphttp.NewClient(),
 		cantabular.Config{
-			Host: cfg.CantabularURL,
+			Host:           cfg.CantabularURL,
+			ExtApiHost:     cfg.CantabularExtURL,
+			GraphQLTimeout: cfg.DefaultRequestTimeout,
 		},
+		dphttp.NewClient(),
+		nil,
 	)
 }
 
@@ -82,9 +80,13 @@ var GetProcessor = func(cfg *config.Config) Processor {
 var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get version info: %w", err)
 	}
 
-	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+	hc := healthcheck.New(
+		versionInfo,
+		cfg.HealthCheckCriticalTimeout,
+		cfg.HealthCheckInterval,
+	)
 	return &hc, nil
 }

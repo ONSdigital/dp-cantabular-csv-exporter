@@ -1,9 +1,5 @@
 package handler
 
-import (
-	"github.com/ONSdigital/log.go/v2/log"
-)
-
 // Error is the handler package's error type. Is not meant to be compared as a
 // a type, but information should be extracted via the interfaces
 // it implements with callback functions. Is not guaranteed to remain exported
@@ -24,9 +20,6 @@ func (e *Error) Error() string {
 // LogData implements the DataLogger interface which allows you extract
 // embedded log.Data from an error
 func (e *Error) LogData() map[string]interface{} {
-	if e.logData == nil {
-		return log.Data{}
-	}
 	return e.logData
 }
 

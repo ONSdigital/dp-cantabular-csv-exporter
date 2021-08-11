@@ -217,21 +217,20 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID, url s
 		},
 	}
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
-		return err
+		return fmt.Errorf("error during put instance: %w", err)
 	}
 	return nil
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
 func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID, url string) error {
-
 	// create InstanceComplete event and Marshal it
 	bytes, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
 		InstanceID: instanceID,
 		FileURL:    url,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error marshalling instance complete event: %w", err)
 	}
 
 	// Send bytes to kafka producer output channel

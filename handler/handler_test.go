@@ -49,30 +49,6 @@ var originalCreatePSK = handler.CreatePSK
 
 var ctx = context.Background()
 
-// TODO uncomment and finish implementing test after the whole functionality for the handler is implemented
-// func TestInstanceCompleteHandler_Handle(t *testing.T) {
-
-// 	Convey("Given a successful event handler", t, func() {
-// 		ctblrClient := cantabularClientHappy()
-// 		datasetAPIClient := datasetAPIClientHappy()
-// 		s3Uploader := s3UploaderHappy(false)
-// 		producer := &kafkatest.IProducerMock{}
-
-// 		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Uploader, nil, producer)
-
-// 		Convey("Then when Handle is triggered, the instance is read from dataset api", func() {
-// 			err := eventHandler.Handle(ctx, &event.InstanceComplete{
-// 				InstanceID: testInstanceID,
-// 			})
-// 			So(err, ShouldBeNil)
-
-// 			So(datasetAPIClient.GetInstanceCalls(), ShouldHaveLength, 1)
-// 			So(datasetAPIClient.GetInstanceCalls()[0].InstanceID, ShouldResemble, testInstanceID)
-// 		})
-// 	})
-
-// }
-
 func TestUploadCSVFile(t *testing.T) {
 
 	expectedS3Key := fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID())
@@ -281,7 +257,7 @@ func TestUpdateInstance(t *testing.T) {
 			err := eventHandler.UpdateInstance(ctx, testInstanceID, testS3Location, testSize)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errDataset)
+				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
 			})
 		})
 	})
@@ -297,7 +273,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 		producer := kafkatest.NewMessageProducer(true)
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, producer)
 
-		Convey("When UpdateInstance is called", func(c C) {
+		Convey("When ProduceExportCompleteEvent is called", func(c C) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {

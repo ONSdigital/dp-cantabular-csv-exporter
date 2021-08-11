@@ -13,7 +13,10 @@ import (
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dps3 "github.com/ONSdigital/dp-s3"
+	vault "github.com/ONSdigital/dp-vault"
 )
+
+const VaultRetries = 3
 
 // GetHTTPServer creates an http server and sets the Server flag to true
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
@@ -62,13 +65,18 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-// GetS3Client gets and initialises the S3 Client
-var GetS3Client = func(cfg *config.Config) (S3Client, error) {
-	s3Client, err := dps3.NewClient(cfg.AWSRegion, cfg.UploadBucketName, true)
+// GetS3Uploader creates an S3 Uploader
+var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
+	uploader, err := dps3.NewUploader(cfg.AWSRegion, cfg.UploadBucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 Client: %w", err)
 	}
-	return s3Client, nil
+	return uploader, nil
+}
+
+// GetVault creates a VaultClient
+var GetVault = func(cfg *config.Config) (VaultClient, error) {
+	return vault.CreateClient(cfg.VaultToken, cfg.VaultAddress, VaultRetries)
 }
 
 // GetProcessor gets and initialises the event Processor

@@ -11,7 +11,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
-
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
@@ -71,6 +70,22 @@ func TestInit(t *testing.T) {
 					return nil
 				},
 			}
+		}
+
+		GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
+			return &serviceMock.S3UploaderMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}, nil
+		}
+
+		GetVault = func(cfg *config.Config) (VaultClient, error) {
+			return &serviceMock.VaultClientMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}, nil
 		}
 
 		GetProcessor = func(cfg *config.Config) Processor {
@@ -139,11 +154,12 @@ func TestInit(t *testing.T) {
 				So(svc.server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 4)
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
 					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Cantabular client")
 					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 uploader")
+					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Vault")
 				})
 			})
 		})

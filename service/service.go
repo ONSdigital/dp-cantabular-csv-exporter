@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
@@ -17,14 +16,13 @@ import (
 type Service struct {
 	cfg              *config.Config
 	server           HTTPServer
-	router           *mux.Router
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
-	shutdownTimeout  time.Duration
 	processor        Processor
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
-	s3Client         S3Client
+	s3Uploader       S3Uploader
+	vaultClient      VaultClient
 }
 
 func New() *Service {
@@ -44,8 +42,11 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
-	if svc.s3Client, err = GetS3Client(cfg); err != nil {
-		return fmt.Errorf("failed to initialise s3 client: %w", err)
+	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
+		return fmt.Errorf("failed to initialise s3 uploader: %w", err)
+	}
+	if svc.vaultClient, err = GetVault(cfg); err != nil {
+		return fmt.Errorf("failed to initialise vault client: %w", err)
 	}
 
 	svc.cantabularClient = GetCantabularClient(cfg)
@@ -84,7 +85,8 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			*svc.cfg,
 			svc.cantabularClient,
 			svc.datasetAPIClient,
-			svc.s3Client,
+			svc.s3Uploader,
+			svc.vaultClient,
 		),
 	)
 
@@ -178,8 +180,12 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("S3 client", svc.s3Client.Checker); err != nil {
-		return fmt.Errorf("error adding check for s3 client: %w", err)
+	if err := svc.healthCheck.AddCheck("S3 uploader", svc.s3Uploader.Checker); err != nil {
+		return fmt.Errorf("error adding check for s3 uploader: %w", err)
+	}
+
+	if err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for vault client: %w", err)
 	}
 
 	return nil

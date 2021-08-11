@@ -7,7 +7,7 @@ import (
 //go:generate moq -out mock/handler.go -pkg mock . Handler
 
 type Handler interface {
-	Handle(context.Context, *InstanceComplete) error
+	Handle(ctx context.Context, instanceComplete *InstanceComplete) error
 }
 
 type dataLogger interface {

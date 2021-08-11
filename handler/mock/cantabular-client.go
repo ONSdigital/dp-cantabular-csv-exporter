@@ -7,22 +7,24 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 )
 
+var ()
+
 // Ensure, that CantabularClientMock does implement handler.CantabularClient.
 // If this is not the case, regenerate this file with moq.
 var _ handler.CantabularClient = &CantabularClientMock{}
 
 // CantabularClientMock is a mock implementation of handler.CantabularClient.
 //
-// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
+//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-// 		// make and configure a mocked handler.CantabularClient
-// 		mockedCantabularClient := &CantabularClientMock{
-// 		}
+//         // make and configure a mocked handler.CantabularClient
+//         mockedCantabularClient := &CantabularClientMock{
+//         }
 //
-// 		// use mockedCantabularClient in code that requires handler.CantabularClient
-// 		// and then make assertions.
+//         // use mockedCantabularClient in code that requires handler.CantabularClient
+//         // and then make assertions.
 //
-// 	}
+//     }
 type CantabularClientMock struct {
 	// calls tracks calls to the methods.
 	calls struct {

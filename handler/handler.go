@@ -3,33 +3,44 @@ package handler
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
-	
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/log.go/v2/log"
+
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/google/uuid"
 )
+
+// Encrypted determines if files need to be encrypted with a newly generated key when they are stored in S3
+const Encrypted = false
 
 // InstanceComplete is the handle for the InstanceCompleteHandler event
 type InstanceComplete struct {
-	cfg      config.Config
-	ctblr    CantabularClient
-	datasets DatasetAPIClient
-	s3       S3Client
+	cfg         config.Config
+	ctblr       CantabularClient
+	datasets    DatasetAPIClient
+	s3          S3Uploader
+	vaultClient VaultClient
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Client) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient) *InstanceComplete {
 	return &InstanceComplete{
-		cfg:      cfg,
-		ctblr:    c,
-		datasets: d,
-		s3:       s,
+		cfg:         cfg,
+		ctblr:       c,
+		datasets:    d,
+		s3:          s,
+		vaultClient: v,
 	}
 }
 
@@ -40,7 +51,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 	log.Info(ctx, "event handler called", logData)
 
-	// ========================================================================
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return &Error{
@@ -53,18 +63,21 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		"instance_id": instance.ID,
 	})
 
+	if err := h.ValidateInstance(instance); err != nil{
+		return fmt.Errorf("failed to validate instance: %w", err)
+	}
+
 	req := cantabular.StaticDatasetQueryRequest{
 		Dataset:   e.CantabularBlob,
-		Variables: h.getVariablesFromInstance(instance),
+		Variables: instance.CSVHeader[1:],
 	}
 
 	logData["request"] = req
 
-	// Query Cantabular for counts
 	resp, err := h.ctblr.StaticDatasetQuery(ctx, req)
 	if err != nil {
 		return &Error{
-			err: fmt.Errorf("failed to query dataset: %w", err),
+			err:     fmt.Errorf("failed to query dataset: %w", err),
 			logData: logData,
 		}
 	}
@@ -73,14 +86,12 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		"resp": resp,
 	})
 
-	// Validate response
 	if err := h.ValidateQueryResponse(resp); err != nil {
 		return &Error{
-			err: fmt.Errorf("failed to validate query response: %w", err),
+			err:     fmt.Errorf("failed to validate query response: %w", err),
 			logData: logData,
 		}
 	}
-	// ========================================================================
 
 	// ========================================================================
 	// Ticket #5178
@@ -95,19 +106,22 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// step here but it turns out the sensible code example is for directly
 	// creating a CSV file, not just parsing the response into a generic struct.
 
-	// ========================================================================
-	// Ticket #5180
 	// Upload CSV file to S3
-	url, err := h.UploadCSVFile(csv)
+	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, &csv, Encrypted)
 	if err != nil {
-		return fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err)
+		return &Error{
+			err:     fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
+			logData: log.Data{
+				"bucket":      h.s3.BucketName(),
+				"instance_id": e.InstanceID,
+			},
+		}
 	}
-	// ========================================================================
 
 	// ========================================================================
 	// Ticket #5181
 	// Update instance with link to file
-	if err := h.UpdateInstance(url); err != nil {
+	if err := h.UpdateInstance(uploadedUrl); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -119,22 +133,26 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	return nil
 }
 
-func (h *InstanceComplete) getVariablesFromInstance(i dataset.Instance) []string {
-	var vars []string
-
-	for _, v := range i.Dimensions{
-		vars = append(vars, v.Variable)
+// ValidateInstance validates the instance returned from dp-dataset-api
+func (h *InstanceComplete) ValidateInstance(i dataset.Instance) error {
+	if len(i.CSVHeader) < 2{
+		return &Error{
+			err: errors.New("no dimensions in headers"),
+			logData: log.Data{
+				"headers": i.CSVHeader,
+			},
+		}
 	}
 
-	return vars
+	return nil
 }
 
+// ValidateQueryResponse validates the query response returned from Cantabular
 func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQuery) error {
 	if resp == nil {
 		return errors.New("nil response")
 	}
 
-	// Perform any validation we may wish to
 	return nil
 }
 
@@ -149,10 +167,78 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	return csv, nil
 }
 
-func (h *InstanceComplete) UploadCSVFile(file bufio.ReadWriter) (string, error) {
-	// Here we upload the file to S3. We should be able to upload any io.Reader
-	// as a file directly
-	return "http://s3.aws/link-to-file.csv", nil
+// UploadCSVFile uploads the provided file content to AWS S3
+// The file name is the instance ID and a uuid
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter, encrypted bool) (string, error) {
+	if instanceID == "" {
+		return "", errors.New("empty instance id not allowed")
+	}
+	if file == nil {
+		return "", errors.New("no file content has been provided")
+	}
+
+	bucketName := h.s3.BucketName()
+	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
+
+	logData := log.Data{
+		"bucket":    bucketName,
+		"filename":  filename,
+		"encrypted": encrypted,
+	}
+
+	if encrypted {
+		log.Event(ctx, "uploading private file to S3", log.INFO, logData)
+
+		psk, err := CreatePSK()
+		if err != nil {
+			return "", NewError(
+				fmt.Errorf("failed to generate a PSK for encryption: %w", err),
+				logData,
+			)
+		}
+
+		vaultPath := fmt.Sprintf("%s/%s", h.cfg.VaultPath, path.Base(filename))
+		vaultKey := "key"
+
+		log.Event(ctx, "writing key to vault", log.INFO, log.Data{"vault_path": vaultPath})
+
+		if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
+			return "", NewError(
+				fmt.Errorf("failed to write key to vault: %w", err), 
+				logData,
+			)
+		}
+
+		result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
+			Body:   file.Reader,
+			Bucket: &bucketName,
+			Key:    &filename,
+		}, psk)
+		if err != nil {
+			return "", NewError(
+				fmt.Errorf("failed to upload file to S3: %w", err),
+				logData,
+			)
+		}
+
+		return url.PathUnescape(result.Location)
+	}
+
+	log.Event(ctx, "uploading public file to S3", log.INFO, logData)
+
+	result, err := h.s3.Upload(&s3manager.UploadInput{
+		Body:   file.Reader,
+		Bucket: &bucketName,
+		Key:    &filename,
+	})
+	if err != nil {
+		return "", NewError(
+			fmt.Errorf("failed to upload file to S3: %w", err),
+			logData,
+		)
+	}
+
+	return url.PathUnescape(result.Location)
 }
 
 func (h *InstanceComplete) UpdateInstance(url string) error {
@@ -166,4 +252,18 @@ func (h *InstanceComplete) ProduceExportCompleteEvent() error {
 	// Here we produce the final kafka message signifying the export complete
 	// What that message needs to look like is unknown at this point
 	return nil
+}
+
+// GenerateUUID returns a new V4 unique ID
+var GenerateUUID = func() string {
+	return uuid.NewString()
+}
+
+// CreatePSK returns a new random array of 16 bytes
+var CreatePSK = func() ([]byte, error) {
+	key := make([]byte, 16)
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
+	}
+	return key, nil
 }

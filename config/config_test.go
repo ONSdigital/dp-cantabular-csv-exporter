@@ -20,7 +20,7 @@ func TestConfig(t *testing.T) {
 			})
 
 			Convey("Then the values should be set to the expected defaults", func() {
-				So(cfg.BindAddr, ShouldEqual, "localhost:26300")
+				So(cfg.BindAddr, ShouldEqual, ":26300")
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
 				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
 				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
@@ -30,6 +30,9 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaNumWorkers, ShouldEqual, 1)
 				So(cfg.InstanceCompleteGroup, ShouldEqual, "dp-cantabular-csv-exporter")
 				So(cfg.InstanceCompleteTopic, ShouldEqual, "cantabular-dataset-instance-complete")
+				So(cfg.VaultPath, ShouldEqual, "secret/shared/psk")
+				So(cfg.VaultAddress, ShouldEqual, "http://localhost:8200")
+				So(cfg.VaultToken, ShouldEqual, "")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

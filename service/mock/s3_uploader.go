@@ -4,29 +4,30 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
+	"context"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
 
 var (
 	lockS3UploaderMockBucketName    sync.RWMutex
+	lockS3UploaderMockChecker       sync.RWMutex
 	lockS3UploaderMockUpload        sync.RWMutex
 	lockS3UploaderMockUploadWithPSK sync.RWMutex
 )
 
-// Ensure, that S3UploaderMock does implement handler.S3Uploader.
-// If this is not the case, regenerate this file with moq.
-var _ handler.S3Uploader = &S3UploaderMock{}
-
-// S3UploaderMock is a mock implementation of handler.S3Uploader.
+// S3UploaderMock is a mock implementation of service.S3Uploader.
 //
 //     func TestSomethingThatUsesS3Uploader(t *testing.T) {
 //
-//         // make and configure a mocked handler.S3Uploader
+//         // make and configure a mocked service.S3Uploader
 //         mockedS3Uploader := &S3UploaderMock{
 //             BucketNameFunc: func() string {
 // 	               panic("mock out the BucketName method")
+//             },
+//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
+// 	               panic("mock out the Checker method")
 //             },
 //             UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 // 	               panic("mock out the Upload method")
@@ -36,13 +37,16 @@ var _ handler.S3Uploader = &S3UploaderMock{}
 //             },
 //         }
 //
-//         // use mockedS3Uploader in code that requires handler.S3Uploader
+//         // use mockedS3Uploader in code that requires service.S3Uploader
 //         // and then make assertions.
 //
 //     }
 type S3UploaderMock struct {
 	// BucketNameFunc mocks the BucketName method.
 	BucketNameFunc func() string
+
+	// CheckerFunc mocks the Checker method.
+	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
 
 	// UploadFunc mocks the Upload method.
 	UploadFunc func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
@@ -54,6 +58,13 @@ type S3UploaderMock struct {
 	calls struct {
 		// BucketName holds details about calls to the BucketName method.
 		BucketName []struct {
+		}
+		// Checker holds details about calls to the Checker method.
+		Checker []struct {
+			// In1 is the in1 argument value.
+			In1 context.Context
+			// In2 is the in2 argument value.
+			In2 *healthcheck.CheckState
 		}
 		// Upload holds details about calls to the Upload method.
 		Upload []struct {
@@ -95,6 +106,41 @@ func (mock *S3UploaderMock) BucketNameCalls() []struct {
 	lockS3UploaderMockBucketName.RLock()
 	calls = mock.calls.BucketName
 	lockS3UploaderMockBucketName.RUnlock()
+	return calls
+}
+
+// Checker calls CheckerFunc.
+func (mock *S3UploaderMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
+	if mock.CheckerFunc == nil {
+		panic("S3UploaderMock.CheckerFunc: method is nil but S3Uploader.Checker was just called")
+	}
+	callInfo := struct {
+		In1 context.Context
+		In2 *healthcheck.CheckState
+	}{
+		In1: in1,
+		In2: in2,
+	}
+	lockS3UploaderMockChecker.Lock()
+	mock.calls.Checker = append(mock.calls.Checker, callInfo)
+	lockS3UploaderMockChecker.Unlock()
+	return mock.CheckerFunc(in1, in2)
+}
+
+// CheckerCalls gets all the calls that were made to Checker.
+// Check the length with:
+//     len(mockedS3Uploader.CheckerCalls())
+func (mock *S3UploaderMock) CheckerCalls() []struct {
+	In1 context.Context
+	In2 *healthcheck.CheckState
+} {
+	var calls []struct {
+		In1 context.Context
+		In2 *healthcheck.CheckState
+	}
+	lockS3UploaderMockChecker.RLock()
+	calls = mock.calls.Checker
+	lockS3UploaderMockChecker.RUnlock()
 	return calls
 }
 

@@ -18,8 +18,8 @@ github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5U
 github.com/ONSdigital/dp-api-clients-go v1.34.3/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
 github.com/ONSdigital/dp-api-clients-go v1.41.1 h1:xkeT6dCTFSAoBpZxgiJUiuqgcfjCX+c52CIiZo1Y2iU=
 github.com/ONSdigital/dp-api-clients-go v1.41.1/go.mod h1:Ga1+ANjviu21NFJI9wp5NctJIdB4TJLDGbpQFl2V8Wc=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.1.7-beta.0.20210809155601-a78eafc3b92f h1:/7x9iZy2dkv5C8ddOBBzwoxt5EHyc0OZYr3Ea1MlBMQ=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.1.7-beta.0.20210809155601-a78eafc3b92f/go.mod h1:p9Ig0jUJmOXYpsZFZkb+mBeUgNBKoTiTVqHt1kJlVrM=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.1.9 h1:L0dAy6WolCoWPDMiZKKXP0yZeWXcELS5EaajFY8uzqk=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.1.9/go.mod h1:p9Ig0jUJmOXYpsZFZkb+mBeUgNBKoTiTVqHt1kJlVrM=
 github.com/ONSdigital/dp-component-test v0.3.1 h1:SAtMptv7m2+5RIBydo97RVESZETBRTd57jh3ngwrguo=
 github.com/ONSdigital/dp-component-test v0.3.1/go.mod h1:uf3ysJPRWHzi6YhNlN/vbhYr62w+zvGlNU/ublCDNgw=
 github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf2+NrwzC+So5f5BMLk=

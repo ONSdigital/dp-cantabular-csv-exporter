@@ -10,32 +10,27 @@ import (
 	"sync"
 )
 
-var (
-	lockDatasetAPIClientMockChecker     sync.RWMutex
-	lockDatasetAPIClientMockGetInstance sync.RWMutex
-)
-
 // DatasetAPIClientMock is a mock implementation of service.DatasetAPIClient.
 //
-//     func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
+// 	func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
 //
-//         // make and configure a mocked service.DatasetAPIClient
-//         mockedDatasetAPIClient := &DatasetAPIClientMock{
-//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
-// 	               panic("mock out the Checker method")
-//             },
-//             GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
-// 	               panic("mock out the GetInstance method")
-//             },
-//         }
+// 		// make and configure a mocked service.DatasetAPIClient
+// 		mockedDatasetAPIClient := &DatasetAPIClientMock{
+// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+// 				panic("mock out the Checker method")
+// 			},
+// 			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+// 				panic("mock out the GetInstance method")
+// 			},
+// 		}
 //
-//         // use mockedDatasetAPIClient in code that requires service.DatasetAPIClient
-//         // and then make assertions.
+// 		// use mockedDatasetAPIClient in code that requires service.DatasetAPIClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type DatasetAPIClientMock struct {
 	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
+	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
 
 	// GetInstanceFunc mocks the GetInstance method.
 	GetInstanceFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error)
@@ -44,10 +39,10 @@ type DatasetAPIClientMock struct {
 	calls struct {
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
-			// In1 is the in1 argument value.
-			In1 context.Context
-			// In2 is the in2 argument value.
-			In2 *healthcheck.CheckState
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// CheckState is the checkState argument value.
+			CheckState *healthcheck.CheckState
 		}
 		// GetInstance holds details about calls to the GetInstance method.
 		GetInstance []struct {
@@ -65,40 +60,42 @@ type DatasetAPIClientMock struct {
 			IfMatch string
 		}
 	}
+	lockChecker     sync.RWMutex
+	lockGetInstance sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
-func (mock *DatasetAPIClientMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
+func (mock *DatasetAPIClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
 	if mock.CheckerFunc == nil {
 		panic("DatasetAPIClientMock.CheckerFunc: method is nil but DatasetAPIClient.Checker was just called")
 	}
 	callInfo := struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}{
-		In1: in1,
-		In2: in2,
+		ContextMoqParam: contextMoqParam,
+		CheckState:      checkState,
 	}
-	lockDatasetAPIClientMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockDatasetAPIClientMockChecker.Unlock()
-	return mock.CheckerFunc(in1, in2)
+	mock.lockChecker.Unlock()
+	return mock.CheckerFunc(contextMoqParam, checkState)
 }
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
 //     len(mockedDatasetAPIClient.CheckerCalls())
 func (mock *DatasetAPIClientMock) CheckerCalls() []struct {
-	In1 context.Context
-	In2 *healthcheck.CheckState
+	ContextMoqParam context.Context
+	CheckState      *healthcheck.CheckState
 } {
 	var calls []struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}
-	lockDatasetAPIClientMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockDatasetAPIClientMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -122,9 +119,9 @@ func (mock *DatasetAPIClientMock) GetInstance(ctx context.Context, userAuthToken
 		InstanceID:       instanceID,
 		IfMatch:          ifMatch,
 	}
-	lockDatasetAPIClientMockGetInstance.Lock()
+	mock.lockGetInstance.Lock()
 	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
-	lockDatasetAPIClientMockGetInstance.Unlock()
+	mock.lockGetInstance.Unlock()
 	return mock.GetInstanceFunc(ctx, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch)
 }
 
@@ -147,8 +144,8 @@ func (mock *DatasetAPIClientMock) GetInstanceCalls() []struct {
 		InstanceID       string
 		IfMatch          string
 	}
-	lockDatasetAPIClientMockGetInstance.RLock()
+	mock.lockGetInstance.RLock()
 	calls = mock.calls.GetInstance
-	lockDatasetAPIClientMockGetInstance.RUnlock()
+	mock.lockGetInstance.RUnlock()
 	return calls
 }

@@ -11,7 +11,6 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -42,28 +41,6 @@ var (
 var originalCreatePSK = handler.CreatePSK
 
 var ctx = context.Background()
-
-func TestInstanceCompleteHandler_Handle(t *testing.T) {
-
-	Convey("Given a successful event handler", t, func() {
-		ctblrClient := cantabularClientHappy()
-		datasetAPIClient := datasetAPIClientHappy()
-		s3Uploader := s3UploaderHappy(false)
-
-		eventHandler := handler.NewInstanceComplete(testCfg, &ctblrClient, &datasetAPIClient, &s3Uploader, nil)
-
-		Convey("Then when Handle is triggered, the instance is read from dataset api", func() {
-			err := eventHandler.Handle(ctx, &event.InstanceComplete{
-				InstanceID: testInstanceID,
-			})
-			So(err, ShouldBeNil)
-
-			So(datasetAPIClient.GetInstanceCalls(), ShouldHaveLength, 1)
-			So(datasetAPIClient.GetInstanceCalls()[0].InstanceID, ShouldResemble, testInstanceID)
-		})
-	})
-
-}
 
 func TestUploadCSVFile(t *testing.T) {
 

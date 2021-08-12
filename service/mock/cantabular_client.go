@@ -5,76 +5,123 @@ package mock
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
 )
 
-var (
-	lockCantabularClientMockChecker sync.RWMutex
-)
-
 // CantabularClientMock is a mock implementation of service.CantabularClient.
 //
-//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
+// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-//         // make and configure a mocked service.CantabularClient
-//         mockedCantabularClient := &CantabularClientMock{
-//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
-// 	               panic("mock out the Checker method")
-//             },
-//         }
+// 		// make and configure a mocked service.CantabularClient
+// 		mockedCantabularClient := &CantabularClientMock{
+// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+// 				panic("mock out the Checker method")
+// 			},
+// 			StaticDatasetQueryFunc: func(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
+// 				panic("mock out the StaticDatasetQuery method")
+// 			},
+// 		}
 //
-//         // use mockedCantabularClient in code that requires service.CantabularClient
-//         // and then make assertions.
+// 		// use mockedCantabularClient in code that requires service.CantabularClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type CantabularClientMock struct {
 	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
+	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
+
+	// StaticDatasetQueryFunc mocks the StaticDatasetQuery method.
+	StaticDatasetQueryFunc func(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
-			// In1 is the in1 argument value.
-			In1 context.Context
-			// In2 is the in2 argument value.
-			In2 *healthcheck.CheckState
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// CheckState is the checkState argument value.
+			CheckState *healthcheck.CheckState
+		}
+		// StaticDatasetQuery holds details about calls to the StaticDatasetQuery method.
+		StaticDatasetQuery []struct {
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// StaticDatasetQueryRequest is the staticDatasetQueryRequest argument value.
+			StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
 		}
 	}
+	lockChecker            sync.RWMutex
+	lockStaticDatasetQuery sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
-func (mock *CantabularClientMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
+func (mock *CantabularClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
 	if mock.CheckerFunc == nil {
 		panic("CantabularClientMock.CheckerFunc: method is nil but CantabularClient.Checker was just called")
 	}
 	callInfo := struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}{
-		In1: in1,
-		In2: in2,
+		ContextMoqParam: contextMoqParam,
+		CheckState:      checkState,
 	}
-	lockCantabularClientMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockCantabularClientMockChecker.Unlock()
-	return mock.CheckerFunc(in1, in2)
+	mock.lockChecker.Unlock()
+	return mock.CheckerFunc(contextMoqParam, checkState)
 }
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
 //     len(mockedCantabularClient.CheckerCalls())
 func (mock *CantabularClientMock) CheckerCalls() []struct {
-	In1 context.Context
-	In2 *healthcheck.CheckState
+	ContextMoqParam context.Context
+	CheckState      *healthcheck.CheckState
 } {
 	var calls []struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}
-	lockCantabularClientMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockCantabularClientMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
+	return calls
+}
+
+// StaticDatasetQuery calls StaticDatasetQueryFunc.
+func (mock *CantabularClientMock) StaticDatasetQuery(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
+	if mock.StaticDatasetQueryFunc == nil {
+		panic("CantabularClientMock.StaticDatasetQueryFunc: method is nil but CantabularClient.StaticDatasetQuery was just called")
+	}
+	callInfo := struct {
+		ContextMoqParam           context.Context
+		StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+	}{
+		ContextMoqParam:           contextMoqParam,
+		StaticDatasetQueryRequest: staticDatasetQueryRequest,
+	}
+	mock.lockStaticDatasetQuery.Lock()
+	mock.calls.StaticDatasetQuery = append(mock.calls.StaticDatasetQuery, callInfo)
+	mock.lockStaticDatasetQuery.Unlock()
+	return mock.StaticDatasetQueryFunc(contextMoqParam, staticDatasetQueryRequest)
+}
+
+// StaticDatasetQueryCalls gets all the calls that were made to StaticDatasetQuery.
+// Check the length with:
+//     len(mockedCantabularClient.StaticDatasetQueryCalls())
+func (mock *CantabularClientMock) StaticDatasetQueryCalls() []struct {
+	ContextMoqParam           context.Context
+	StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+} {
+	var calls []struct {
+		ContextMoqParam           context.Context
+		StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+	}
+	mock.lockStaticDatasetQuery.RLock()
+	calls = mock.calls.StaticDatasetQuery
+	mock.lockStaticDatasetQuery.RUnlock()
 	return calls
 }

@@ -13,8 +13,10 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -31,16 +33,18 @@ type InstanceComplete struct {
 	datasets    DatasetAPIClient
 	s3          S3Uploader
 	vaultClient VaultClient
+	producer    kafka.IProducer
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient, p kafka.IProducer) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,
 		datasets:    d,
 		s3:          s,
 		vaultClient: v,
+		producer:    p,
 	}
 }
 
@@ -121,12 +125,12 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// ========================================================================
 	// Ticket #5181
 	// Update instance with link to file
-	if err := h.UpdateInstance(uploadedUrl); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, uploadedUrl, csv.Reader.Size()); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
 	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(); err != nil {
+	if err := h.ProduceExportCompleteEvent(e.InstanceID, uploadedUrl); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	// ========================================================================
@@ -241,16 +245,36 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	return url.PathUnescape(result.Location)
 }
 
-func (h *InstanceComplete) UpdateInstance(url string) error {
-	// It's unclear whether there is a direct api call within the
-	// datasetAPIClient that can update the instance with a link or not.
-	// Will have to directly modify the document if not.
+// UpdateInstance updates the instance downlad CSV link using dataset API PUT /instances/{id} endpoint
+func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID, url string, size int) error {
+	update := dataset.UpdateInstance{
+		Downloads: dataset.DownloadList{
+			CSV: &dataset.Download{
+				URL:  url,                     // URL of the uploaded CSV file to S3
+				Size: fmt.Sprintf("%d", size), // size of the file in bytes
+			},
+		},
+	}
+	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
+		return fmt.Errorf("error during put instance: %w", err)
+	}
 	return nil
 }
 
-func (h *InstanceComplete) ProduceExportCompleteEvent() error {
-	// Here we produce the final kafka message signifying the export complete
-	// What that message needs to look like is unknown at this point
+// ProduceExportCompleteEvent sends the final kafka message signifying the export complete
+func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID, url string) error {
+	// create InstanceComplete event and Marshal it
+	bytes, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
+		InstanceID: instanceID,
+		FileURL:    url,
+	})
+	if err != nil {
+		return fmt.Errorf("error marshalling instance complete event: %w", err)
+	}
+
+	// Send bytes to kafka producer output channel
+	h.producer.Channels().Output <- bytes
+
 	return nil
 }
 

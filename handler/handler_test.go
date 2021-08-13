@@ -7,12 +7,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/smartystreets/goconvey/convey"
@@ -23,6 +28,7 @@ const (
 	testVaultPath  = "vault-root"
 	testInstanceID = "test-instance-id"
 	testS3Location = "s3://myBucket/my-file.csv"
+	testETag       = "testETag"
 )
 
 var (
@@ -36,6 +42,7 @@ var (
 	errS3              = errors.New("test S3Upload error")
 	errVault           = errors.New("test Vault error")
 	errPsk             = errors.New("test PSK error")
+	errDataset         = errors.New("test DatasetAPI error")
 )
 
 var originalCreatePSK = handler.CreatePSK
@@ -50,7 +57,7 @@ func TestUploadCSVFile(t *testing.T) {
 	Convey("Given an event handler with a successful S3Uploader", t, func() {
 		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderHappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
 			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
@@ -74,7 +81,7 @@ func TestUploadCSVFile(t *testing.T) {
 		handler.CreatePSK = createPSK
 		s3Uploader := s3UploaderHappy(true)
 		vaultClient := vaultHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
 			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
@@ -106,7 +113,7 @@ func TestUploadCSVFile(t *testing.T) {
 	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
 		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderUnhappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption disabled", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
@@ -130,7 +137,7 @@ func TestUploadCSVFile(t *testing.T) {
 			BucketNameFunc: func() string { return testCfg.UploadBucketName },
 		}
 		vaultClient := vaultUnhappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
@@ -152,7 +159,7 @@ func TestUploadCSVFile(t *testing.T) {
 		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderUnhappy(true)
 		vaultClient := vaultHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
@@ -171,7 +178,7 @@ func TestUploadCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an empty event handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvFileContent, false)
@@ -198,7 +205,7 @@ func TestUploadCSVFile(t *testing.T) {
 			return nil, errPsk
 		}
 		defer func() { handler.CreatePSK = createPSK }()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
 			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
@@ -207,6 +214,84 @@ func TestUploadCSVFile(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldResemble, fmt.Sprintf("failed to generate a PSK for encryption: %s", errPsk.Error()))
 			})
+		})
+	})
+}
+
+func TestUpdateInstance(t *testing.T) {
+	testSize := testCsvFileContent.Reader.Size()
+
+	Convey("Given an event handler with a successful dataset API mock", t, func() {
+		datasetAPIMock := datasetAPIClientHappy()
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, &datasetAPIMock, nil, nil, nil)
+
+		Convey("When UpdateInstance is called", func() {
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testS3Location, testSize)
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
+				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
+				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
+				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
+					Downloads: dataset.DownloadList{
+						CSV: &dataset.Download{
+							URL:  testS3Location,
+							Size: fmt.Sprintf("%d", testSize),
+						},
+					},
+				})
+				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
+			})
+		})
+	})
+
+	Convey("Given an event handler with a failing dataset API mock", t, func() {
+		datasetAPIMock := datasetAPIClientUnhappy()
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, &datasetAPIMock, nil, nil, nil)
+
+		Convey("When UpdateInstance is called", func() {
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testS3Location, testSize)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
+			})
+		})
+	})
+}
+
+func TestProduceExportCompleteEvent(t *testing.T) {
+	expectedEvent := event.CommonOutputCreated{
+		FileURL:    testS3Location,
+		InstanceID: testInstanceID,
+	}
+
+	Convey("Given an event handler with a successful Kafka Producer", t, func(c C) {
+		producer := kafkatest.NewMessageProducer(true)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, producer)
+
+		Convey("When ProduceExportCompleteEvent is called", func(c C) {
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, testS3Location)
+				c.So(err, ShouldBeNil)
+			}()
+
+			Convey("Then the expected message is produced", func() {
+				producedBytes := <-producer.Channels().Output
+				producedMessage := event.CommonOutputCreated{}
+				err := schema.CommonOutputCreated.Unmarshal(producedBytes, &producedMessage)
+				So(err, ShouldBeNil)
+				So(producedMessage, ShouldResemble, expectedEvent)
+			})
+
+			// make sure the go-routine finishes its execution
+			wg.Wait()
 		})
 	})
 }
@@ -295,6 +380,20 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 	return mock.DatasetAPIClientMock{
 		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", nil
+		},
+		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
+			return testETag, nil
+		},
+	}
+}
+
+func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
+	return mock.DatasetAPIClientMock{
+		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+			return dataset.Instance{}, "", errDataset
+		},
+		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
+			return "", errDataset
 		},
 	}
 }

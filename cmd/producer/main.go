@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 const serviceName = "dp-cantabular-csv-exporter"
@@ -23,7 +23,7 @@ func main() {
 	// Get Config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "error getting config", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "error getting config", err)
 		os.Exit(1)
 	}
 
@@ -33,7 +33,7 @@ func main() {
 		KafkaVersion: &cfg.KafkaVersion,
 	})
 	if err != nil {
-		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": cfg.InstanceCompleteTopic})
+		log.Fatal(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.InstanceCompleteTopic})
 		os.Exit(1)
 	}
 
@@ -44,11 +44,11 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		e := scanEvent(scanner)
-		log.Event(ctx, "sending hello-called event", log.INFO, log.Data{"helloCalledEvent": e})
+		log.Info(ctx, "sending hello-called event", log.Data{"helloCalledEvent": e})
 
 		bytes, err := schema.InstanceComplete.Marshal(e)
 		if err != nil {
-			log.Event(ctx, "hello-called event error", log.FATAL, log.Error(err))
+			log.Fatal(ctx, "hello-called event error", err)
 			os.Exit(1)
 		}
 

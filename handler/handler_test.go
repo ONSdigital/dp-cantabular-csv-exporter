@@ -86,14 +86,27 @@ func TestValidateQueryResponse(t *testing.T) {
 			c := cantabularResp()
 			c.Dataset.Table.Dimensions[0].Count = 250
 			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, errors.New("wrong number of categories for a dimensions in response"))
+			So(err, ShouldResemble, handler.NewError(
+				errors.New("wrong number of categories for a dimensions in response"),
+				log.Data{
+					"categories_length": 3,
+					"dimension_count":   250,
+					"dimension":         "City",
+				},
+			))
 		})
 
 		Convey("Validating a cantabular response with a values array whose length does not match the permutations of all dimension categories fails with the expected error", func() {
 			c := cantabularResp()
 			c.Dataset.Table.Values = []int{0, 1, 2, 3}
 			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, errors.New("wrong number of values in response"))
+			So(err, ShouldResemble, handler.NewError(
+				errors.New("wrong number of values in response"),
+				log.Data{
+					"expected_values": 18,
+					"values_length":   4,
+				},
+			))
 		})
 	})
 }

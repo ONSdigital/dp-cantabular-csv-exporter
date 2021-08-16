@@ -17,17 +17,17 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 			select {
 			case msg, ok := <-cg.Channels().Upstream:
 				if !ok {
-					log.Event(ctx, "closing event consumer loop because upstream channel is closed", log.INFO, log.Data{"worker_id": workerID})
+					log.Info(ctx, "closing event consumer loop because upstream channel is closed", log.Data{"worker_id": workerID})
 					return
 				}
 
 				msgCtx, cancel := context.WithCancel(ctx)
 
 				if err := p.processMessage(msgCtx, msg, h); err != nil {
-					log.Event(
+					log.Error(
 						msgCtx,
 						"failed to process message",
-						log.ERROR,
+						err,
 						log.Data{
 							"error":       fmt.Sprintf("%s", err),
 							"log_data":    unwrapLogData(err),
@@ -38,7 +38,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 				msg.Release()
 				cancel()
 			case <-cg.Channels().Closer:
-				log.Event(ctx, "closing event consumer loop because closer channel is closed", log.INFO, log.Data{"worker_id": workerID})
+				log.Info(ctx, "closing event consumer loop because closer channel is closed", log.Data{"worker_id": workerID})
 				return
 			case <-ctx.Done():
 				log.Info(ctx, "parent context closed - closing event consumer loop ", log.Data{"worker_id": workerID})

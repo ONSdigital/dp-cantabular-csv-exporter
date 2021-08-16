@@ -2,20 +2,23 @@ package handler
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/csv"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"path"
 
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
 
@@ -67,7 +70,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		"instance_id": instance.ID,
 	})
 
-	if err := h.ValidateInstance(instance); err != nil{
+	if err := h.ValidateInstance(instance); err != nil {
 		return fmt.Errorf("failed to validate instance: %w", err)
 	}
 
@@ -97,24 +100,21 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		}
 	}
 
-	// ========================================================================
-	// Ticket #5178
 	// Convert Cantabular Response To CSV file
 	csv, err := h.ParseQueryResponse(resp)
 	if err != nil {
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
-	// ========================================================================
 
 	// When planning the tickets we thought there would be another conversion
 	// step here but it turns out the sensible code example is for directly
 	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3
-	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, &csv, Encrypted)
+	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, csv, Encrypted)
 	if err != nil {
 		return &Error{
-			err:     fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
+			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
 			logData: log.Data{
 				"bucket":      h.s3.BucketName(),
 				"instance_id": e.InstanceID,
@@ -122,10 +122,8 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		}
 	}
 
-	// ========================================================================
-	// Ticket #5181
 	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e.InstanceID, uploadedUrl, csv.Reader.Size()); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, uploadedUrl, csv.Size()); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -133,13 +131,12 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	if err := h.ProduceExportCompleteEvent(e.InstanceID, uploadedUrl); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
-	// ========================================================================
 	return nil
 }
 
 // ValidateInstance validates the instance returned from dp-dataset-api
 func (h *InstanceComplete) ValidateInstance(i dataset.Instance) error {
-	if len(i.CSVHeader) < 2{
+	if len(i.CSVHeader) < 2 {
 		return &Error{
 			err: errors.New("no dimensions in headers"),
 			logData: log.Data{
@@ -151,33 +148,111 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) error {
 	return nil
 }
 
-// ValidateQueryResponse validates the query response returned from Cantabular
+// ValidateQueryResponse validates the query response returned from Cantabular:
+// - Is not nil
+// - Contains at least one dimension
+// - Each dimension count matches the number of categories for that dimension
+// - Each dimension variable contains a non-empty label
+// - Each dimension category contains a non-empty label
+// - The total number of values corresponds to all the permutations of possible dimension categories
 func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQuery) error {
 	if resp == nil {
 		return errors.New("nil response")
+	}
+	if len(resp.Dataset.Table.Dimensions) == 0 {
+		return errors.New("no dimension in response")
+	}
+
+	expectedNumValues := 1
+	for _, dim := range resp.Dataset.Table.Dimensions {
+		expectedNumValues = expectedNumValues * dim.Count
+		if len(dim.Categories) != dim.Count {
+			return errors.New("wrong number of categories for a dimensions in response")
+		}
+		if dim.Variable.Label == "" {
+			return errors.New("empty variable label in cantabular response")
+		}
+		for _, category := range dim.Categories {
+			if category.Label == "" {
+				return errors.New("empty category label in cantabular response")
+			}
+		}
+	}
+
+	if len(resp.Dataset.Table.Values) != expectedNumValues {
+		return errors.New("wrong number of values in response")
 	}
 
 	return nil
 }
 
-func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (bufio.ReadWriter, error) {
-	// Here is where we implement the example set out by Sensible Code here:
-	// https://github.com/cantabular/examples/blob/master/golang/main.go
-	// and referenced in the high level design doc
+// ParseQueryResponse parses the provided cantabular response into a CSV bufio.Reader,
+// where the first row corresponds to the dimension names header (including a count)
+// and each subsequent row corresponds to a unique combination of dimension values and their count.
+//
+// Example by Sensible Code here: https://github.com/cantabular/examples/blob/master/golang/main.go
+func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (*bufio.Reader, error) {
+	// Create CSV writer with underlying buffer
+	b := new(bytes.Buffer)
+	w := csv.NewWriter(b)
 
-	// Using a bufio.ReadWriter we should be able to use an object that can be written
-	// to by the csv package and then uploaded directly with the S3 package.
-	var csv bufio.ReadWriter
-	return csv, nil
+	// Obtain the CSV header
+	header := createCsvHeader(resp.Dataset.Table.Dimensions)
+	w.Write(header)
+	if err := w.Error(); err != nil {
+		return nil, fmt.Errorf("error writing the csv header: %w", err)
+	}
+
+	// Obtain the CSV rows according to the cantabular dimensions and counts
+	for i, count := range resp.Dataset.Table.Values {
+		row := createCsvRow(resp.Dataset.Table.Dimensions, i, count)
+		w.Write(row)
+		if err := w.Error(); err != nil {
+			return nil, fmt.Errorf("error writing a csv row: %w", err)
+		}
+	}
+
+	// Flush to make sure all data is present in the byte buffer
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, fmt.Errorf("error flushing the csv writer: %w", err)
+	}
+
+	// Return a reader with the same underlying Byte buffer as written by the csv writter
+	return bufio.NewReader(b), nil
+}
+
+// createCsvHeader creates an array of strings corresponding to a csv header
+// where each column contains the value of the corresponding dimension, with the last column being the 'count'
+func createCsvHeader(dims []cantabular.Dimension) []string {
+	header := make([]string, len(dims)+1)
+	for i, dim := range dims {
+		header[i] = dim.Variable.Label
+	}
+	header[len(dims)] = "count"
+	return header
+}
+
+// createCsvRow creates an array of strings corresponding to a csv row
+// for the provided array of dimension, index and count
+// it assumes that the values are soreted with lower weight for the last dimension and higher weight for the first dimension.
+func createCsvRow(dims []cantabular.Dimension, index, count int) []string {
+	row := make([]string, len(dims)+1)
+	for i := len(dims) - 1; i >= 0; i-- {
+		row[i] = dims[i].Categories[index%dims[i].Count].Label
+		index = index / dims[i].Count
+	}
+	row[len(dims)] = fmt.Sprintf("%d", count)
+	return row
 }
 
 // UploadCSVFile uploads the provided file content to AWS S3
 // The file name is the instance ID and a uuid
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file *bufio.ReadWriter, encrypted bool) (string, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, fReader io.Reader, encrypted bool) (string, error) {
 	if instanceID == "" {
 		return "", errors.New("empty instance id not allowed")
 	}
-	if file == nil {
+	if fReader == nil {
 		return "", errors.New("no file content has been provided")
 	}
 
@@ -208,13 +283,13 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 
 		if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
 			return "", NewError(
-				fmt.Errorf("failed to write key to vault: %w", err), 
+				fmt.Errorf("failed to write key to vault: %w", err),
 				logData,
 			)
 		}
 
 		result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
-			Body:   file.Reader,
+			Body:   fReader,
 			Bucket: &bucketName,
 			Key:    &filename,
 		}, psk)
@@ -231,7 +306,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	log.Event(ctx, "uploading public file to S3", log.INFO, logData)
 
 	result, err := h.s3.Upload(&s3manager.UploadInput{
-		Body:   file.Reader,
+		Body:   fReader,
 		Bucket: &bucketName,
 		Key:    &filename,
 	})

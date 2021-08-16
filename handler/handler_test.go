@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
@@ -36,18 +37,115 @@ var (
 		UploadBucketName: testBucket,
 		VaultPath:        testVaultPath,
 	}
-	testCsvBody        = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
-	testCsvFileContent = bufio.NewReadWriter(testCsvBody, nil)
-	testPsk            = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	errS3              = errors.New("test S3Upload error")
-	errVault           = errors.New("test Vault error")
-	errPsk             = errors.New("test PSK error")
-	errDataset         = errors.New("test DatasetAPI error")
+	testCsvBody = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
+	testPsk     = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	errS3       = errors.New("test S3Upload error")
+	errVault    = errors.New("test Vault error")
+	errPsk      = errors.New("test PSK error")
+	errDataset  = errors.New("test DatasetAPI error")
 )
 
 var originalCreatePSK = handler.CreatePSK
 
 var ctx = context.Background()
+
+func TestValidateQueryResponse(t *testing.T) {
+	Convey("Given an empty handler", t, func() {
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
+
+		Convey("A valid Cantabular response is successfully validated", func() {
+			err := eventHandler.ValidateQueryResponse(cantabularResp())
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Validating a nil cantabular response fails with the expected error", func() {
+			err := eventHandler.ValidateQueryResponse(nil)
+			So(err, ShouldResemble, errors.New("nil response"))
+		})
+
+		Convey("Validating a cantabular response without dimensions fails with the expected error", func() {
+			err := eventHandler.ValidateQueryResponse(&cantabular.StaticDatasetQuery{})
+			So(err, ShouldResemble, errors.New("no dimension in response"))
+		})
+
+		Convey("Validating a cantabular response with a dimension variable with empty label fails with the expected error", func() {
+			c := cantabularResp()
+			c.Dataset.Table.Dimensions[0].Variable.Label = ""
+			err := eventHandler.ValidateQueryResponse(c)
+			So(err, ShouldResemble, errors.New("empty variable label in cantabular response"))
+		})
+
+		Convey("Validating a cantabular response with a dimension category with empty label fails with the expected error", func() {
+			c := cantabularResp()
+			c.Dataset.Table.Dimensions[0].Categories[0].Label = ""
+			err := eventHandler.ValidateQueryResponse(c)
+			So(err, ShouldResemble, errors.New("empty category label in cantabular response"))
+		})
+
+		Convey("Validating a cantabular response with a dimension count that does not match the number of categories fails with the expected error", func() {
+			c := cantabularResp()
+			c.Dataset.Table.Dimensions[0].Count = 250
+			err := eventHandler.ValidateQueryResponse(c)
+			So(err, ShouldResemble, errors.New("wrong number of categories for a dimensions in response"))
+		})
+
+		Convey("Validating a cantabular response with a values array whose length does not match the permutations of all dimension categories fails with the expected error", func() {
+			c := cantabularResp()
+			c.Dataset.Table.Values = []int{0, 1, 2, 3}
+			err := eventHandler.ValidateQueryResponse(c)
+			So(err, ShouldResemble, errors.New("wrong number of values in response"))
+		})
+	})
+}
+
+func TestParseQueryResponse(t *testing.T) {
+
+	Convey("Given an empty handler", t, func() {
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
+
+		Convey("When ParseQueryResponse is triggered with a valid cantabular response", func() {
+			reader, err := eventHandler.ParseQueryResponse(cantabularResp())
+
+			Convey("Then the expected reader is returned without error", func() {
+				So(err, ShouldBeNil)
+				validateLines(reader, []string{
+					"City,Number of siblings (3 mappings),Sex,count",
+					"London,No siblings,Male,2",
+					"London,No siblings,Female,0",
+					"London,1 or 2 siblings,Male,1",
+					"London,1 or 2 siblings,Female,3",
+					"London,3 or more siblings,Male,5",
+					"London,3 or more siblings,Female,4",
+					"Liverpool,No siblings,Male,7",
+					"Liverpool,No siblings,Female,6",
+					"Liverpool,1 or 2 siblings,Male,11",
+					"Liverpool,1 or 2 siblings,Female,10",
+					"Liverpool,3 or more siblings,Male,9",
+					"Liverpool,3 or more siblings,Female,13",
+					"Belfast,No siblings,Male,14",
+					"Belfast,No siblings,Female,12",
+					"Belfast,1 or 2 siblings,Male,16",
+					"Belfast,1 or 2 siblings,Female,17",
+					"Belfast,3 or more siblings,Male,15",
+					"Belfast,3 or more siblings,Female,8",
+				})
+			})
+		})
+	})
+}
+
+// validateLines scans the provided reader, line by line, and compares with the corresponding line in the provided array.
+// It also checks that all the expected lines are present in the reader.
+func validateLines(reader *bufio.Reader, expectedLines []string) {
+	i := 0
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		So(scanner.Text(), ShouldEqual, expectedLines[i])
+		i++
+	}
+	So(expectedLines, ShouldHaveLength, i) // Check that there aren't any more expected lines
+	So(scanner.Err(), ShouldBeNil)
+}
 
 func TestUploadCSVFile(t *testing.T) {
 
@@ -60,7 +158,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, false)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -84,7 +182,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -116,7 +214,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption disabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, false)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, false)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -140,7 +238,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -162,7 +260,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
 		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -181,7 +279,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvFileContent, false)
+			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody, false)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
@@ -208,7 +306,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvFileContent, true)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -219,7 +317,7 @@ func TestUploadCSVFile(t *testing.T) {
 }
 
 func TestUpdateInstance(t *testing.T) {
-	testSize := testCsvFileContent.Reader.Size()
+	testSize := testCsvBody.Size()
 
 	Convey("Given an event handler with a successful dataset API mock", t, func() {
 		datasetAPIMock := datasetAPIClientHappy()
@@ -308,10 +406,6 @@ func TestCreatePSK(t *testing.T) {
 			So(psk1, ShouldNotResemble, psk)
 		})
 	})
-}
-
-func cantabularClientHappy() mock.CantabularClientMock {
-	return mock.CantabularClientMock{}
 }
 
 func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
@@ -406,4 +500,76 @@ var generateUUID = func() string {
 // createPSK returns a mocked array of 16 bytes
 var createPSK = func() ([]byte, error) {
 	return testPsk, nil
+}
+
+// cantabularResp returns a valid cantabular StaticDatasetQuery for testing
+func cantabularResp() *cantabular.StaticDatasetQuery {
+	return &cantabular.StaticDatasetQuery{
+		Dataset: cantabular.StaticDataset{
+			Table: cantabular.Table{
+				Dimensions: []cantabular.Dimension{
+					{
+						Variable: cantabular.VariableBase{
+							Name:  "city",
+							Label: "City",
+						},
+						Count: 3,
+						Categories: []cantabular.Category{
+							{
+								Code:  "0",
+								Label: "London",
+							},
+							{
+								Code:  "1",
+								Label: "Liverpool",
+							},
+							{
+								Code:  "2",
+								Label: "Belfast",
+							},
+						},
+					},
+					{
+						Variable: cantabular.VariableBase{
+							Name:  "siblings_3",
+							Label: "Number of siblings (3 mappings)",
+						},
+						Count: 3,
+						Categories: []cantabular.Category{
+							{
+								Code:  "0",
+								Label: "No siblings",
+							},
+							{
+								Code:  "1-2",
+								Label: "1 or 2 siblings",
+							},
+							{
+								Code:  "3+",
+								Label: "3 or more siblings",
+							},
+						},
+					},
+					{
+						Variable: cantabular.VariableBase{
+							Name:  "sex",
+							Label: "Sex",
+						},
+						Count: 2,
+						Categories: []cantabular.Category{
+							{
+								Code:  "0",
+								Label: "Male",
+							},
+							{
+								Code:  "1",
+								Label: "Female",
+							},
+						},
+					},
+				},
+				Values: []int{2, 0, 1, 3, 5, 4, 7, 6, 11, 10, 9, 13, 14, 12, 16, 17, 15, 8},
+			},
+		},
+	}
 }

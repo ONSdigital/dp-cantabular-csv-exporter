@@ -27,6 +27,7 @@ type Config struct {
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	AWSRegion                  string        `envconfig:"AWS_REGION"`
 	UploadBucketName           string        `envconfig:"UPLOAD_BUCKET_NAME"`
+	LocalObjectStore           string        `envconfig:"LOCAL_OBJECT_STORE"`
 	VaultToken                 string        `envconfig:"VAULT_TOKEN"                   json:"-"`
 	VaultAddress               string        `envconfig:"VAULT_ADDR"`
 	VaultPath                  string        `envconfig:"VAULT_PATH"`
@@ -61,6 +62,7 @@ func Get() (*Config, error) {
 		DatasetAPIURL:              "http://localhost:22000",
 		AWSRegion:                  "eu-west-1",
 		UploadBucketName:           "dp-cantabular-csv-exporter",
+		LocalObjectStore:           "",
 		VaultPath:                  "secret/shared/psk",
 		VaultAddress:               "http://localhost:8200",
 		VaultToken:                 "",

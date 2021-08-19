@@ -5,7 +5,6 @@ go 1.16
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.41.1 // indirect
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.1.10
 	github.com/ONSdigital/dp-component-test v0.3.1
 	github.com/ONSdigital/dp-healthcheck v1.1.0
@@ -14,7 +13,7 @@ require (
 	github.com/ONSdigital/dp-s3 v1.7.0
 	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.0.5
-	github.com/aws/aws-sdk-go v1.40.13
+	github.com/aws/aws-sdk-go v1.40.24
 	github.com/cucumber/godog v0.11.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0

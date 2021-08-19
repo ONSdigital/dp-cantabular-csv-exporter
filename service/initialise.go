@@ -15,6 +15,10 @@ import (
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dps3 "github.com/ONSdigital/dp-s3"
 	vault "github.com/ONSdigital/dp-vault"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
 const VaultRetries = 3
@@ -80,10 +84,25 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 
 // GetS3Uploader creates an S3 Uploader
 var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
+	if cfg.LocalObjectStore != ""{
+		s3Config := &aws.Config{
+			// Credentials are defined as environment variables in dp-compose deps.yml
+			Credentials:      credentials.NewStaticCredentials("minio-access-key", "minio-secret-key", ""),
+			Endpoint:         aws.String("http://minio:9000"),
+			Region:           aws.String(cfg.AWSRegion),
+			DisableSSL:       aws.Bool(true),
+			S3ForcePathStyle: aws.Bool(true),
+		}
+
+		s := session.New(s3Config)
+		return dps3.NewUploaderWithSession(cfg.UploadBucketName, s), nil
+	}
+
 	uploader, err := dps3.NewUploader(cfg.AWSRegion, cfg.UploadBucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create S3 Client: %w", err)
 	}
+
 	return uploader, nil
 }
 

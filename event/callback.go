@@ -2,8 +2,8 @@ package event
 
 import (
 	"errors"
-	"reflect"
 	"net/http"
+	"reflect"
 
 	"github.com/ONSdigital/log.go/v2/log"
 )

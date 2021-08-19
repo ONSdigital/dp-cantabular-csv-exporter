@@ -17,8 +17,8 @@ import (
 	vault "github.com/ONSdigital/dp-vault"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 const VaultRetries = 3
@@ -84,7 +84,7 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 
 // GetS3Uploader creates an S3 Uploader
 var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
-	if cfg.LocalObjectStore != ""{
+	if cfg.LocalObjectStore != "" {
 		s3Config := &aws.Config{
 			Credentials:      credentials.NewStaticCredentials(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
 			Endpoint:         aws.String(cfg.LocalObjectStore),

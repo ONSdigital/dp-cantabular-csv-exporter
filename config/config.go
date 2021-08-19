@@ -28,6 +28,8 @@ type Config struct {
 	AWSRegion                  string        `envconfig:"AWS_REGION"`
 	UploadBucketName           string        `envconfig:"UPLOAD_BUCKET_NAME"`
 	LocalObjectStore           string        `envconfig:"LOCAL_OBJECT_STORE"`
+	MinioAccessKey             string        `envconfig:"MINIO_ACCESS_KEY"`
+	MinioSecretKey             string        `envconfig:"MINIO_SECRET_KEY"`
 	VaultToken                 string        `envconfig:"VAULT_TOKEN"                   json:"-"`
 	VaultAddress               string        `envconfig:"VAULT_ADDR"`
 	VaultPath                  string        `envconfig:"VAULT_PATH"`
@@ -63,6 +65,8 @@ func Get() (*Config, error) {
 		AWSRegion:                  "eu-west-1",
 		UploadBucketName:           "dp-cantabular-csv-exporter",
 		LocalObjectStore:           "",
+		MinioAccessKey:             "",
+		MinioSecretKey:             "",
 		VaultPath:                  "secret/shared/psk",
 		VaultAddress:               "http://localhost:8200",
 		VaultToken:                 "",

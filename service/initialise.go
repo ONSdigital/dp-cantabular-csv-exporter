@@ -86,9 +86,8 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
 	if cfg.LocalObjectStore != ""{
 		s3Config := &aws.Config{
-			// Credentials are defined as environment variables in dp-compose deps.yml
-			Credentials:      credentials.NewStaticCredentials("minio-access-key", "minio-secret-key", ""),
-			Endpoint:         aws.String("http://minio:9000"),
+			Credentials:      credentials.NewStaticCredentials(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
+			Endpoint:         aws.String(cfg.LocalObjectStore),
 			Region:           aws.String(cfg.AWSRegion),
 			DisableSSL:       aws.Bool(true),
 			S3ForcePathStyle: aws.Bool(true),

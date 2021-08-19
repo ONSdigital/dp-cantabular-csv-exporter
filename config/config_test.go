@@ -33,6 +33,16 @@ func TestConfig(t *testing.T) {
 				So(cfg.VaultPath, ShouldEqual, "secret/shared/psk")
 				So(cfg.VaultAddress, ShouldEqual, "http://localhost:8200")
 				So(cfg.VaultToken, ShouldEqual, "")
+				So(cfg.DefaultRequestTimeout, ShouldEqual, 10*time.Second)
+				So(cfg.KafkaOffsetOldest, ShouldBeTrue)
+				So(cfg.CommonOutputCreatedTopic, ShouldEqual, "common-output-created")
+				So(cfg.ServiceAuthToken, ShouldEqual, "")
+				So(cfg.CantabularURL, ShouldEqual, "http://localhost:8491")
+				So(cfg.CantabularExtURL, ShouldEqual, "http://localhost:8492")
+				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
+				So(cfg.CantabularHealthcheckEnabled, ShouldBeFalse)
+				So(cfg.AWSRegion, ShouldEqual, "eu-west-1")
+				So(cfg.UploadBucketName, ShouldEqual, "dp-cantabular-csv-exporter")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

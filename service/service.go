@@ -179,14 +179,17 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for Kafka: %w", err)
 	}
 
-	// TODO - when Cantabular server is deployed to Production, remove this placeholder
-	// and use the real Checker instead: svc.cantabularClient.Checker
-	placeholderChecker := func(ctx context.Context, state *healthcheck.CheckState) error {
-		state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
-		return nil
+	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
+	// and always use the real Checker instead: svc.cantabularClient.Checker
+	cantabularChecker := svc.cantabularClient.Checker
+	if !svc.cfg.CantabularHealthcheckEnabled {
+		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
+			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
+			return nil
+		}
 	}
-	if err := svc.healthCheck.AddCheck("Cantabular client", placeholderChecker); err != nil {
-		return fmt.Errorf("error adding check for cantabular client: %w", err)
+	if err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
+		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
 	if err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {

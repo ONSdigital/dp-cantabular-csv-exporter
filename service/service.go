@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
@@ -177,8 +179,17 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for Kafka: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("Cantabular client", svc.cantabularClient.Checker); err != nil {
-		return fmt.Errorf("error adding check for cantabular client: %w", err)
+	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
+	// and always use the real Checker instead: svc.cantabularClient.Checker
+	cantabularChecker := svc.cantabularClient.Checker
+	if !svc.cfg.CantabularHealthcheckEnabled {
+		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
+			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
+			return nil
+		}
+	}
+	if err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
+		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
 	if err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {

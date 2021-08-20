@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -128,4 +129,8 @@ var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version stri
 		cfg.HealthCheckInterval,
 	)
 	return &hc, nil
+}
+
+var GetGenerator = func() Generator {
+	return generator.New()
 }

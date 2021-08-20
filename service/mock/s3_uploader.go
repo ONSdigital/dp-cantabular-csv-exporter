@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"io"
 	"sync"
 )
 
@@ -21,6 +22,9 @@ import (
 // 			},
 // 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
 // 				panic("mock out the Checker method")
+// 			},
+// 			GetFunc: func(key string) (io.ReadCloser, *int64, error) {
+// 				panic("mock out the Get method")
 // 			},
 // 			UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 // 				panic("mock out the Upload method")
@@ -41,6 +45,9 @@ type S3UploaderMock struct {
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
 
+	// GetFunc mocks the Get method.
+	GetFunc func(key string) (io.ReadCloser, *int64, error)
+
 	// UploadFunc mocks the Upload method.
 	UploadFunc func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
@@ -59,6 +66,11 @@ type S3UploaderMock struct {
 			// CheckState is the checkState argument value.
 			CheckState *healthcheck.CheckState
 		}
+		// Get holds details about calls to the Get method.
+		Get []struct {
+			// Key is the key argument value.
+			Key string
+		}
 		// Upload holds details about calls to the Upload method.
 		Upload []struct {
 			// Input is the input argument value.
@@ -76,6 +88,7 @@ type S3UploaderMock struct {
 	}
 	lockBucketName    sync.RWMutex
 	lockChecker       sync.RWMutex
+	lockGet           sync.RWMutex
 	lockUpload        sync.RWMutex
 	lockUploadWithPSK sync.RWMutex
 }
@@ -138,6 +151,37 @@ func (mock *S3UploaderMock) CheckerCalls() []struct {
 	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
 	mock.lockChecker.RUnlock()
+	return calls
+}
+
+// Get calls GetFunc.
+func (mock *S3UploaderMock) Get(key string) (io.ReadCloser, *int64, error) {
+	if mock.GetFunc == nil {
+		panic("S3UploaderMock.GetFunc: method is nil but S3Uploader.Get was just called")
+	}
+	callInfo := struct {
+		Key string
+	}{
+		Key: key,
+	}
+	mock.lockGet.Lock()
+	mock.calls.Get = append(mock.calls.Get, callInfo)
+	mock.lockGet.Unlock()
+	return mock.GetFunc(key)
+}
+
+// GetCalls gets all the calls that were made to Get.
+// Check the length with:
+//     len(mockedS3Uploader.GetCalls())
+func (mock *S3UploaderMock) GetCalls() []struct {
+	Key string
+} {
+	var calls []struct {
+		Key string
+	}
+	mock.lockGet.RLock()
+	calls = mock.calls.Get
+	mock.lockGet.RUnlock()
 	return calls
 }
 

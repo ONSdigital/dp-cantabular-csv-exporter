@@ -12,6 +12,7 @@ import (
 //go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
 //go:generate moq -out mock/s3-client.go -pkg mock . S3Uploader
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
+//go:generate moq -out mock/generator.go -pkg mock . Generator
 
 // CantabularClient contains the required method for the Cantabular Client
 type CantabularClient interface {
@@ -34,4 +35,11 @@ type DatasetAPIClient interface {
 // VaultClient contains the required methods for the Vault Client
 type VaultClient interface {
 	WriteKey(path, key, value string) error
+}
+
+// Generator contains methods for dynamically required strings and tokens
+// e.g. UUIDs, PSKs.
+type Generator interface {
+	NewUUID() string
+	NewPSK() ([]byte, error)
 }

@@ -4,14 +4,9 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
-
-// Ensure, that S3UploaderMock does implement handler.S3Uploader.
-// If this is not the case, regenerate this file with moq.
-var _ handler.S3Uploader = &S3UploaderMock{}
 
 // S3UploaderMock is a mock implementation of handler.S3Uploader.
 //

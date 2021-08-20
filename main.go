@@ -53,7 +53,11 @@ func run(ctx context.Context) error {
 	// blocks until an os interrupt or a fatal error occurs
 	select {
 	case err := <-svcErrors:
-		log.Error(ctx, "service error received", err)
+		err = fmt.Errorf("service error received: %w", err)
+		if errClose := svc.Close(ctx); errClose != nil {
+			log.Error(ctx, "service close error during error handling", errClose)
+		}
+		return err
 	case sig := <-signals:
 		log.Info(ctx, "os signal received", log.Data{"signal": sig})
 	}

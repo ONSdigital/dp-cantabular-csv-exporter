@@ -4,13 +4,8 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"sync"
 )
-
-// Ensure, that VaultClientMock does implement handler.VaultClient.
-// If this is not the case, regenerate this file with moq.
-var _ handler.VaultClient = &VaultClientMock{}
 
 // VaultClientMock is a mock implementation of handler.VaultClient.
 //

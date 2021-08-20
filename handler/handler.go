@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
 	"errors"
@@ -23,7 +22,6 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/google/uuid"
 )
 
 // Encrypted determines if files need to be encrypted with a newly generated key when they are stored in S3
@@ -37,10 +35,11 @@ type InstanceComplete struct {
 	s3          S3Uploader
 	vaultClient VaultClient
 	producer    kafka.IProducer
+	generator   Generator
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient, p kafka.IProducer) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,
@@ -48,6 +47,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 		s3:          s,
 		vaultClient: v,
 		producer:    p,
+		generator:   g,
 	}
 }
 
@@ -275,7 +275,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	}
 
 	bucketName := h.s3.BucketName()
-	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
+	filename := fmt.Sprintf("%s-%s.csv", instanceID, h.generator.NewUUID())
 
 	logData := log.Data{
 		"bucket":    bucketName,
@@ -286,7 +286,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	if encrypted {
 		log.Info(ctx, "uploading private file to S3", logData)
 
-		psk, err := CreatePSK()
+		psk, err := h.generator.NewPSK()
 		if err != nil {
 			return "", NewError(
 				fmt.Errorf("failed to generate a PSK for encryption: %w", err),
@@ -369,18 +369,4 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID, url string) er
 	h.producer.Channels().Output <- bytes
 
 	return nil
-}
-
-// GenerateUUID returns a new V4 unique ID
-var GenerateUUID = func() string {
-	return uuid.NewString()
-}
-
-// CreatePSK returns a new random array of 16 bytes
-var CreatePSK = func() ([]byte, error) {
-	key := make([]byte, 16)
-	if _, err := rand.Read(key); err != nil {
-		return nil, err
-	}
-	return key, nil
 }

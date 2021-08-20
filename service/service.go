@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
+
 	"github.com/gorilla/mux"
 )
 
@@ -26,6 +27,7 @@ type Service struct {
 	cantabularClient CantabularClient
 	s3Uploader       S3Uploader
 	vaultClient      VaultClient
+	generator        Generator
 }
 
 func New() *Service {
@@ -59,6 +61,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
 	svc.processor = GetProcessor(cfg)
+	svc.generator = GetGenerator()
 
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
@@ -94,6 +97,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.s3Uploader,
 			svc.vaultClient,
 			svc.producer,
+			svc.generator,
 		),
 	)
 
@@ -158,15 +162,12 @@ func (svc *Service) Close(ctx context.Context) error {
 
 	// timeout expired
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Error(ctx, "shutdown timed out", ctx.Err())
-		return ctx.Err()
+		return fmt.Errorf("shutdown timed out: %w", ctx.Err())
 	}
 
 	// other error
 	if hasShutdownError {
-		err := fmt.Errorf("failed to shutdown gracefully")
-		log.Error(ctx, "failed to shutdown gracefully ", err)
-		return err
+		return fmt.Errorf("failed to shutdown gracefully")
 	}
 
 	log.Info(ctx, "graceful shutdown was successful")

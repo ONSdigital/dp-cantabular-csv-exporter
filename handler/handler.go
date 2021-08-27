@@ -89,10 +89,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		}
 	}
 
-	log.Info(ctx, "response from Cantabular Extended API GraphQL query", log.Data{
-		"resp": resp,
-	})
-
 	if err := h.ValidateQueryResponse(resp); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to validate query response: %w", err),

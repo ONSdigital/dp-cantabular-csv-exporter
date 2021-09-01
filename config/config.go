@@ -34,6 +34,7 @@ type Config struct {
 	VaultToken                   string        `envconfig:"VAULT_TOKEN"                   json:"-"`
 	VaultAddress                 string        `envconfig:"VAULT_ADDR"`
 	VaultPath                    string        `envconfig:"VAULT_PATH"`
+	Encrypt                      bool          `envconfig:"ENCRYPT"`
 }
 
 var cfg *Config
@@ -72,6 +73,7 @@ func Get() (*Config, error) {
 		VaultPath:                    "secret/shared/psk",
 		VaultAddress:                 "http://localhost:8200",
 		VaultToken:                   "",
+		Encrypt:                      false,
 	}
 
 	return cfg, envconfig.Process("", cfg)

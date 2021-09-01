@@ -26,9 +26,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Encrypted determines if files need to be encrypted with a newly generated key when they are stored in S3
-const Encrypted = false
-
 // InstanceComplete is the handle for the InstanceCompleteHandler event
 type InstanceComplete struct {
 	cfg         config.Config
@@ -107,7 +104,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3
-	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, file, Encrypted)
+	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, file, h.cfg.Encrypt)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),

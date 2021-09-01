@@ -43,6 +43,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.CantabularHealthcheckEnabled, ShouldBeFalse)
 				So(cfg.AWSRegion, ShouldEqual, "eu-west-1")
 				So(cfg.UploadBucketName, ShouldEqual, "dp-cantabular-csv-exporter")
+				So(cfg.Encrypt, ShouldBeFalse)
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

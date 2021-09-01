@@ -8,7 +8,7 @@ import (
 
 // Config represents service configuration for dp-cantabular-csv-exporter
 type Config struct {
-	BindAddr                     string        `envconfig:" BIND_ADDR"`
+	BindAddr                     string        `envconfig:"BIND_ADDR"`
 	GracefulShutdownTimeout      time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval          time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout   time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
@@ -66,9 +66,9 @@ func Get() (*Config, error) {
 		CantabularHealthcheckEnabled: false,
 		AWSRegion:                    "eu-west-1",
 		UploadBucketName:             "dp-cantabular-csv-exporter",
-		LocalObjectStore:           "",
-		MinioAccessKey:             "",
-		MinioSecretKey:             "",
+		LocalObjectStore:             "",
+		MinioAccessKey:               "",
+		MinioSecretKey:               "",
 		VaultPath:                    "secret/shared/psk",
 		VaultAddress:                 "http://localhost:8200",
 		VaultToken:                   "",

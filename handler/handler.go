@@ -23,7 +23,6 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/google/uuid"
 )
 
 // InstanceComplete is the handle for the InstanceCompleteHandler event
@@ -103,8 +102,9 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	// step here but it turns out the sensible code example is for directly
 	// creating a CSV file, not just parsing the response into a generic struct.
 
-	// Upload CSV file to S3
-	uploadedUrl, err := h.UploadCSVFile(ctx, e.InstanceID, file, h.cfg.Encrypt)
+	// Upload CSV file to S3, note that the S3 file location is ignored
+	// because we will use download service to access the file
+	_, err = h.UploadCSVFile(ctx, e.InstanceID, file)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -115,13 +115,16 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		}
 	}
 
+	// TODO check if file.Size() is correct (is it always 4096??)
+	// file.TotalBytesRead() ??
+
 	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e.InstanceID, uploadedUrl, file.Size()); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, file.Size()); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
 	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(e.InstanceID, uploadedUrl); err != nil {
+	if err := h.ProduceExportCompleteEvent(e.InstanceID); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
@@ -258,8 +261,7 @@ func createCSVRow(dims []cantabular.Dimension, index, count int) []string {
 }
 
 // UploadCSVFile uploads the provided file content to AWS S3
-// The file name is the instance ID and a uuid
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file io.Reader, encrypted bool) (string, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file io.Reader) (string, error) {
 	if instanceID == "" {
 		return "", errors.New("empty instance id not allowed")
 	}
@@ -268,42 +270,22 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	}
 
 	bucketName := h.s3.BucketName()
-	filename := fmt.Sprintf("%s-%s.csv", instanceID, GenerateUUID())
+	filename := generateS3Filename(instanceID)
 
 	logData := log.Data{
-		"bucket":    bucketName,
-		"filename":  filename,
-		"encrypted": encrypted,
+		"bucket":              bucketName,
+		"filename":            filename,
+		"encryption_disabled": h.cfg.EncryptionDisabled,
 	}
 
-	if encrypted {
-		log.Info(ctx, "uploading private file to S3", logData)
+	if h.cfg.EncryptionDisabled {
+		log.Info(ctx, "uploading unencrypted file to S3", logData)
 
-		psk, err := CreatePSK()
-		if err != nil {
-			return "", NewError(
-				fmt.Errorf("failed to generate a PSK for encryption: %w", err),
-				logData,
-			)
-		}
-
-		vaultPath := fmt.Sprintf("%s/%s", h.cfg.VaultPath, path.Base(filename))
-		vaultKey := "key"
-
-		log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
-
-		if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
-			return "", NewError(
-				fmt.Errorf("failed to write key to vault: %w", err),
-				logData,
-			)
-		}
-
-		result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
+		result, err := h.s3.Upload(&s3manager.UploadInput{
 			Body:   file,
 			Bucket: &bucketName,
 			Key:    &filename,
-		}, psk)
+		})
 		if err != nil {
 			return "", NewError(
 				fmt.Errorf("failed to upload file to S3: %w", err),
@@ -314,13 +296,33 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		return url.PathUnescape(result.Location)
 	}
 
-	log.Info(ctx, "uploading public file to S3", logData)
+	log.Info(ctx, "uploading encrypted file to S3", logData)
 
-	result, err := h.s3.Upload(&s3manager.UploadInput{
+	psk, err := CreatePSK()
+	if err != nil {
+		return "", NewError(
+			fmt.Errorf("failed to generate a PSK for encryption: %w", err),
+			logData,
+		)
+	}
+
+	vaultPath := generateVaultPathForFile(h.cfg.VaultPath, filename)
+	vaultKey := "key"
+
+	log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
+
+	if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
+		return "", NewError(
+			fmt.Errorf("failed to write key to vault: %w", err),
+			logData,
+		)
+	}
+
+	result, err := h.s3.UploadWithPSK(&s3manager.UploadInput{
 		Body:   file,
 		Bucket: &bucketName,
 		Key:    &filename,
-	})
+	}, psk)
 	if err != nil {
 		return "", NewError(
 			fmt.Errorf("failed to upload file to S3: %w", err),
@@ -332,11 +334,13 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 }
 
 // UpdateInstance updates the instance downlad CSV link using dataset API PUT /instances/{id} endpoint
-func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID, url string, size int) error {
+// note that the URL refers to the download service (it is not the URL returned by the S3 client directly)
+func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string, size int) error {
+	downloadURL := generateURL(h.cfg.DownloadServiceURL, instanceID)
 	update := dataset.UpdateInstance{
 		Downloads: dataset.DownloadList{
 			CSV: &dataset.Download{
-				URL:  url,                     // URL of the uploaded CSV file to S3
+				URL:  downloadURL,             // download service URL for the CSV file
 				Size: fmt.Sprintf("%d", size), // size of the file in bytes
 			},
 		},
@@ -348,11 +352,13 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID, url s
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID, url string) error {
+func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
+	downloadURL := generateURL(h.cfg.DownloadServiceURL, instanceID)
+
 	// create InstanceComplete event and Marshal it
 	bytes, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
 		InstanceID: instanceID,
-		FileURL:    url,
+		FileURL:    downloadURL, // download service URL for the CSV file
 	})
 	if err != nil {
 		return fmt.Errorf("error marshalling instance complete event: %w", err)
@@ -364,11 +370,6 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID, url string) er
 	return nil
 }
 
-// GenerateUUID returns a new V4 unique ID
-var GenerateUUID = func() string {
-	return uuid.NewString()
-}
-
 // CreatePSK returns a new random array of 16 bytes
 var CreatePSK = func() ([]byte, error) {
 	key := make([]byte, 16)
@@ -376,4 +377,22 @@ var CreatePSK = func() ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
+}
+
+// generateURL generates the download service URL for the provided instanceID CSV file
+func generateURL(downloadServiceURL, instanceID string) string {
+	return fmt.Sprintf("%s/downloads/instances/%s.csv",
+		downloadServiceURL,
+		instanceID,
+	)
+}
+
+// generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
+func generateS3Filename(instanceID string) string {
+	return fmt.Sprintf("instances/%s.csv", instanceID)
+}
+
+// generateVaultPathForFile generates the vault path for the provided root and filename
+func generateVaultPathForFile(vaultPathRoot, filename string) string {
+	return fmt.Sprintf("%s/%s", vaultPathRoot, path.Base(filename))
 }

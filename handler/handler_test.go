@@ -25,18 +25,15 @@ import (
 )
 
 const (
-	testBucket     = "test-bucket"
-	testVaultPath  = "vault-root"
-	testInstanceID = "test-instance-id"
-	testS3Location = "s3://myBucket/my-file.csv"
-	testETag       = "testETag"
+	testBucket             = "test-bucket"
+	testVaultPath          = "vault-root"
+	testInstanceID         = "test-instance-id"
+	testS3Location         = "s3://myBucket/my-file.csv"
+	testDownloadServiceURL = "http://test-download-service:8200"
+	testETag               = "testETag"
 )
 
 var (
-	testCfg = config.Config{
-		UploadBucketName: testBucket,
-		VaultPath:        testVaultPath,
-	}
 	testCsvBody = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
 	testPsk     = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	errS3       = errors.New("test S3Upload error")
@@ -45,13 +42,22 @@ var (
 	errDataset  = errors.New("test DatasetAPI error")
 )
 
+func testCfg() config.Config {
+	return config.Config{
+		UploadBucketName:   testBucket,
+		VaultPath:          testVaultPath,
+		EncryptionDisabled: true,
+		DownloadServiceURL: testDownloadServiceURL,
+	}
+}
+
 var originalCreatePSK = handler.CreatePSK
 
 var ctx = context.Background()
 
 func TestValidateQueryResponse(t *testing.T) {
 	Convey("Given an empty handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil)
 
 		Convey("A valid Cantabular response is successfully validated", func() {
 			err := eventHandler.ValidateQueryResponse(cantabularResp())
@@ -114,7 +120,7 @@ func TestValidateQueryResponse(t *testing.T) {
 func TestParseQueryResponse(t *testing.T) {
 
 	Convey("Given an empty handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil)
 
 		Convey("When ParseQueryResponse is triggered with a valid cantabular response", func() {
 			reader, err := eventHandler.ParseQueryResponse(cantabularResp())
@@ -162,16 +168,15 @@ func validateLines(reader *bufio.Reader, expectedLines []string) {
 
 func TestUploadCSVFile(t *testing.T) {
 
-	expectedS3Key := fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID())
-	expectedVaultPath := fmt.Sprintf("%s/%s", testVaultPath, expectedS3Key)
+	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
+	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
 
 	Convey("Given an event handler with a successful S3Uploader", t, func() {
-		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderHappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, false)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -187,15 +192,16 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a successful S3Uploader and Vault client", t, func() {
-		handler.GenerateUUID = generateUUID
+	Convey("Given an event handler with a successful S3Uploader, Vault client and encryption enabled", t, func() {
 		handler.CreatePSK = createPSK
 		s3Uploader := s3UploaderHappy(true)
 		vaultClient := vaultHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
+		cfg := testCfg()
+		cfg.EncryptionDisabled = false
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
-		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
+		Convey("When UploadCSVFile is triggered with valid paramters", func() {
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -212,7 +218,7 @@ func TestUploadCSVFile(t *testing.T) {
 
 			Convey("Then the expected call UploadWithPSK call is executed with the expected psk", func() {
 				So(s3Uploader.UploadWithPSKCalls(), ShouldHaveLength, 1)
-				expectedS3Key := fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID())
+				expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
 				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
 				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Bucket, ShouldResemble, testBucket)
 				So(s3Uploader.UploadWithPSKCalls()[0].Input.Body, ShouldResemble, testCsvBody)
@@ -222,66 +228,67 @@ func TestUploadCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
-		handler.GenerateUUID = generateUUID
 		s3Uploader := s3UploaderUnhappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil)
 
-		Convey("When UploadCSVFile is triggered with encryption disabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, false)
+		Convey("When UploadCSVFile is triggered", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to upload file to S3: %w", errS3),
 					log.Data{
-						"bucket":    testBucket,
-						"filename":  fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
-						"encrypted": false,
+						"bucket":              testBucket,
+						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"encryption_disabled": true,
 					},
 				))
 			})
 		})
 	})
 
-	Convey("Given an event handler with an unsuccessful Vault client", t, func() {
-		handler.GenerateUUID = generateUUID
+	Convey("Given an event handler with an unsuccessful Vault client and encryption enabled", t, func() {
+		cfg := testCfg()
+		cfg.EncryptionDisabled = false
 		s3Uploader := mock.S3UploaderMock{
-			BucketNameFunc: func() string { return testCfg.UploadBucketName },
+			BucketNameFunc: func() string { return cfg.UploadBucketName },
 		}
 		vaultClient := vaultUnhappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
-		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
+		Convey("When UploadCSVFile is triggered", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to write key to vault: %w", errVault),
 					log.Data{
-						"bucket":    testBucket,
-						"filename":  fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
-						"encrypted": true,
+						"bucket":              testBucket,
+						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"encryption_disabled": false,
 					},
 				))
 			})
 		})
 	})
 
-	Convey("Given an event handler with a successful Vault client and unsuccessful S3 client", t, func() {
-		handler.GenerateUUID = generateUUID
+	Convey("Given an event handler with a successful Vault client, an unsuccessful S3 client and encryption enabled", t, func() {
+		cfg := testCfg()
+		cfg.EncryptionDisabled = false
 		s3Uploader := s3UploaderUnhappy(true)
 		vaultClient := vaultHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, &vaultClient, nil)
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil)
 
-		Convey("When UploadCSVFile is triggered with encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
+		Convey("When UploadCSVFile is triggered", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to upload file to S3: %w", errS3),
 					log.Data{
-						"bucket":    testBucket,
-						"filename":  fmt.Sprintf("%s-%s.csv", testInstanceID, generateUUID()),
-						"encrypted": true,
+						"bucket":              testBucket,
+						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"encryption_disabled": false,
 					},
 				))
 			})
@@ -289,10 +296,10 @@ func TestUploadCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an empty event handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody, false)
+			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
@@ -300,7 +307,7 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 
 		Convey("When UploadCSVFile is triggered with a nil csv reader", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil, false)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("no file content has been provided"))
@@ -308,18 +315,20 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler and a failing createPSK function", t, func() {
+	Convey("Given an event handler, a failing createPSK function and encryption enabled", t, func() {
+		cfg := testCfg()
+		cfg.EncryptionDisabled = false
 		s3Uploader := mock.S3UploaderMock{
-			BucketNameFunc: func() string { return testCfg.UploadBucketName },
+			BucketNameFunc: func() string { return cfg.UploadBucketName },
 		}
 		handler.CreatePSK = func() ([]byte, error) {
 			return nil, errPsk
 		}
 		defer func() { handler.CreatePSK = createPSK }()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, &s3Uploader, nil, nil)
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, nil, nil)
 
-		Convey("When UploadCSVFile is triggered with valid paramters and encryption enabled", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, true)
+		Convey("When UploadCSVFile is triggered with valid paramters", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -334,23 +343,24 @@ func TestUpdateInstance(t *testing.T) {
 
 	Convey("Given an event handler with a successful dataset API mock", t, func() {
 		datasetAPIMock := datasetAPIClientHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, &datasetAPIMock, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testS3Location, testSize)
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
+				expectedURL := fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID)
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
 				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
 				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
 					Downloads: dataset.DownloadList{
 						CSV: &dataset.Download{
-							URL:  testS3Location,
+							URL:  expectedURL,
 							Size: fmt.Sprintf("%d", testSize),
 						},
 					},
@@ -362,10 +372,10 @@ func TestUpdateInstance(t *testing.T) {
 
 	Convey("Given an event handler with a failing dataset API mock", t, func() {
 		datasetAPIMock := datasetAPIClientUnhappy()
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, &datasetAPIMock, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testS3Location, testSize)
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
@@ -376,20 +386,20 @@ func TestUpdateInstance(t *testing.T) {
 
 func TestProduceExportCompleteEvent(t *testing.T) {
 	expectedEvent := event.CommonOutputCreated{
-		FileURL:    testS3Location,
+		FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
 		InstanceID: testInstanceID,
 	}
 
 	Convey("Given an event handler with a successful Kafka Producer", t, func(c C) {
 		producer := kafkatest.NewMessageProducer(true)
-		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, producer)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, producer)
 
 		Convey("When ProduceExportCompleteEvent is called", func(c C) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, testS3Location)
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID)
 				c.So(err, ShouldBeNil)
 			}()
 
@@ -430,7 +440,7 @@ func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
 				}, nil
 			},
 			BucketNameFunc: func() string {
-				return testCfg.UploadBucketName
+				return testBucket
 			},
 		}
 	}
@@ -441,7 +451,7 @@ func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
 			}, nil
 		},
 		BucketNameFunc: func() string {
-			return testCfg.UploadBucketName
+			return testBucket
 		},
 	}
 }
@@ -469,7 +479,7 @@ func s3UploaderUnhappy(encryptionEnabled bool) mock.S3UploaderMock {
 				return nil, errS3
 			},
 			BucketNameFunc: func() string {
-				return testCfg.UploadBucketName
+				return testBucket
 			},
 		}
 	}
@@ -478,7 +488,7 @@ func s3UploaderUnhappy(encryptionEnabled bool) mock.S3UploaderMock {
 			return nil, errS3
 		},
 		BucketNameFunc: func() string {
-			return testCfg.UploadBucketName
+			return testBucket
 		},
 	}
 }
@@ -503,11 +513,6 @@ func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 			return "", errDataset
 		},
 	}
-}
-
-// generateUUID returns a mocked deterministic UUID for testing
-var generateUUID = func() string {
-	return "00000000-feed-dada-iced-c0ffee000000"
 }
 
 // createPSK returns a mocked array of 16 bytes

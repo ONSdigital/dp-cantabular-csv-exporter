@@ -25,6 +25,7 @@ type Config struct {
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	CantabularExtURL             string        `envconfig:"CANTABULAR_EXT_API_URL"`
 	DatasetAPIURL                string        `envconfig:"DATASET_API_URL"`
+	DownloadServiceURL           string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	CantabularHealthcheckEnabled bool          `envconfig:"CANTABULAR_HEALTHCHECK_ENABLED"`
 	AWSRegion                    string        `envconfig:"AWS_REGION"`
 	UploadBucketName             string        `envconfig:"UPLOAD_BUCKET_NAME"`
@@ -34,7 +35,7 @@ type Config struct {
 	VaultToken                   string        `envconfig:"VAULT_TOKEN"                   json:"-"`
 	VaultAddress                 string        `envconfig:"VAULT_ADDR"`
 	VaultPath                    string        `envconfig:"VAULT_PATH"`
-	Encrypt                      bool          `envconfig:"ENCRYPT"`
+	EncryptionDisabled           bool          `envconfig:"ENCRYPTION_DISABLED"`
 }
 
 var cfg *Config
@@ -64,16 +65,17 @@ func Get() (*Config, error) {
 		CantabularURL:                "http://localhost:8491",
 		CantabularExtURL:             "http://localhost:8492",
 		DatasetAPIURL:                "http://localhost:22000",
+		DownloadServiceURL:           "http://localhost:23600",
 		CantabularHealthcheckEnabled: false,
 		AWSRegion:                    "eu-west-1",
-		UploadBucketName:             "dp-cantabular-csv-exporter",
+		UploadBucketName:             "ons-dp-develop-encrypted-datasets",
 		LocalObjectStore:             "",
 		MinioAccessKey:               "",
 		MinioSecretKey:               "",
 		VaultPath:                    "secret/shared/psk",
 		VaultAddress:                 "http://localhost:8200",
 		VaultToken:                   "",
-		Encrypt:                      false,
+		EncryptionDisabled:           false,
 	}
 
 	return cfg, envconfig.Process("", cfg)

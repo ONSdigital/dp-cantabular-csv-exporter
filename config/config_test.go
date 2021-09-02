@@ -40,10 +40,11 @@ func TestConfig(t *testing.T) {
 				So(cfg.CantabularURL, ShouldEqual, "http://localhost:8491")
 				So(cfg.CantabularExtURL, ShouldEqual, "http://localhost:8492")
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
+				So(cfg.DownloadServiceURL, ShouldEqual, "http://localhost:23600")
 				So(cfg.CantabularHealthcheckEnabled, ShouldBeFalse)
 				So(cfg.AWSRegion, ShouldEqual, "eu-west-1")
 				So(cfg.UploadBucketName, ShouldEqual, "dp-cantabular-csv-exporter")
-				So(cfg.Encrypt, ShouldBeFalse)
+				So(cfg.EncryptionDisabled, ShouldBeFalse)
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

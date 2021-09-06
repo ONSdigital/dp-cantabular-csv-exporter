@@ -51,8 +51,10 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 uploader: %w", err)
 	}
-	if svc.vaultClient, err = GetVault(cfg); err != nil {
-		return fmt.Errorf("failed to initialise vault client: %w", err)
+	if !cfg.EncryptionDisabled {
+		if svc.vaultClient, err = GetVault(cfg); err != nil {
+			return fmt.Errorf("failed to initialise vault client: %w", err)
+		}
 	}
 
 	svc.cantabularClient = GetCantabularClient(cfg)
@@ -176,7 +178,11 @@ func (svc *Service) Close(ctx context.Context) error {
 // registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers() error {
 	if err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
-		return fmt.Errorf("error adding check for Kafka: %w", err)
+		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
+	}
+
+	if err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
 	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
@@ -200,8 +206,10 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for s3 uploader: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker); err != nil {
-		return fmt.Errorf("error adding check for vault client: %w", err)
+	if !svc.cfg.EncryptionDisabled {
+		if err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker); err != nil {
+			return fmt.Errorf("error adding check for vault client: %w", err)
+		}
 	}
 
 	return nil

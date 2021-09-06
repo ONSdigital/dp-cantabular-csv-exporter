@@ -123,10 +123,11 @@ func TestParseQueryResponse(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil)
 
 		Convey("When ParseQueryResponse is triggered with a valid cantabular response", func() {
-			reader, err := eventHandler.ParseQueryResponse(cantabularResp())
+			reader, len, err := eventHandler.ParseQueryResponse(cantabularResp())
 
 			Convey("Then the expected reader is returned without error", func() {
 				So(err, ShouldBeNil)
+				So(len, ShouldEqual, 631)
 				validateLines(reader, []string{
 					"City,Number of siblings (3 mappings),Sex,count",
 					"London,No siblings,Male,2",

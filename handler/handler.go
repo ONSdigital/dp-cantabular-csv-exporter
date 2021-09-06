@@ -92,7 +92,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// Convert Cantabular Response To CSV file
-	file, err := h.ParseQueryResponse(resp)
+	file, len, err := h.ParseQueryResponse(resp)
 	if err != nil {
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
@@ -114,11 +114,8 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		}
 	}
 
-	// TODO check if file.Size() is correct (is it always 4096??)
-	// file.TotalBytesRead() ??
-
 	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e.InstanceID, file.Size()); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, len); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -202,7 +199,7 @@ func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQ
 // and each subsequent row corresponds to a unique combination of dimension values and their count.
 //
 // Example by Sensible Code here: https://github.com/cantabular/examples/blob/master/golang/main.go
-func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (*bufio.Reader, error) {
+func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (*bufio.Reader, int, error) {
 	// Create CSV writer with underlying buffer
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
@@ -211,7 +208,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	header := createCSVHeader(resp.Dataset.Table.Dimensions)
 	w.Write(header)
 	if err := w.Error(); err != nil {
-		return nil, fmt.Errorf("error writing the csv header: %w", err)
+		return nil, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
@@ -219,18 +216,18 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 		row := createCSVRow(resp.Dataset.Table.Dimensions, i, count)
 		w.Write(row)
 		if err := w.Error(); err != nil {
-			return nil, fmt.Errorf("error writing a csv row: %w", err)
+			return nil, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}
 
 	// Flush to make sure all data is present in the byte buffer
 	w.Flush()
 	if err := w.Error(); err != nil {
-		return nil, fmt.Errorf("error flushing the csv writer: %w", err)
+		return nil, 0, fmt.Errorf("error flushing the csv writer: %w", err)
 	}
 
 	// Return a reader with the same underlying Byte buffer as written by the csv writter
-	return bufio.NewReader(b), nil
+	return bufio.NewReader(b), b.Len(), nil
 }
 
 // createCSVHeader creates an array of strings corresponding to a csv header

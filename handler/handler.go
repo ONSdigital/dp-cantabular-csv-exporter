@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"path"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -394,5 +393,5 @@ func generateS3Filename(instanceID string) string {
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
 func generateVaultPathForFile(vaultPathRoot, filename string) string {
-	return fmt.Sprintf("%s/%s", vaultPathRoot, path.Base(filename))
+	return fmt.Sprintf("%s/%s", vaultPathRoot, filename)
 }

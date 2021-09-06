@@ -68,7 +68,7 @@ func Get() (*Config, error) {
 		DownloadServiceURL:           "http://localhost:23600",
 		CantabularHealthcheckEnabled: false,
 		AWSRegion:                    "eu-west-1",
-		UploadBucketName:             "ons-dp-develop-encrypted-datasets",
+		UploadBucketName:             "dp-cantabular-csv-exporter",
 		LocalObjectStore:             "",
 		MinioAccessKey:               "",
 		MinioSecretKey:               "",

@@ -92,7 +92,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// Convert Cantabular Response To CSV file
-	file, len, err := h.ParseQueryResponse(resp)
+	file, numBytes, err := h.ParseQueryResponse(resp)
 	if err != nil {
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
@@ -115,7 +115,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e.InstanceID, len); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, numBytes); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -157,7 +157,7 @@ func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQ
 
 	expectedNumValues := 1
 	for _, dim := range resp.Dataset.Table.Dimensions {
-		expectedNumValues = expectedNumValues * dim.Count
+		expectedNumValues *= dim.Count
 
 		if dim.Variable.Label == "" {
 			return errors.New("empty variable label in cantabular response")
@@ -204,18 +204,24 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 
+	// aux func to write to the csv writer, returning any error (returned by w.Write or w.Error)
+	write := func(record []string) error {
+		if err := w.Write(record); err != nil {
+			return err
+		}
+		return w.Error()
+	}
+
 	// Obtain the CSV header
 	header := createCSVHeader(resp.Dataset.Table.Dimensions)
-	w.Write(header)
-	if err := w.Error(); err != nil {
+	if err := write(header); err != nil {
 		return nil, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
 	for i, count := range resp.Dataset.Table.Values {
 		row := createCSVRow(resp.Dataset.Table.Dimensions, i, count)
-		w.Write(row)
-		if err := w.Error(); err != nil {
+		if err := write(row); err != nil {
 			return nil, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}
@@ -250,7 +256,7 @@ func createCSVRow(dims []cantabular.Dimension, index, count int) []string {
 	for i := len(dims) - 1; i >= 0; i-- {
 		catIndex := index % dims[i].Count           // Index of the category for the current dimension
 		row[i] = dims[i].Categories[catIndex].Label // The CSV column corresponds to the label of the Category
-		index = index / dims[i].Count               // Modify index for next iteration
+		index /= dims[i].Count                      // Modify index for next iteration
 	}
 	row[len(dims)] = fmt.Sprintf("%d", count)
 	return row
@@ -337,7 +343,7 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string
 		Downloads: dataset.DownloadList{
 			CSV: &dataset.Download{
 				URL:  downloadURL,             // download service URL for the CSV file
-				Size: fmt.Sprintf("%d", size), // size of the file in bytes
+				Size: fmt.Sprintf("%d", size), // size of the file in number of bytes
 			},
 		},
 	}
@@ -351,8 +357,8 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string
 func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
 	downloadURL := generateURL(h.cfg.DownloadServiceURL, instanceID)
 
-	// create InstanceComplete event and Marshal it
-	bytes, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
+	// create CommonOutputCreated event and Marshal it
+	b, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
 		InstanceID: instanceID,
 		FileURL:    downloadURL, // download service URL for the CSV file
 	})
@@ -361,7 +367,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
 	}
 
 	// Send bytes to kafka producer output channel
-	h.producer.Channels().Output <- bytes
+	h.producer.Channels().Output <- b
 
 	return nil
 }

@@ -204,16 +204,24 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 
+	// aux func to write to the csv writer, returning any error (returned by w.Write or w.Error)
+	write := func(record []string) error {
+		if err := w.Write(record); err != nil {
+			return err
+		}
+		return w.Error()
+	}
+
 	// Obtain the CSV header
 	header := createCSVHeader(resp.Dataset.Table.Dimensions)
-	if err := w.Write(header); err != nil {
+	if err := write(header); err != nil {
 		return nil, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
 	for i, count := range resp.Dataset.Table.Values {
 		row := createCSVRow(resp.Dataset.Table.Dimensions, i, count)
-		if err := w.Write(row); err != nil {
+		if err := write(row); err != nil {
 			return nil, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}

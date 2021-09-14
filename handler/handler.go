@@ -98,7 +98,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// When planning the tickets we thought there would be another conversion
-	// step here but it turns out the sensible code example is for directly
+	// step here, but it turns out the sensible code example is for directly
 	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3, note that the S3 file location is ignored
@@ -204,24 +204,16 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 
-	// aux func to write to the csv writer, returning any error (returned by w.Write or w.Error)
-	write := func(record []string) error {
-		if err := w.Write(record); err != nil {
-			return err
-		}
-		return w.Error()
-	}
-
 	// Obtain the CSV header
 	header := createCSVHeader(resp.Dataset.Table.Dimensions)
-	if err := write(header); err != nil {
+	if err := w.Write(header); err != nil {
 		return nil, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
 	for i, count := range resp.Dataset.Table.Values {
 		row := createCSVRow(resp.Dataset.Table.Dimensions, i, count)
-		if err := write(row); err != nil {
+		if err := w.Write(row); err != nil {
 			return nil, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}
@@ -241,9 +233,9 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 func createCSVHeader(dims []cantabular.Dimension) []string {
 	header := make([]string, len(dims)+1)
 	for i, dim := range dims {
-		header[i] = dim.Variable.Label
+		header[i+1] = dim.Variable.Label
 	}
-	header[len(dims)] = "count"
+	header[0] = "cantabular_blob"
 	return header
 }
 
@@ -254,11 +246,11 @@ func createCSVRow(dims []cantabular.Dimension, index, count int) []string {
 	row := make([]string, len(dims)+1)
 	// Iterate dimensions starting from the last one (lower weight)
 	for i := len(dims) - 1; i >= 0; i-- {
-		catIndex := index % dims[i].Count           // Index of the category for the current dimension
-		row[i] = dims[i].Categories[catIndex].Label // The CSV column corresponds to the label of the Category
-		index /= dims[i].Count                      // Modify index for next iteration
+		catIndex := index % dims[i].Count             // Index of the category for the current dimension
+		row[i+1] = dims[i].Categories[catIndex].Label // The CSV column corresponds to the label of the Category
+		index /= dims[i].Count                        // Modify index for next iteration
 	}
-	row[len(dims)] = fmt.Sprintf("%d", count)
+	row[0] = fmt.Sprintf("%d", count)
 	return row
 }
 

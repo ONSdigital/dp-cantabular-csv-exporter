@@ -170,7 +170,7 @@ func validateLines(reader *bufio.Reader, expectedLines []string) {
 func TestUploadCSVFile(t *testing.T) {
 
 	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
-	expectedVaultPath := fmt.Sprintf("%s/instances/%s.csv", testVaultPath, testInstanceID)
+	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
 
 	Convey("Given an event handler with a successful S3Uploader", t, func() {
 		s3Uploader := s3UploaderHappy(false)

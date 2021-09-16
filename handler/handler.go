@@ -308,7 +308,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		)
 	}
 
-	vaultPath := generateVaultPathForFile(h.cfg.VaultPath, filename)
+	vaultPath := generateVaultPathForFile(h.cfg.VaultPath, instanceID)
 	vaultKey := "key"
 
 	log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
@@ -395,6 +395,6 @@ func generateS3Filename(instanceID string) string {
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func generateVaultPathForFile(vaultPathRoot, filename string) string {
-	return fmt.Sprintf("%s/%s", vaultPathRoot, filename)
+func generateVaultPathForFile(vaultPathRoot, instanceID string) string {
+	return fmt.Sprintf("%s/%s.csv", vaultPathRoot, instanceID)
 }

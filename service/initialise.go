@@ -94,7 +94,10 @@ var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
 			S3ForcePathStyle: aws.Bool(true),
 		}
 
-		s := session.New(s3Config)
+		s, err := session.NewSession(s3Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create aws session: %w", err)
+		}
 		return dps3.NewUploaderWithSession(cfg.UploadBucketName, s), nil
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 
@@ -44,6 +45,11 @@ func TestInit(t *testing.T) {
 			return consumerMock, nil
 		}
 
+		producerMock := &kafkatest.IProducerMock{}
+		GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (dpkafka.IProducer, error) {
+			return producerMock, nil
+		}
+
 		hcMock := &serviceMock.HealthCheckerMock{
 			AddCheckFunc: func(name string, checker healthcheck.Checker) error { return nil },
 		}
@@ -56,36 +62,40 @@ func TestInit(t *testing.T) {
 			return serverMock
 		}
 
+		cantabularMock := &serviceMock.CantabularClientMock{
+			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+				return nil
+			},
+		}
 		GetCantabularClient = func(cfg *config.Config) CantabularClient {
-			return &serviceMock.CantabularClientMock{
-				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
-					return nil
-				},
-			}
+			return cantabularMock
 		}
 
+		datasetApiMock := &serviceMock.DatasetAPIClientMock{
+			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+				return nil
+			},
+		}
 		GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
-			return &serviceMock.DatasetAPIClientMock{
-				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
-					return nil
-				},
-			}
+			return datasetApiMock
 		}
 
+		s3UploaderMock := &serviceMock.S3UploaderMock{
+			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+				return nil
+			},
+		}
 		GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
-			return &serviceMock.S3UploaderMock{
-				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
-					return nil
-				},
-			}, nil
+			return s3UploaderMock, nil
 		}
 
+		vaultMock := &serviceMock.VaultClientMock{
+			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+				return nil
+			},
+		}
 		GetVault = func(cfg *config.Config) (VaultClient, error) {
-			return &serviceMock.VaultClientMock{
-				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
-					return nil
-				},
-			}, nil
+			return vaultMock, nil
 		}
 
 		GetProcessor = func(cfg *config.Config) Processor {
@@ -145,21 +155,58 @@ func TestInit(t *testing.T) {
 			})
 		})
 
-		Convey("Given that all dependencies are successfully initialised", func() {
+		Convey("Given that all dependencies are successfully initialised with encryption enabled", func() {
+			cfg.EncryptionDisabled = false
+
 			Convey("Then service Init succeeds, all dependencies are initialised", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
 				So(err, ShouldBeNil)
 				So(svc.cfg, ShouldResemble, cfg)
+				So(svc.server, ShouldEqual, serverMock)
+				So(svc.healthCheck, ShouldResemble, hcMock)
 				So(svc.consumer, ShouldResemble, consumerMock)
-				So(svc.server, ShouldResemble, serverMock)
+				So(svc.cantabularClient, ShouldResemble, cantabularMock)
+				So(svc.producer, ShouldResemble, producerMock)
+				So(svc.datasetAPIClient, ShouldResemble, datasetApiMock)
+				So(svc.cantabularClient, ShouldResemble, cantabularMock)
+				So(svc.s3Uploader, ShouldResemble, s3UploaderMock)
+				So(svc.vaultClient, ShouldResemble, vaultMock)
 
 				Convey("And all checks are registered", func() {
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 6)
+					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
+					So(hcMock.AddCheckCalls()[5].Name, ShouldResemble, "Vault")
+				})
+			})
+		})
+
+		Convey("Given that all dependencies are successfully initialised with encryption disabled", func() {
+			cfg.EncryptionDisabled = true
+
+			Convey("Then service Init succeeds, all dependencies are initialised, except Vault", func() {
+				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
+				So(err, ShouldBeNil)
+				So(svc.cfg, ShouldResemble, cfg)
+				So(svc.server, ShouldEqual, serverMock)
+				So(svc.healthCheck, ShouldResemble, hcMock)
+				So(svc.consumer, ShouldResemble, consumerMock)
+				So(svc.cantabularClient, ShouldResemble, cantabularMock)
+				So(svc.producer, ShouldResemble, producerMock)
+				So(svc.datasetAPIClient, ShouldResemble, datasetApiMock)
+				So(svc.cantabularClient, ShouldResemble, cantabularMock)
+				So(svc.s3Uploader, ShouldResemble, s3UploaderMock)
+
+				Convey("And all checks are registered, except Vault", func() {
 					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "S3 uploader")
-					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Vault")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
 				})
 			})
 		})

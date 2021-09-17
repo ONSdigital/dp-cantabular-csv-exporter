@@ -10,118 +10,121 @@ import (
 	"sync"
 )
 
+var (
+	lockCantabularClientMockChecker            sync.RWMutex
+	lockCantabularClientMockStaticDatasetQuery sync.RWMutex
+)
+
 // CantabularClientMock is a mock implementation of service.CantabularClient.
 //
-// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
+//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-// 		// make and configure a mocked service.CantabularClient
-// 		mockedCantabularClient := &CantabularClientMock{
-// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
-// 				panic("mock out the Checker method")
-// 			},
-// 			StaticDatasetQueryFunc: func(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
-// 				panic("mock out the StaticDatasetQuery method")
-// 			},
-// 		}
+//         // make and configure a mocked service.CantabularClient
+//         mockedCantabularClient := &CantabularClientMock{
+//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
+// 	               panic("mock out the Checker method")
+//             },
+//             StaticDatasetQueryFunc: func(in1 context.Context, in2 cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
+// 	               panic("mock out the StaticDatasetQuery method")
+//             },
+//         }
 //
-// 		// use mockedCantabularClient in code that requires service.CantabularClient
-// 		// and then make assertions.
+//         // use mockedCantabularClient in code that requires service.CantabularClient
+//         // and then make assertions.
 //
-// 	}
+//     }
 type CantabularClientMock struct {
 	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
+	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
 
 	// StaticDatasetQueryFunc mocks the StaticDatasetQuery method.
-	StaticDatasetQueryFunc func(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
+	StaticDatasetQueryFunc func(in1 context.Context, in2 cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-			// CheckState is the checkState argument value.
-			CheckState *healthcheck.CheckState
+			// In1 is the in1 argument value.
+			In1 context.Context
+			// In2 is the in2 argument value.
+			In2 *healthcheck.CheckState
 		}
 		// StaticDatasetQuery holds details about calls to the StaticDatasetQuery method.
 		StaticDatasetQuery []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-			// StaticDatasetQueryRequest is the staticDatasetQueryRequest argument value.
-			StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+			// In1 is the in1 argument value.
+			In1 context.Context
+			// In2 is the in2 argument value.
+			In2 cantabular.StaticDatasetQueryRequest
 		}
 	}
-	lockChecker            sync.RWMutex
-	lockStaticDatasetQuery sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
-func (mock *CantabularClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+func (mock *CantabularClientMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
 	if mock.CheckerFunc == nil {
 		panic("CantabularClientMock.CheckerFunc: method is nil but CantabularClient.Checker was just called")
 	}
 	callInfo := struct {
-		ContextMoqParam context.Context
-		CheckState      *healthcheck.CheckState
+		In1 context.Context
+		In2 *healthcheck.CheckState
 	}{
-		ContextMoqParam: contextMoqParam,
-		CheckState:      checkState,
+		In1: in1,
+		In2: in2,
 	}
-	mock.lockChecker.Lock()
+	lockCantabularClientMockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	mock.lockChecker.Unlock()
-	return mock.CheckerFunc(contextMoqParam, checkState)
+	lockCantabularClientMockChecker.Unlock()
+	return mock.CheckerFunc(in1, in2)
 }
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
 //     len(mockedCantabularClient.CheckerCalls())
 func (mock *CantabularClientMock) CheckerCalls() []struct {
-	ContextMoqParam context.Context
-	CheckState      *healthcheck.CheckState
+	In1 context.Context
+	In2 *healthcheck.CheckState
 } {
 	var calls []struct {
-		ContextMoqParam context.Context
-		CheckState      *healthcheck.CheckState
+		In1 context.Context
+		In2 *healthcheck.CheckState
 	}
-	mock.lockChecker.RLock()
+	lockCantabularClientMockChecker.RLock()
 	calls = mock.calls.Checker
-	mock.lockChecker.RUnlock()
+	lockCantabularClientMockChecker.RUnlock()
 	return calls
 }
 
 // StaticDatasetQuery calls StaticDatasetQueryFunc.
-func (mock *CantabularClientMock) StaticDatasetQuery(contextMoqParam context.Context, staticDatasetQueryRequest cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
+func (mock *CantabularClientMock) StaticDatasetQuery(in1 context.Context, in2 cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error) {
 	if mock.StaticDatasetQueryFunc == nil {
 		panic("CantabularClientMock.StaticDatasetQueryFunc: method is nil but CantabularClient.StaticDatasetQuery was just called")
 	}
 	callInfo := struct {
-		ContextMoqParam           context.Context
-		StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+		In1 context.Context
+		In2 cantabular.StaticDatasetQueryRequest
 	}{
-		ContextMoqParam:           contextMoqParam,
-		StaticDatasetQueryRequest: staticDatasetQueryRequest,
+		In1: in1,
+		In2: in2,
 	}
-	mock.lockStaticDatasetQuery.Lock()
+	lockCantabularClientMockStaticDatasetQuery.Lock()
 	mock.calls.StaticDatasetQuery = append(mock.calls.StaticDatasetQuery, callInfo)
-	mock.lockStaticDatasetQuery.Unlock()
-	return mock.StaticDatasetQueryFunc(contextMoqParam, staticDatasetQueryRequest)
+	lockCantabularClientMockStaticDatasetQuery.Unlock()
+	return mock.StaticDatasetQueryFunc(in1, in2)
 }
 
 // StaticDatasetQueryCalls gets all the calls that were made to StaticDatasetQuery.
 // Check the length with:
 //     len(mockedCantabularClient.StaticDatasetQueryCalls())
 func (mock *CantabularClientMock) StaticDatasetQueryCalls() []struct {
-	ContextMoqParam           context.Context
-	StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+	In1 context.Context
+	In2 cantabular.StaticDatasetQueryRequest
 } {
 	var calls []struct {
-		ContextMoqParam           context.Context
-		StaticDatasetQueryRequest cantabular.StaticDatasetQueryRequest
+		In1 context.Context
+		In2 cantabular.StaticDatasetQueryRequest
 	}
-	mock.lockStaticDatasetQuery.RLock()
+	lockCantabularClientMockStaticDatasetQuery.RLock()
 	calls = mock.calls.StaticDatasetQuery
-	mock.lockStaticDatasetQuery.RUnlock()
+	lockCantabularClientMockStaticDatasetQuery.RUnlock()
 	return calls
 }

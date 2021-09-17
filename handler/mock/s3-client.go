@@ -9,31 +9,37 @@ import (
 	"sync"
 )
 
+var (
+	lockS3UploaderMockBucketName    sync.RWMutex
+	lockS3UploaderMockUpload        sync.RWMutex
+	lockS3UploaderMockUploadWithPSK sync.RWMutex
+)
+
 // Ensure, that S3UploaderMock does implement handler.S3Uploader.
 // If this is not the case, regenerate this file with moq.
 var _ handler.S3Uploader = &S3UploaderMock{}
 
 // S3UploaderMock is a mock implementation of handler.S3Uploader.
 //
-// 	func TestSomethingThatUsesS3Uploader(t *testing.T) {
+//     func TestSomethingThatUsesS3Uploader(t *testing.T) {
 //
-// 		// make and configure a mocked handler.S3Uploader
-// 		mockedS3Uploader := &S3UploaderMock{
-// 			BucketNameFunc: func() string {
-// 				panic("mock out the BucketName method")
-// 			},
-// 			UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-// 				panic("mock out the Upload method")
-// 			},
-// 			UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
-// 				panic("mock out the UploadWithPSK method")
-// 			},
-// 		}
+//         // make and configure a mocked handler.S3Uploader
+//         mockedS3Uploader := &S3UploaderMock{
+//             BucketNameFunc: func() string {
+// 	               panic("mock out the BucketName method")
+//             },
+//             UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 	               panic("mock out the Upload method")
+//             },
+//             UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+// 	               panic("mock out the UploadWithPSK method")
+//             },
+//         }
 //
-// 		// use mockedS3Uploader in code that requires handler.S3Uploader
-// 		// and then make assertions.
+//         // use mockedS3Uploader in code that requires handler.S3Uploader
+//         // and then make assertions.
 //
-// 	}
+//     }
 type S3UploaderMock struct {
 	// BucketNameFunc mocks the BucketName method.
 	BucketNameFunc func() string
@@ -64,9 +70,6 @@ type S3UploaderMock struct {
 			Psk []byte
 		}
 	}
-	lockBucketName    sync.RWMutex
-	lockUpload        sync.RWMutex
-	lockUploadWithPSK sync.RWMutex
 }
 
 // BucketName calls BucketNameFunc.
@@ -76,9 +79,9 @@ func (mock *S3UploaderMock) BucketName() string {
 	}
 	callInfo := struct {
 	}{}
-	mock.lockBucketName.Lock()
+	lockS3UploaderMockBucketName.Lock()
 	mock.calls.BucketName = append(mock.calls.BucketName, callInfo)
-	mock.lockBucketName.Unlock()
+	lockS3UploaderMockBucketName.Unlock()
 	return mock.BucketNameFunc()
 }
 
@@ -89,9 +92,9 @@ func (mock *S3UploaderMock) BucketNameCalls() []struct {
 } {
 	var calls []struct {
 	}
-	mock.lockBucketName.RLock()
+	lockS3UploaderMockBucketName.RLock()
 	calls = mock.calls.BucketName
-	mock.lockBucketName.RUnlock()
+	lockS3UploaderMockBucketName.RUnlock()
 	return calls
 }
 
@@ -107,9 +110,9 @@ func (mock *S3UploaderMock) Upload(input *s3manager.UploadInput, options ...func
 		Input:   input,
 		Options: options,
 	}
-	mock.lockUpload.Lock()
+	lockS3UploaderMockUpload.Lock()
 	mock.calls.Upload = append(mock.calls.Upload, callInfo)
-	mock.lockUpload.Unlock()
+	lockS3UploaderMockUpload.Unlock()
 	return mock.UploadFunc(input, options...)
 }
 
@@ -124,9 +127,9 @@ func (mock *S3UploaderMock) UploadCalls() []struct {
 		Input   *s3manager.UploadInput
 		Options []func(*s3manager.Uploader)
 	}
-	mock.lockUpload.RLock()
+	lockS3UploaderMockUpload.RLock()
 	calls = mock.calls.Upload
-	mock.lockUpload.RUnlock()
+	lockS3UploaderMockUpload.RUnlock()
 	return calls
 }
 
@@ -142,9 +145,9 @@ func (mock *S3UploaderMock) UploadWithPSK(input *s3manager.UploadInput, psk []by
 		Input: input,
 		Psk:   psk,
 	}
-	mock.lockUploadWithPSK.Lock()
+	lockS3UploaderMockUploadWithPSK.Lock()
 	mock.calls.UploadWithPSK = append(mock.calls.UploadWithPSK, callInfo)
-	mock.lockUploadWithPSK.Unlock()
+	lockS3UploaderMockUploadWithPSK.Unlock()
 	return mock.UploadWithPSKFunc(input, psk)
 }
 
@@ -159,8 +162,8 @@ func (mock *S3UploaderMock) UploadWithPSKCalls() []struct {
 		Input *s3manager.UploadInput
 		Psk   []byte
 	}
-	mock.lockUploadWithPSK.RLock()
+	lockS3UploaderMockUploadWithPSK.RLock()
 	calls = mock.calls.UploadWithPSK
-	mock.lockUploadWithPSK.RUnlock()
+	lockS3UploaderMockUploadWithPSK.RUnlock()
 	return calls
 }

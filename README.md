@@ -11,7 +11,7 @@ Ensure you have vault running.
 `brew install vault`
 `vault server -dev`
 
-* Setup AWS credentials. The app uses the default provider chain. When running locally this typically means they are provided by the `~/.aws/credentials` file.  Alternatively you can inject the credentials via environment variables as described in the configuration section
+* Setup AWS credentials. The app uses the default provider chain. When running locally this typically means they are provided by the `~/.aws/credentials` file.  Alternatively you can inject the credentials via environment variables as described in the configuration section.
 
 #### Run the service
 

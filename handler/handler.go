@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
 	"errors"
@@ -32,10 +31,11 @@ type InstanceComplete struct {
 	s3          S3Uploader
 	vaultClient VaultClient
 	producer    kafka.IProducer
+	generator   Generator
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient, p kafka.IProducer) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, s S3Uploader, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,
@@ -43,6 +43,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 		s3:          s,
 		vaultClient: v,
 		producer:    p,
+		generator:   g,
 	}
 }
 
@@ -96,10 +97,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	if err != nil {
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
-
-	// When planning the tickets we thought there would be another conversion
-	// step here, but it turns out the sensible code example is for directly
-	// creating a CSV file, not just parsing the response into a generic struct.
 
 	// Upload CSV file to S3, note that the S3 file location is ignored
 	// because we will use download service to access the file
@@ -300,7 +297,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 
 	log.Info(ctx, "uploading encrypted file to S3", logData)
 
-	psk, err := CreatePSK()
+	psk, err := h.generator.NewPSK()
 	if err != nil {
 		return "", NewError(
 			fmt.Errorf("failed to generate a PSK for encryption: %w", err),
@@ -370,15 +367,6 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
 	h.producer.Channels().Output <- b
 
 	return nil
-}
-
-// CreatePSK returns a new random array of 16 bytes
-var CreatePSK = func() ([]byte, error) {
-	key := make([]byte, 16)
-	if _, err := rand.Read(key); err != nil {
-		return nil, err
-	}
-	return key, nil
 }
 
 // generateURL generates the download service URL for the provided instanceID CSV file

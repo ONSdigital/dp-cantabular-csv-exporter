@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
@@ -55,6 +56,7 @@ type DatasetAPIClient interface {
 }
 
 type S3Uploader interface {
+	Get(key string) (io.ReadCloser, *int64, error)
 	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
 	BucketName() string
@@ -68,4 +70,10 @@ type Processor interface {
 type VaultClient interface {
 	WriteKey(path, key, value string) error
 	Checker(context.Context, *healthcheck.CheckState) error
+}
+
+// Generator contains methods for dynamically required strings and tokens
+// e.g. UUIDs, PSKs.
+type Generator interface {
+	NewPSK() ([]byte, error)
 }

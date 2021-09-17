@@ -17,10 +17,10 @@ type Config struct {
 	KafkaVersion                 string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest            bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers              int           `envconfig:"KAFKA_NUM_WORKERS"`
+	KafkaMaxBytes                int           `envconfig:"KAFKA_MAX_BYTES"`
 	InstanceCompleteGroup        string        `envconfig:"INSTANCE_COMPLETE_GROUP"`
 	InstanceCompleteTopic        string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
-	CommonOutputCreatedTopic     string        `envconfig:"COMMON_OUTPUT_CREATED_TOPIC"`
-	OutputFilePath               string        `envconfig:"OUTPUT_FILE_PATH"`
+	CommonOutputCreatedTopic     string        `envconfig:"COMMON_OUTPUT_CREATED_TOPIC`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	CantabularExtURL             string        `envconfig:"CANTABULAR_EXT_API_URL"`
@@ -35,6 +35,7 @@ type Config struct {
 	VaultToken                   string        `envconfig:"VAULT_TOKEN"                   json:"-"`
 	VaultAddress                 string        `envconfig:"VAULT_ADDR"`
 	VaultPath                    string        `envconfig:"VAULT_PATH"`
+	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
 	EncryptionDisabled           bool          `envconfig:"ENCRYPTION_DISABLED"`
 }
 
@@ -57,10 +58,10 @@ func Get() (*Config, error) {
 		KafkaVersion:                 "1.0.2",
 		KafkaOffsetOldest:            true,
 		KafkaNumWorkers:              1,
+		KafkaMaxBytes:                2000000,
 		InstanceCompleteGroup:        "dp-cantabular-csv-exporter",
 		InstanceCompleteTopic:        "cantabular-dataset-instance-complete",
 		CommonOutputCreatedTopic:     "common-output-created",
-		OutputFilePath:               "/tmp/helloworld.txt",
 		ServiceAuthToken:             "",
 		CantabularURL:                "http://localhost:8491",
 		CantabularExtURL:             "http://localhost:8492",
@@ -75,6 +76,7 @@ func Get() (*Config, error) {
 		VaultPath:                    "secret/shared/psk",
 		VaultAddress:                 "http://localhost:8200",
 		VaultToken:                   "",
+		ComponentTestUseLogFile:      false,
 		EncryptionDisabled:           false,
 	}
 

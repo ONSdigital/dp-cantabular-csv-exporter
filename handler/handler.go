@@ -238,9 +238,9 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 func createCSVHeader(dims []cantabular.Dimension) []string {
 	header := make([]string, len(dims)+1)
 	for i, dim := range dims {
-		header[i] = dim.Variable.Label
+		header[i+1] = dim.Variable.Label
 	}
-	header[len(dims)] = "count"
+	header[0] = "cantabular_blob"
 	return header
 }
 
@@ -251,11 +251,11 @@ func createCSVRow(dims []cantabular.Dimension, index, count int) []string {
 	row := make([]string, len(dims)+1)
 	// Iterate dimensions starting from the last one (lower weight)
 	for i := len(dims) - 1; i >= 0; i-- {
-		catIndex := index % dims[i].Count           // Index of the category for the current dimension
-		row[i] = dims[i].Categories[catIndex].Label // The CSV column corresponds to the label of the Category
-		index /= dims[i].Count                      // Modify index for next iteration
+		catIndex := index % dims[i].Count             // Index of the category for the current dimension
+		row[i+1] = dims[i].Categories[catIndex].Label // The CSV column corresponds to the label of the Category
+		index /= dims[i].Count                        // Modify index for next iteration
 	}
-	row[len(dims)] = fmt.Sprintf("%d", count)
+	row[0] = fmt.Sprintf("%d", count)
 	return row
 }
 

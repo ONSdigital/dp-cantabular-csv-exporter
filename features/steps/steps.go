@@ -61,7 +61,7 @@ func (c *Component) theFollowingInstanceIsUpdated(id string) error {
 
 // theFollowingQueryResposneIsAvailable generates a mocked response for Cantabular Server
 // POST /graphql?query with the provided query
-func (c *Component) theFollowingQueryResponseIsAvailable(name, q string, cb *godog.DocString) error {
+func (c *Component) theFollowingQueryResponseIsAvailable(name, cb *godog.DocString) error {
 	const urlQuery = `{
 		dataset(name: "Example") {
 		 table(variables: ["city", "siblings"]) {

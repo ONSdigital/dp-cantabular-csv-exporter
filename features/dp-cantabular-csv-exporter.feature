@@ -1,7 +1,7 @@
 Feature: Cantabular-Csv-Exporter
 
   Background:
-    Given the following response is available from Cantabular from the codebook "Example" and query "&v=city&v=siblings":
+    Given the following response is available from Cantabular from the codebook "Example" using the GraphQL endpoint:
       """
       {
         "data": {

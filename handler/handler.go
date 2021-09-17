@@ -98,10 +98,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
 
-	// When planning the tickets we thought there would be another conversion
-	// step here but it turns out the sensible code example is for directly
-	// creating a CSV file, not just parsing the response into a generic struct.
-
 	// Upload CSV file to S3, note that the S3 file location is ignored
 	// because we will use download service to access the file
 	_, err = h.UploadCSVFile(ctx, e.InstanceID, file)

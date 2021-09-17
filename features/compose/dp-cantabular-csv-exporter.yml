@@ -15,6 +15,7 @@ services:
         depends_on:
             - kafka
             - minio
+            - vault
         ports:
             - 26300:26300
         environment:

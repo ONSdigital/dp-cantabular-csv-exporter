@@ -142,8 +142,8 @@ Feature: Cantabular-Csv-Exporter
       """  
     And an instance with id "instance-happy-01" is updated to dp-dataset-api
 
-    And a file with filename "instance-happy-01-66e23ec3-22fb-4a08-91bb-052ac37eb410.csv" can be seen in minio
+    And a file with filename "instances/instance-happy-01.csv" can be seen in minio
 
     Then these common-output-created events are produced:
-      | InstanceID        | FileURL |
-      | instance-happy-01 | http://minio:9000/dp-cantabular-csv-exporter/instance-happy-01-66e23ec3-22fb-4a08-91bb-052ac37eb410.csv |
+      | InstanceID        | FileURL                                                          |
+      | instance-happy-01 | http://localhost:23600/downloads/instances/instance-happy-01.csv |

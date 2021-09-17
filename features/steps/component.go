@@ -43,6 +43,8 @@ type Component struct {
 	cfg              *config.Config
 	wg               *sync.WaitGroup
 	signals          chan os.Signal
+	waitEventTimeout time.Duration
+	testETag         string 
 }
 
 func NewComponent() *Component {
@@ -52,6 +54,8 @@ func NewComponent() *Component {
 		CantabularSrv:    httpfake.New(),
 		CantabularAPIExt: httpfake.New(),
 		wg:               &sync.WaitGroup{},
+		waitEventTimeout: time.Second * 5,
+		testETag:         "13c7791bafdbaaf5e6660754feb1a58cd6aaa892",
 	}
 }
 
@@ -69,6 +73,7 @@ func (c *Component) initService(ctx context.Context) error {
 
 	log.Info(ctx, "config read", log.Data{"cfg": cfg})
 
+	cfg.EncryptionDisabled = true
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.CantabularExtURL = c.CantabularAPIExt.ResolveURL("")

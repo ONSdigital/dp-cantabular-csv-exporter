@@ -20,15 +20,9 @@ import (
 	"github.com/rdumont/assistdog"
 )
 
-const testETag = "13c7791bafdbaaf5e6660754feb1a58cd6aaa892"
-
-// InstanceCompleteEventsTimeout is the maximum time that the testing producer will wait
-// for DimensionComplete events to be produced before failing the test
-var InstanceCompleteEventsTimeout = time.Second
-
 // RegisterSteps maps the human-readable regular expressions to their corresponding funcs
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingQueryResponseIsAvailable)
+	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" using the GraphQL endpoint:$`, c.theFollowingQueryResponseIsAvailable)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^an instance with id "([^"]*)" is updated to dp-dataset-api`, c.theFollowingInstanceIsUpdated)
 	ctx.Step(`^this instance-complete event is consumed:$`, c.thisInstanceCompleteEventIsConsumed)
@@ -43,7 +37,7 @@ func (c *Component) theFollowingInstanceIsAvailable(id string, instance *godog.D
 		Get("/instances/"+id).
 		Reply(http.StatusOK).
 		BodyString(instance.Content).
-		AddHeader("Etag", testETag)
+		AddHeader("Etag", c.testETag)
 
 	return nil
 }
@@ -54,14 +48,14 @@ func (c *Component) theFollowingInstanceIsUpdated(id string) error {
 	c.DatasetAPI.NewHandler().
 		Put("/instances/"+id).
 		Reply(http.StatusOK).
-		AddHeader("Etag", testETag)
+		AddHeader("Etag", c.testETag)
 
 	return nil
 }
 
 // theFollowingQueryResposneIsAvailable generates a mocked response for Cantabular Server
 // POST /graphql?query with the provided query
-func (c *Component) theFollowingQueryResponseIsAvailable(name, cb *godog.DocString) error {
+func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.DocString) error {
 	const urlQuery = `{
 		dataset(name: "Example") {
 		 table(variables: ["city", "siblings"]) {
@@ -103,7 +97,7 @@ func (c *Component) theseCommonOutputCreatedEventsAreProduced(events *godog.Tabl
 
 	for listen {
 		select {
-		case <-time.After(InstanceCompleteEventsTimeout):
+		case <-time.After(c.waitEventTimeout):
 			listen = false
 		case <-c.consumer.Channels().Closer:
 			return errors.New("closer channel closed")
@@ -170,7 +164,6 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
 	f := aws.NewWriteAtBuffer(b)
 
 	// probe bucket with backoff to give time for event to be processed
-
 	retries := 3
 	timeout := 1
 	var numBytes int64

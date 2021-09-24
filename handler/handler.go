@@ -115,6 +115,8 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
+	log.Event(ctx, "producing common output created event", log.INFO, log.Data{})
+
 	// Generate output kafka message
 	if err := h.ProduceExportCompleteEvent(e.InstanceID); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)

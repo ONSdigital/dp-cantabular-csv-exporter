@@ -174,14 +174,14 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
 			Bucket: aws.String(c.cfg.UploadBucketName),
 			Key:    aws.String(fileName),
 		})
-		if err == nil || retries <= 0{
+		if err == nil || retries <= 0 {
 			break
 		}
 
 		retries--
 
 		log.Info(ctx, "error obtaining file from minio. Retrying.", log.Data{
-			"error": err,
+			"error":        err,
 			"retries_left": retries,
 		})
 

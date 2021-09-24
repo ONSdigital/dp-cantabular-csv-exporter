@@ -191,8 +191,7 @@ func (svc *Service) registerCheckers() error {
 	cantabularChecker := svc.cantabularClient.Checker
 	if !svc.cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
-			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
-			return nil
+			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
 	}
 	if err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {

@@ -44,7 +44,7 @@ type Component struct {
 	wg               *sync.WaitGroup
 	signals          chan os.Signal
 	waitEventTimeout time.Duration
-	testETag         string 
+	testETag         string
 }
 
 func NewComponent() *Component {

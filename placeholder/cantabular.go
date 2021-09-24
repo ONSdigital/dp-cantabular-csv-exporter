@@ -2,7 +2,7 @@
 // of the main handler. The idea is to implement placeholder data structures
 // which are use for the inputs and outputs of the various steps of the export
 // process. This is to help aid development of the various steps in parallel,
-// so we can have a rough idea of what he have to use for each step. As each
+// so we can have a rough idea of what we have to use for each step. As each
 // step is completed we should replace the placeholder structure with the real
 // input/output and the placeholder structure should be deleted. The first
 // example is that placeholder.GraphQLQueryResponse will be replaced by the

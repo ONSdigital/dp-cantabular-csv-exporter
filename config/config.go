@@ -20,7 +20,7 @@ type Config struct {
 	KafkaMaxBytes                int           `envconfig:"KAFKA_MAX_BYTES"`
 	InstanceCompleteGroup        string        `envconfig:"INSTANCE_COMPLETE_GROUP"`
 	InstanceCompleteTopic        string        `envconfig:"INSTANCE_COMPLETE_TOPIC"`
-	CommonOutputCreatedTopic     string        `envconfig:"COMMON_OUTPUT_CREATED_TOPIC`
+	CommonOutputCreatedTopic     string        `envconfig:"COMMON_OUTPUT_CREATED_TOPIC"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	CantabularExtURL             string        `envconfig:"CANTABULAR_EXT_API_URL"`

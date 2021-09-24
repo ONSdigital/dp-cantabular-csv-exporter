@@ -52,7 +52,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	logData := log.Data{
 		"event": e,
 	}
-	log.Info(ctx, "event handler called", logData)
 
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
@@ -229,7 +228,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 		return nil, 0, fmt.Errorf("error flushing the csv writer: %w", err)
 	}
 
-	// Return a reader with the same underlying Byte buffer as written by the csv writter
+	// Return a reader with the same underlying Byte buffer that is written by the csv writter
 	return bufio.NewReader(b), b.Len(), nil
 }
 

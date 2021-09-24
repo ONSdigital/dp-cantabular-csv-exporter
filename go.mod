@@ -16,7 +16,6 @@ require (
 	github.com/aws/aws-sdk-go v1.40.24
 	github.com/cucumber/godog v0.11.0
 	github.com/google/go-cmp v0.5.5
-	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maxcnunes/httpfake v1.2.1

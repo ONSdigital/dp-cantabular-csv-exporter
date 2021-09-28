@@ -97,9 +97,11 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
 
+	isPublished := true
+
 	// Upload CSV file to S3, note that the S3 file location is ignored
 	// because we will use download service to access the file
-	_, err = h.UploadCSVFile(ctx, e.InstanceID, file)
+	_, err = h.UploadCSVFile(ctx, e.InstanceID, file, isPublished)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -261,12 +263,41 @@ func createCSVRow(dims []cantabular.Dimension, index, count int) []string {
 }
 
 // UploadCSVFile uploads the provided file content to AWS S3
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file io.Reader) (string, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string, file io.Reader, isPublished bool) (string, error) {
 	if instanceID == "" {
 		return "", errors.New("empty instance id not allowed")
 	}
 	if file == nil {
 		return "", errors.New("no file content has been provided")
+	}
+
+	// As the code is now it is assumed that the file is always published
+	if isPublished {
+		bucketName := h.s3.BucketName()
+		filename := generateS3Filename(instanceID)
+
+		logData := log.Data{
+			"bucket":       bucketName,
+			"filename":     filename,
+			"is_published": true,
+		}
+
+		log.Info(ctx, "uploading published file to S3", logData)
+
+		result, err := h.s3.Upload(&s3manager.UploadInput{
+			Body:   file,
+			Bucket: &bucketName,
+			Key:    &filename,
+		})
+		if err != nil {
+			return "", NewError(
+				fmt.Errorf("failed to upload file to S3: %w", err),
+				logData,
+			)
+		}
+
+		return url.PathUnescape(result.Location)
+
 	}
 
 	bucketName := h.s3.BucketName()
@@ -276,6 +307,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		"bucket":              bucketName,
 		"filename":            filename,
 		"encryption_disabled": h.cfg.EncryptionDisabled,
+		"is_published":        false,
 	}
 
 	if h.cfg.EncryptionDisabled {

@@ -173,6 +173,8 @@ func TestUploadCSVFile(t *testing.T) {
 		},
 	}
 
+	isPublished := false
+
 	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
 	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
 
@@ -181,7 +183,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -205,7 +207,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected location is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -236,7 +238,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -245,6 +247,7 @@ func TestUploadCSVFile(t *testing.T) {
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
 						"encryption_disabled": true,
+						"is_published":        false,
 					},
 				))
 			})
@@ -261,7 +264,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -270,6 +273,7 @@ func TestUploadCSVFile(t *testing.T) {
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
 						"encryption_disabled": false,
+						"is_published":        false,
 					},
 				))
 			})
@@ -284,7 +288,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -293,6 +297,7 @@ func TestUploadCSVFile(t *testing.T) {
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
 						"encryption_disabled": false,
+						"is_published":        false,
 					},
 				))
 			})
@@ -303,7 +308,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody)
+			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
@@ -311,7 +316,7 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 
 		Convey("When UploadCSVFile is triggered with a nil csv reader", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("no file content has been provided"))
@@ -333,7 +338,7 @@ func TestUploadCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody)
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)

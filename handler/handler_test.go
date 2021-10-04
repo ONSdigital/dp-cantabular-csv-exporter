@@ -242,7 +242,7 @@ func TestUploadCSVFile(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload file to S3: %w", errS3),
+					fmt.Errorf("failed to upload unencrypted file to S3: %w", errS3),
 					log.Data{
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
@@ -292,7 +292,7 @@ func TestUploadCSVFile(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload file to S3: %w", errS3),
+					fmt.Errorf("failed to upload encrypted file to S3: %w", errS3),
 					log.Data{
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
@@ -390,7 +390,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload file to S3: %w", errS3),
+					fmt.Errorf("failed to upload published file to S3: %w", errS3),
 					log.Data{
 						"bucket":       testBucket,
 						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),

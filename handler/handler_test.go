@@ -409,8 +409,8 @@ func TestUpdateInstance(t *testing.T) {
 		datasetAPIMock := datasetAPIClientHappy()
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil)
 
-		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize)
+		Convey("When UpdateInstance is called for a private csv file", func() {
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -432,6 +432,31 @@ func TestUpdateInstance(t *testing.T) {
 				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
+
+		Convey("When UpdateInstance is called for a public csv file", func() {
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, true, "publicURL")
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
+				expectedURL := "publicURL"
+				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
+				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
+				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
+					Downloads: dataset.DownloadList{
+						CSV: &dataset.Download{
+							Public: expectedURL,
+							Size:   fmt.Sprintf("%d", testSize),
+						},
+					},
+					State: dataset.StatePublished.String(),
+				})
+				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
+			})
+		})
 	})
 
 	Convey("Given an event handler with a failing dataset API mock", t, func() {
@@ -439,7 +464,7 @@ func TestUpdateInstance(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize)
+			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
@@ -449,23 +474,49 @@ func TestUpdateInstance(t *testing.T) {
 }
 
 func TestProduceExportCompleteEvent(t *testing.T) {
-	expectedEvent := event.CommonOutputCreated{
-		FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
-		InstanceID: testInstanceID,
-	}
-
 	Convey("Given an event handler with a successful Kafka Producer", t, func(c C) {
 		producer := kafkatest.NewMessageProducer(true)
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, producer, nil)
 
-		Convey("When ProduceExportCompleteEvent is called", func(c C) {
+		Convey("When ProduceExportCompleteEvent is called for a private csv file", func(c C) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID)
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, false, "")
 				c.So(err, ShouldBeNil)
 			}()
+
+			expectedEvent := event.CommonOutputCreated{
+				FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
+				InstanceID: testInstanceID,
+			}
+
+			Convey("Then the expected message is produced", func() {
+				producedBytes := <-producer.Channels().Output
+				producedMessage := event.CommonOutputCreated{}
+				err := schema.CommonOutputCreated.Unmarshal(producedBytes, &producedMessage)
+				So(err, ShouldBeNil)
+				So(producedMessage, ShouldResemble, expectedEvent)
+			})
+
+			// make sure the go-routine finishes its execution
+			wg.Wait()
+		})
+
+		Convey("When ProduceExportCompleteEvent is called for a public csv file", func(c C) {
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, true, "publicURL")
+				c.So(err, ShouldBeNil)
+			}()
+
+			expectedEvent := event.CommonOutputCreated{
+				FileURL:    "publicURL",
+				InstanceID: testInstanceID,
+			}
 
 			Convey("Then the expected message is produced", func() {
 				producedBytes := <-producer.Channels().Output

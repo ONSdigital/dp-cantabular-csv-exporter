@@ -271,10 +271,11 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		return "", errors.New("no file content has been provided")
 	}
 
+	bucketName := h.s3.BucketName()
+	filename := generateS3Filename(instanceID)
+
 	// As the code is now it is assumed that the file is always published
 	if isPublished {
-		bucketName := h.s3.BucketName()
-		filename := generateS3Filename(instanceID)
 
 		logData := log.Data{
 			"bucket":       bucketName,
@@ -299,9 +300,6 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		return url.PathUnescape(result.Location)
 
 	}
-
-	bucketName := h.s3.BucketName()
-	filename := generateS3Filename(instanceID)
 
 	logData := log.Data{
 		"bucket":              bucketName,

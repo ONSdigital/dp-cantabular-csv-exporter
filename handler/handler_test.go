@@ -348,6 +348,60 @@ func TestUploadCSVFile(t *testing.T) {
 	})
 }
 
+func TestUploadPublishedCSVFile(t *testing.T) {
+
+	generator := &mock.GeneratorMock{
+		NewPSKFunc: func() ([]byte, error) {
+			return testPsk, nil
+		},
+	}
+
+	isPublished := true
+
+	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
+
+	Convey("Given an event handler with a successful S3Uploader", t, func() {
+		s3Uploader := s3UploaderHappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+
+		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
+			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+
+			Convey("Then the expected location is returned with no error ", func() {
+				So(err, ShouldBeNil)
+				So(loc, ShouldEqual, testS3Location)
+			})
+
+			Convey("Then the expected call Upload call is executed", func() {
+				So(s3Uploader.UploadCalls(), ShouldHaveLength, 1)
+				So(*s3Uploader.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*s3Uploader.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(s3Uploader.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+			})
+		})
+	})
+
+	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
+		s3Uploader := s3UploaderUnhappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+
+		Convey("When UploadCSVFile is triggered", func() {
+			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, handler.NewError(
+					fmt.Errorf("failed to upload file to S3: %w", errS3),
+					log.Data{
+						"bucket":       testBucket,
+						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"is_published": true,
+					},
+				))
+			})
+		})
+	})
+}
+
 func TestUpdateInstance(t *testing.T) {
 	testSize := testCsvBody.Size()
 

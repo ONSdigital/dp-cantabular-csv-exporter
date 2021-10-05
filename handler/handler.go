@@ -292,7 +292,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		})
 		if err != nil {
 			return "", NewError(
-				fmt.Errorf("failed to upload file to S3: %w", err),
+				fmt.Errorf("failed to upload published file to S3: %w", err),
 				logData,
 			)
 		}
@@ -318,7 +318,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 		})
 		if err != nil {
 			return "", NewError(
-				fmt.Errorf("failed to upload file to S3: %w", err),
+				fmt.Errorf("failed to upload unencrypted file to S3: %w", err),
 				logData,
 			)
 		}
@@ -355,7 +355,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 	}, psk)
 	if err != nil {
 		return "", NewError(
-			fmt.Errorf("failed to upload file to S3: %w", err),
+			fmt.Errorf("failed to upload encrypted file to S3: %w", err),
 			logData,
 		)
 	}

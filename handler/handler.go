@@ -371,38 +371,26 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string
 		update := dataset.UpdateInstance{
 			Downloads: dataset.DownloadList{
 				CSV: &dataset.Download{
+					URL:    s3Url,                   // Public URL, as returned by the S3 uploader
 					Public: s3Url,                   // Public URL, as returned by the S3 uploader
 					Size:   fmt.Sprintf("%d", size), // size of the file in number of bytes
 				},
 			},
-			State: dataset.StateAssociated.String(), // set state to associated (required before it can be set to published)
-		}
-
-		// update download links and associate instance
-		if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
-			return fmt.Errorf("error during put instance: %w", err)
-		}
-
-		// publish instance
-		update = dataset.UpdateInstance{
-			State: dataset.StatePublished.String(),
 		}
 		if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
 			return fmt.Errorf("error during put instance: %w", err)
 		}
-
 		return nil
 	}
 
 	update := dataset.UpdateInstance{
 		Downloads: dataset.DownloadList{
 			CSV: &dataset.Download{
-				Size: fmt.Sprintf("%d", size), // size of the file in number of bytes
+				Size: fmt.Sprintf("%d", size),                                  // size of the file in number of bytes
+				URL:  generatePrivateURL(h.cfg.DownloadServiceURL, instanceID), // Private downloadService URL
 			},
 		},
 	}
-	update.Downloads.CSV.URL = generatePrivateURL(h.cfg.DownloadServiceURL, instanceID)
-
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
 		return fmt.Errorf("error during put instance: %w", err)
 	}

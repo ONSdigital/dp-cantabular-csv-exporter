@@ -443,22 +443,17 @@ func TestUpdateInstance(t *testing.T) {
 			Convey("Then the expected UpdateInstance call is executed once to update the public download link and associate it, and once more to publish it", func() {
 				expectedURL := "publicURL"
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
-				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 2)
+				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
 				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
 					Downloads: dataset.DownloadList{
 						CSV: &dataset.Download{
 							Public: expectedURL,
+							URL:    expectedURL,
 							Size:   fmt.Sprintf("%d", testSize),
 						},
 					},
-					State: dataset.StateAssociated.String(),
 				})
-				So(datasetAPIMock.PutInstanceCalls()[1].InstanceID, ShouldEqual, testInstanceID)
-				So(datasetAPIMock.PutInstanceCalls()[1].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
-					State: dataset.StatePublished.String(),
-				})
-				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
 	})

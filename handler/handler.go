@@ -101,7 +101,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 
 	// Upload CSV file to S3, note that the S3 file location is ignored
 	// because we will use download service to access the file
-	_, err = h.UploadCSVFile(ctx, e.InstanceID, file, isPublished)
+	s3Url, err := h.UploadCSVFile(ctx, e.InstanceID, file, isPublished)
 	if err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -113,14 +113,14 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e.InstanceID, numBytes); err != nil {
+	if err := h.UpdateInstance(ctx, e.InstanceID, numBytes, isPublished, s3Url); err != nil {
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
 	log.Event(ctx, "producing common output created event", log.INFO, log.Data{})
 
 	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(e.InstanceID); err != nil {
+	if err := h.ProduceExportCompleteEvent(e.InstanceID, isPublished, s3Url); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
@@ -364,17 +364,24 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 }
 
 // UpdateInstance updates the instance downlad CSV link using dataset API PUT /instances/{id} endpoint
-// note that the URL refers to the download service (it is not the URL returned by the S3 client directly)
-func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string, size int) error {
-	downloadURL := generateURL(h.cfg.DownloadServiceURL, instanceID)
+// if the instance is published, then the s3Url will be set as public link and the instance state will be set to published
+// otherwise, a private url will be generated and the state will not be changed
+func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string, size int, isPublished bool, s3Url string) error {
 	update := dataset.UpdateInstance{
 		Downloads: dataset.DownloadList{
 			CSV: &dataset.Download{
-				URL:  downloadURL,             // download service URL for the CSV file
 				Size: fmt.Sprintf("%d", size), // size of the file in number of bytes
 			},
 		},
 	}
+
+	if isPublished {
+		update.Downloads.CSV.Public = s3Url            // Public URL, as returned by the S3 uploader
+		update.State = dataset.StatePublished.String() // set instance state to Published, so that file is publicly available
+	} else {
+		update.Downloads.CSV.URL = generatePrivateURL(h.cfg.DownloadServiceURL, instanceID)
+	}
+
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, update, headers.IfMatchAnyETag); err != nil {
 		return fmt.Errorf("error during put instance: %w", err)
 	}
@@ -382,8 +389,13 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
-	downloadURL := generateURL(h.cfg.DownloadServiceURL, instanceID)
+func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPublished bool, s3Url string) error {
+	var downloadURL string
+	if isPublished {
+		downloadURL = s3Url
+	} else {
+		downloadURL = generatePrivateURL(h.cfg.DownloadServiceURL, instanceID)
+	}
 
 	// create CommonOutputCreated event and Marshal it
 	b, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
@@ -400,8 +412,8 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string) error {
 	return nil
 }
 
-// generateURL generates the download service URL for the provided instanceID CSV file
-func generateURL(downloadServiceURL, instanceID string) string {
+// generatePrivateURL generates the download service private URL for the provided instanceID CSV file
+func generatePrivateURL(downloadServiceURL, instanceID string) string {
 	return fmt.Sprintf("%s/downloads/instances/%s.csv",
 		downloadServiceURL,
 		instanceID,

@@ -12,9 +12,9 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dpkafka "github.com/ONSdigital/dp-kafka/v2"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	dpkafka "github.com/ONSdigital/dp-kafka/v3"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
+	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -51,7 +51,8 @@ func TestInit(t *testing.T) {
 		}
 
 		hcMock := &serviceMock.HealthCheckerMock{
-			AddCheckFunc: func(name string, checker healthcheck.Checker) error { return nil },
+			AddCheckFunc:  func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) { return nil, nil },
+			SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check) {},
 		}
 		GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
 			return hcMock, nil
@@ -140,7 +141,7 @@ func TestInit(t *testing.T) {
 		})
 
 		Convey("Given that Checkers cannot be registered", func() {
-			hcMock.AddCheckFunc = func(name string, checker healthcheck.Checker) error { return errAddCheck }
+			hcMock.AddCheckFunc = func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) { return nil, errAddCheck }
 
 			Convey("Then service Init fails with the expected error", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
@@ -220,7 +221,7 @@ func TestStart(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		consumerMock := &kafkatest.IConsumerGroupMock{
-			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return &kafka.ConsumerGroupChannels{} },
+			LogErrorsFunc: func(ctx context.Context) {},
 		}
 
 		processorMock := &serviceMock.ProcessorMock{
@@ -284,10 +285,8 @@ func TestClose(t *testing.T) {
 
 		// kafka consumer mock
 		consumerMock := &kafkatest.IConsumerGroupMock{
-			StopListeningToConsumerFunc: func(ctx context.Context) error {
-				return nil
-			},
-			CloseFunc: func(ctx context.Context) error { return nil },
+			StopAndWaitFunc: func() {},
+			CloseFunc:       func(ctx context.Context) error { return nil },
 		}
 
 		// healthcheck Stop does not depend on any other service being closed/stopped
@@ -315,16 +314,14 @@ func TestClose(t *testing.T) {
 		Convey("Closing the service results in all the dependencies being closed in the expected order", func() {
 			err := svc.Close(context.Background())
 			So(err, ShouldBeNil)
-			So(consumerMock.StopListeningToConsumerCalls(), ShouldHaveLength, 1)
+			So(consumerMock.StopAndWaitCalls(), ShouldHaveLength, 1)
 			So(hcMock.StopCalls(), ShouldHaveLength, 1)
 			So(consumerMock.CloseCalls(), ShouldHaveLength, 1)
 			So(serverMock.ShutdownCalls(), ShouldHaveLength, 1)
 		})
 
 		Convey("If services fail to stop, the Close operation tries to close all dependencies and returns an error", func() {
-			consumerMock.StopListeningToConsumerFunc = func(ctx context.Context) error {
-				return errKafkaConsumer
-			}
+			consumerMock.StopAndWaitFunc = func() {}
 			consumerMock.CloseFunc = func(ctx context.Context) error {
 				return errKafkaConsumer
 			}
@@ -334,7 +331,7 @@ func TestClose(t *testing.T) {
 
 			err = svc.Close(context.Background())
 			So(err, ShouldNotBeNil)
-			So(consumerMock.StopListeningToConsumerCalls(), ShouldHaveLength, 1)
+			So(consumerMock.StopAndWaitCalls(), ShouldHaveLength, 1)
 			So(consumerMock.CloseCalls(), ShouldHaveLength, 1)
 			So(hcMock.StopCalls(), ShouldHaveLength, 1)
 			So(serverMock.ShutdownCalls(), ShouldHaveLength, 1)

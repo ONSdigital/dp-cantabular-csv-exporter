@@ -97,6 +97,8 @@ Feature: Cantabular-Csv-Exporter
       }
       """
 
+    And dp-dataset-api is healthy
+
     And the following instance with id "instance-happy-01" is available from dp-dataset-api:
       """
       {

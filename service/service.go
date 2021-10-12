@@ -9,7 +9,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/gorilla/mux"
@@ -86,7 +86,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	log.Info(ctx, "starting service")
 
 	// Kafka error logging go-routine
-	svc.consumer.Channels().LogErrors(ctx, "kafka consumer")
+	svc.consumer.LogErrors(ctx)
 
 	// Event Handler for Kafka Consumer
 	svc.processor.Consume(
@@ -133,10 +133,8 @@ func (svc *Service) Close(ctx context.Context) error {
 		// This will automatically stop the event consumer loops and no more messages will be processed.
 		// The kafka consumer will be closed after the service shuts down.
 		if svc.consumer != nil {
-			if err := svc.consumer.StopListeningToConsumer(ctx); err != nil {
-				log.Error(ctx, "error stopping kafka consumer listener", err)
-				hasShutdownError = true
-			}
+			log.Info(ctx, "stoping kafka consumer listener")
+			svc.consumer.StopAndWait()
 			log.Info(ctx, "stopped kafka consumer listener")
 		}
 
@@ -178,11 +176,11 @@ func (svc *Service) Close(ctx context.Context) error {
 
 // registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers() error {
-	if err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+	if _, err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+	if _, err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
@@ -194,23 +192,30 @@ func (svc *Service) registerCheckers() error {
 			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
 	}
-	if err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
+	checkCantabular, err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker)
+	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {
+	checkDataset, err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker)
+	if err != nil {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("S3 uploader", svc.s3Uploader.Checker); err != nil {
+	checkS3, err := svc.healthCheck.AddCheck("S3 uploader", svc.s3Uploader.Checker)
+	if err != nil {
 		return fmt.Errorf("error adding check for s3 uploader: %w", err)
 	}
 
 	if !svc.cfg.EncryptionDisabled {
-		if err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker); err != nil {
+		checkVault, err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker)
+		if err != nil {
 			return fmt.Errorf("error adding check for vault client: %w", err)
 		}
+		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3, checkVault)
+		return nil
 	}
 
+	svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3)
 	return nil
 }

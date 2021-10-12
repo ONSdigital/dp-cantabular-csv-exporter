@@ -13,7 +13,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	componenttest "github.com/ONSdigital/dp-component-test"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -92,10 +92,9 @@ func (c *Component) initService(ctx context.Context) error {
 	// producer for triggering test events
 	if c.producer, err = kafka.NewProducer(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.InstanceCompleteTopic,
-		kafka.CreateProducerChannels(),
 		&kafka.ProducerConfig{
+			BrokerAddrs:     cfg.KafkaAddr,
+			Topic:           cfg.InstanceCompleteTopic,
 			KafkaVersion:    &cfg.KafkaVersion,
 			MaxMessageBytes: &cfg.KafkaMaxBytes,
 		},
@@ -109,11 +108,10 @@ func (c *Component) initService(ctx context.Context) error {
 	kafkaOffset := kafka.OffsetOldest
 	if c.consumer, err = kafka.NewConsumerGroup(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.CommonOutputCreatedTopic,
-		"category-dimension-import-group",
-		kafka.CreateConsumerGroupChannels(1),
 		&kafka.ConsumerGroupConfig{
+			BrokerAddrs:  cfg.KafkaAddr,
+			Topic:        cfg.CommonOutputCreatedTopic,
+			GroupName:    "category-dimension-import-group",
 			KafkaVersion: &cfg.KafkaVersion,
 			Offset:       &kafkaOffset,
 		},
@@ -122,8 +120,8 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	// start kafka logging go-routines
-	c.producer.Channels().LogErrors(ctx, "component producer")
-	c.consumer.Channels().LogErrors(ctx, "component consumer")
+	c.producer.LogErrors(ctx)
+	c.consumer.LogErrors(ctx)
 
 	service.GetGenerator = func() service.Generator {
 		return &generator{}
@@ -197,10 +195,8 @@ func (c *Component) drainTopic(ctx context.Context) error {
 func (c *Component) Close() {
 	ctx := context.Background()
 
-	// stop listening to consumer
-	if err := c.consumer.StopListeningToConsumer(ctx); err != nil {
-		log.Error(ctx, "error while stop listening to kafka consumer", err)
-	}
+	// stop listening to consumer, waiting for any in-flight message to be committed
+	c.consumer.StopAndWait()
 
 	// drain topic so that next test case starts from a known state
 	if err := c.drainTopic(ctx); err != nil {

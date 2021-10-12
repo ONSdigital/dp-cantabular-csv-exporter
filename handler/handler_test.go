@@ -18,7 +18,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/smartystreets/goconvey/convey"

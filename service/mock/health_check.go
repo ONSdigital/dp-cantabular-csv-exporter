@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	lockHealthCheckerMockAddCheck sync.RWMutex
-	lockHealthCheckerMockHandler  sync.RWMutex
-	lockHealthCheckerMockStart    sync.RWMutex
-	lockHealthCheckerMockStop     sync.RWMutex
+	lockHealthCheckerMockAddCheck  sync.RWMutex
+	lockHealthCheckerMockHandler   sync.RWMutex
+	lockHealthCheckerMockStart     sync.RWMutex
+	lockHealthCheckerMockStop      sync.RWMutex
+	lockHealthCheckerMockSubscribe sync.RWMutex
 )
 
 // HealthCheckerMock is a mock implementation of service.HealthChecker.
@@ -23,7 +24,7 @@ var (
 //
 //         // make and configure a mocked service.HealthChecker
 //         mockedHealthChecker := &HealthCheckerMock{
-//             AddCheckFunc: func(name string, checker healthcheck.Checker) error {
+//             AddCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
 // 	               panic("mock out the AddCheck method")
 //             },
 //             HandlerFunc: func(w http.ResponseWriter, req *http.Request)  {
@@ -35,6 +36,9 @@ var (
 //             StopFunc: func()  {
 // 	               panic("mock out the Stop method")
 //             },
+//             SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check)  {
+// 	               panic("mock out the Subscribe method")
+//             },
 //         }
 //
 //         // use mockedHealthChecker in code that requires service.HealthChecker
@@ -43,7 +47,7 @@ var (
 //     }
 type HealthCheckerMock struct {
 	// AddCheckFunc mocks the AddCheck method.
-	AddCheckFunc func(name string, checker healthcheck.Checker) error
+	AddCheckFunc func(name string, checker healthcheck.Checker) (*healthcheck.Check, error)
 
 	// HandlerFunc mocks the Handler method.
 	HandlerFunc func(w http.ResponseWriter, req *http.Request)
@@ -53,6 +57,9 @@ type HealthCheckerMock struct {
 
 	// StopFunc mocks the Stop method.
 	StopFunc func()
+
+	// SubscribeFunc mocks the Subscribe method.
+	SubscribeFunc func(s healthcheck.Subscriber, checks ...*healthcheck.Check)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -78,11 +85,18 @@ type HealthCheckerMock struct {
 		// Stop holds details about calls to the Stop method.
 		Stop []struct {
 		}
+		// Subscribe holds details about calls to the Subscribe method.
+		Subscribe []struct {
+			// S is the s argument value.
+			S healthcheck.Subscriber
+			// Checks is the checks argument value.
+			Checks []*healthcheck.Check
+		}
 	}
 }
 
 // AddCheck calls AddCheckFunc.
-func (mock *HealthCheckerMock) AddCheck(name string, checker healthcheck.Checker) error {
+func (mock *HealthCheckerMock) AddCheck(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
 	if mock.AddCheckFunc == nil {
 		panic("HealthCheckerMock.AddCheckFunc: method is nil but HealthChecker.AddCheck was just called")
 	}
@@ -205,5 +219,40 @@ func (mock *HealthCheckerMock) StopCalls() []struct {
 	lockHealthCheckerMockStop.RLock()
 	calls = mock.calls.Stop
 	lockHealthCheckerMockStop.RUnlock()
+	return calls
+}
+
+// Subscribe calls SubscribeFunc.
+func (mock *HealthCheckerMock) Subscribe(s healthcheck.Subscriber, checks ...*healthcheck.Check) {
+	if mock.SubscribeFunc == nil {
+		panic("HealthCheckerMock.SubscribeFunc: method is nil but HealthChecker.Subscribe was just called")
+	}
+	callInfo := struct {
+		S      healthcheck.Subscriber
+		Checks []*healthcheck.Check
+	}{
+		S:      s,
+		Checks: checks,
+	}
+	lockHealthCheckerMockSubscribe.Lock()
+	mock.calls.Subscribe = append(mock.calls.Subscribe, callInfo)
+	lockHealthCheckerMockSubscribe.Unlock()
+	mock.SubscribeFunc(s, checks...)
+}
+
+// SubscribeCalls gets all the calls that were made to Subscribe.
+// Check the length with:
+//     len(mockedHealthChecker.SubscribeCalls())
+func (mock *HealthCheckerMock) SubscribeCalls() []struct {
+	S      healthcheck.Subscriber
+	Checks []*healthcheck.Check
+} {
+	var calls []struct {
+		S      healthcheck.Subscriber
+		Checks []*healthcheck.Check
+	}
+	lockHealthCheckerMockSubscribe.RLock()
+	calls = mock.calls.Subscribe
+	lockHealthCheckerMockSubscribe.RUnlock()
 	return calls
 }

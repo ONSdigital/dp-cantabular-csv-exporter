@@ -35,8 +35,6 @@ func (c *Component) datasetAPIIsHealthy() error {
 	c.DatasetAPI.NewHandler().
 		Get("/health").
 		Reply(http.StatusOK)
-	// BodyString(instance.Content).
-	// AddHeader("Etag", c.testETag)
 	return nil
 }
 

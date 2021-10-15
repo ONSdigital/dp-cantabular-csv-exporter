@@ -74,6 +74,7 @@ func (c *Component) initService(ctx context.Context) error {
 	log.Info(ctx, "config read", log.Data{"cfg": cfg})
 
 	cfg.EncryptionDisabled = true
+	cfg.StopConsumingOnUnhealthy = false
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.CantabularExtURL = c.CantabularAPIExt.ResolveURL("")
@@ -119,6 +120,9 @@ func (c *Component) initService(ctx context.Context) error {
 		return fmt.Errorf("error creating kafka consumer: %w", err)
 	}
 
+	// start consumer group
+	c.consumer.Start()
+
 	// start kafka logging go-routines
 	c.producer.LogErrors(ctx)
 	c.consumer.LogErrors(ctx)
@@ -136,9 +140,9 @@ func (c *Component) initService(ctx context.Context) error {
 	c.cfg = cfg
 
 	// wait for producer and consumer to be ready
-	<-c.producer.Channels().Ready
+	<-c.producer.Channels().Initialised
 	log.Info(ctx, "component-test kafka producer ready")
-	<-c.consumer.Channels().Ready
+	<-c.consumer.Channels().Initialised
 	log.Info(ctx, "component-test kafka consumer ready")
 
 	return nil

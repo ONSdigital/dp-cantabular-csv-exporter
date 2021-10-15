@@ -103,6 +103,10 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 		),
 	)
 
+	if !svc.cfg.StopConsumingOnUnhealthy {
+		svc.consumer.Start()
+	}
+
 	svc.healthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
@@ -207,15 +211,20 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for s3 uploader: %w", err)
 	}
 
+	if svc.cfg.StopConsumingOnUnhealthy {
+		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3)
+	}
+
 	if !svc.cfg.EncryptionDisabled {
 		checkVault, err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker)
 		if err != nil {
 			return fmt.Errorf("error adding check for vault client: %w", err)
 		}
-		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3, checkVault)
+		if svc.cfg.StopConsumingOnUnhealthy {
+			svc.healthCheck.Subscribe(svc.consumer, checkVault)
+		}
 		return nil
 	}
 
-	svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3)
 	return nil
 }

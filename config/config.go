@@ -37,6 +37,7 @@ type Config struct {
 	VaultPath                    string        `envconfig:"VAULT_PATH"`
 	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
 	EncryptionDisabled           bool          `envconfig:"ENCRYPTION_DISABLED"`
+	StopConsumingOnUnhealthy     bool          `envconfig:"STOP_CONSUMING_ON_UNHEALTHY"`
 }
 
 var cfg *Config
@@ -78,6 +79,7 @@ func Get() (*Config, error) {
 		VaultToken:                   "",
 		ComponentTestUseLogFile:      false,
 		EncryptionDisabled:           false,
+		StopConsumingOnUnhealthy:     true,
 	}
 
 	return cfg, envconfig.Process("", cfg)

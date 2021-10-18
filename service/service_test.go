@@ -12,7 +12,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dpkafka "github.com/ONSdigital/dp-kafka/v2"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 
@@ -46,7 +45,7 @@ func TestInit(t *testing.T) {
 		}
 
 		producerMock := &kafkatest.IProducerMock{}
-		GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (dpkafka.IProducer, error) {
+		GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 			return producerMock, nil
 		}
 
@@ -168,7 +167,6 @@ func TestInit(t *testing.T) {
 				So(svc.cantabularClient, ShouldResemble, cantabularMock)
 				So(svc.producer, ShouldResemble, producerMock)
 				So(svc.datasetAPIClient, ShouldResemble, datasetApiMock)
-				So(svc.cantabularClient, ShouldResemble, cantabularMock)
 				So(svc.s3Uploader, ShouldResemble, s3UploaderMock)
 				So(svc.vaultClient, ShouldResemble, vaultMock)
 
@@ -197,7 +195,6 @@ func TestInit(t *testing.T) {
 				So(svc.cantabularClient, ShouldResemble, cantabularMock)
 				So(svc.producer, ShouldResemble, producerMock)
 				So(svc.datasetAPIClient, ShouldResemble, datasetApiMock)
-				So(svc.cantabularClient, ShouldResemble, cantabularMock)
 				So(svc.s3Uploader, ShouldResemble, s3UploaderMock)
 
 				Convey("And all checks are registered, except Vault", func() {

@@ -32,35 +32,54 @@ var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 
 // GetKafkaConsumer creates a Kafka consumer
 var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
-	cgChannels := kafka.CreateConsumerGroupChannels(1)
-
+	cgChannels := kafka.CreateConsumerGroupChannels(cfg.KafkaConfig.NumWorkers)
 	kafkaOffset := kafka.OffsetNewest
 	if cfg.KafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
-
+	cgConfig := &kafka.ConsumerGroupConfig{
+		KafkaVersion: &cfg.KafkaConfig.Version,
+		Offset:       &kafkaOffset,
+	}
+	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		cgConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaConfig.SecCACerts,
+			cfg.KafkaConfig.SecClientCert,
+			cfg.KafkaConfig.SecClientKey,
+			cfg.KafkaConfig.SecSkipVerify,
+		)
+	}
 	return kafka.NewConsumerGroup(
 		ctx,
 		cfg.KafkaConfig.Addr,
 		cfg.KafkaConfig.InstanceCompleteTopic,
 		cfg.KafkaConfig.InstanceCompleteGroup,
 		cgChannels,
-		&kafka.ConsumerGroupConfig{
-			KafkaVersion: &cfg.KafkaConfig.Version,
-			Offset:       &kafkaOffset,
-		},
+		cgConfig,
 	)
 }
 
 // GetKafkaProducer creates a Kafka producer
 var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 	pChannels := kafka.CreateProducerChannels()
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaConfig.Version,
+		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
+	}
+	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaConfig.SecCACerts,
+			cfg.KafkaConfig.SecClientCert,
+			cfg.KafkaConfig.SecClientKey,
+			cfg.KafkaConfig.SecSkipVerify,
+		)
+	}
 	return kafka.NewProducer(
 		ctx,
 		cfg.KafkaConfig.Addr,
 		cfg.KafkaConfig.CommonOutputCreatedTopic,
 		pChannels,
-		&kafka.ProducerConfig{},
+		pConfig,
 	)
 }
 

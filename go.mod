@@ -8,7 +8,7 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.1.10
 	github.com/ONSdigital/dp-component-test v0.5.0
 	github.com/ONSdigital/dp-healthcheck v1.1.0
-	github.com/ONSdigital/dp-kafka/v2 v2.2.1
+	github.com/ONSdigital/dp-kafka/v2 v2.4.2
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-s3 v1.7.0
 	github.com/ONSdigital/dp-vault v1.2.0
@@ -21,6 +21,4 @@ require (
 	github.com/maxcnunes/httpfake v1.2.1
 	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/stretchr/testify v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
 )

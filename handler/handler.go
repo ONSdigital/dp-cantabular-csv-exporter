@@ -99,8 +99,11 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 
 	isPublished := true
 
-	// Upload CSV file to S3, note that the S3 file location is ignored
-	// because we will use download service to access the file
+	// Upload csv file to S3 bucket
+	// TODO: The S3 file location returned by the Uploader should be ignored and we should use Download Service instead, which will:
+	// - decrypt private files uploaded to the private bucket (for authorised users only)
+	// - or it will redirect to the public S3 URL for public files.
+	// This change will be possible once the Cantabular CSV exporter is triggered by the Dataset API on Dataset 'Associated' (private) or 'Published' (public) events
 	s3Url, err := h.UploadCSVFile(ctx, e.InstanceID, file, isPublished)
 	if err != nil {
 		return &Error{

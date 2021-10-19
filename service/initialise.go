@@ -35,18 +35,18 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 
 	kafkaOffset := kafka.OffsetNewest
-	if cfg.KafkaOffsetOldest {
+	if cfg.KafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
 
 	return kafka.NewConsumerGroup(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.InstanceCompleteTopic,
-		cfg.InstanceCompleteGroup,
+		cfg.KafkaConfig.Addr,
+		cfg.KafkaConfig.InstanceCompleteTopic,
+		cfg.KafkaConfig.InstanceCompleteGroup,
 		cgChannels,
 		&kafka.ConsumerGroupConfig{
-			KafkaVersion: &cfg.KafkaVersion,
+			KafkaVersion: &cfg.KafkaConfig.Version,
 			Offset:       &kafkaOffset,
 		},
 	)
@@ -57,8 +57,8 @@ var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IPro
 	pChannels := kafka.CreateProducerChannels()
 	return kafka.NewProducer(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.CommonOutputCreatedTopic,
+		cfg.KafkaConfig.Addr,
+		cfg.KafkaConfig.CommonOutputCreatedTopic,
 		pChannels,
 		&kafka.ProducerConfig{},
 	)

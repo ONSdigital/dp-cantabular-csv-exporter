@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	dpkafka "github.com/ONSdigital/dp-kafka/v3"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"

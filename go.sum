@@ -24,9 +24,10 @@ github.com/ONSdigital/dp-component-test v0.5.0 h1:PM3bWLacuWkLNPxhRoqI1Oa1eXrLi/
 github.com/ONSdigital/dp-component-test v0.5.0/go.mod h1:slSUMg+KaQFHXuAVMrZCXJ3XKZoA6eKhT2EDEG01XOM=
 github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf2+NrwzC+So5f5BMLk=
 github.com/ONSdigital/dp-healthcheck v1.1.0/go.mod h1:vZwyjMJiCHjp/sJ2R1ZEqzZT0rJ0+uHVGwxqdP4J5vg=
+github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211011145925-7b344ac2823a h1:ISqpX5w2eBHo3oYRSthZpjATgcHLJhgHyNUekorjp1U=
 github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211011145925-7b344ac2823a/go.mod h1:Wu3Um1Dd99K9rH41KfeCvuw8dxgVGsghj0tzT+yp8So=
-github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211014131419-4e7580cbc4bf h1:fJiQ11WIHxY2NeO/BMgFT/744nqgG3WlKqPdWAloXuc=
-github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211014131419-4e7580cbc4bf/go.mod h1:Wu3Um1Dd99K9rH41KfeCvuw8dxgVGsghj0tzT+yp8So=
+github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-20211019154204-a0feb04bde20 h1:YByQn5h3x66EaZWkRv8Wt/DFbcyqU66ehDp8GJ8Wyd4=
+github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-20211019154204-a0feb04bde20/go.mod h1:D1+PHNeJpPDdULsMX7+aetN5zxkmhbuOdeg8KULFuIw=
 github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211015135532-ec5d3127df5a h1:qQw4X1AbRoMOyQTVxGLln2hL55lbmkiw/L7oRbTex14=
 github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211015135532-ec5d3127df5a/go.mod h1:45S+EXt2VkSYErjMUOSHAejgREusG0Ylk0jUEPWF1uE=
 github.com/ONSdigital/dp-mocking v0.0.0-20190905163309-fee2702ad1b9/go.mod h1:BcIRgitUju//qgNePRBmNjATarTtynAgc0yV29VpLEk=
@@ -51,8 +52,8 @@ github.com/ONSdigital/log.go v1.0.1/go.mod h1:dIwSXuvFB5EsZG5x44JhsXZKMd80zlb0DZ
 github.com/ONSdigital/log.go/v2 v2.0.0/go.mod h1:PR7vXrv9dZKUc7SI/0toxBbStk84snmybBnWpe+xY2o=
 github.com/ONSdigital/log.go/v2 v2.0.5/go.mod h1:PR7vXrv9dZKUc7SI/0toxBbStk84snmybBnWpe+xY2o=
 github.com/ONSdigital/log.go/v2 v2.0.6/go.mod h1:PR7vXrv9dZKUc7SI/0toxBbStk84snmybBnWpe+xY2o=
-github.com/ONSdigital/log.go/v2 v2.0.7 h1:rDTrsxH7S5faoC04iYrxHYRZc3xafYKRE/uMbkXsZ4Q=
-github.com/ONSdigital/log.go/v2 v2.0.7/go.mod h1:PR7vXrv9dZKUc7SI/0toxBbStk84snmybBnWpe+xY2o=
+github.com/ONSdigital/log.go/v2 v2.0.9 h1:dMtuN89vCP21iRuOBAGInn7ZzxIEGajC3o5pjoicnsY=
+github.com/ONSdigital/log.go/v2 v2.0.9/go.mod h1:VyTDkL82FtiAkaNFaT+bURBhLbP7NsIx4rkVbdpiuEg=
 github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487 h1:gQ8g6w/Pe2e1bt1Ht//tQXPxNpwHFcPbi09MRGKH0eM=
 github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487/go.mod h1:sYVkbMGvEplxktSXXSOVMQgGOuhqIXX5qBns81v1vas=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

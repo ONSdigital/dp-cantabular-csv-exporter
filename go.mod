@@ -7,12 +7,12 @@ replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.1.10
 	github.com/ONSdigital/dp-component-test v0.5.0
-	github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211014131419-4e7580cbc4bf
+	github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-20211019154204-a0feb04bde20
 	github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211015135532-ec5d3127df5a
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-s3 v1.7.0
 	github.com/ONSdigital/dp-vault v1.2.0
-	github.com/ONSdigital/log.go/v2 v2.0.7
+	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/aws/aws-sdk-go v1.40.24
 	github.com/cucumber/godog v0.11.0
 	github.com/google/go-cmp v0.5.5
@@ -26,6 +26,7 @@ require (
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.40.0 // indirect
+	github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211011145925-7b344ac2823a // indirect
 	github.com/ONSdigital/dp-mongodb-in-memory v1.0.0 // indirect
 	github.com/ONSdigital/log.go v1.0.1 // indirect
 	github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487 // indirect

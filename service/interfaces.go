@@ -9,7 +9,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"

@@ -5,7 +5,7 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"sync"

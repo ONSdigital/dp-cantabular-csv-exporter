@@ -5,15 +5,15 @@ go 1.17
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.1.10
+	github.com/ONSdigital/dp-api-clients-go/v3 v3.0.0-20211020104633-1e29e98a1377
 	github.com/ONSdigital/dp-component-test v0.5.0
-	github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-20211019154204-a0feb04bde20
-	github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211015135532-ec5d3127df5a
+	github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-beta
+	github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211020110419-6254a7b0b2ad
 	github.com/ONSdigital/dp-net v1.0.12
-	github.com/ONSdigital/dp-s3 v1.7.0
-	github.com/ONSdigital/dp-vault v1.2.0
+	github.com/ONSdigital/dp-s3/v2 v2.0.0-20211020114151-f16030eb4de9
+	github.com/ONSdigital/dp-vault/v2 v2.0.0-20211020111909-ab78805f8f04
 	github.com/ONSdigital/log.go/v2 v2.0.9
-	github.com/aws/aws-sdk-go v1.40.24
+	github.com/aws/aws-sdk-go v1.41.6
 	github.com/cucumber/godog v0.11.0
 	github.com/google/go-cmp v0.5.5
 	github.com/gorilla/mux v1.8.0
@@ -26,7 +26,6 @@ require (
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.40.0 // indirect
-	github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211011145925-7b344ac2823a // indirect
 	github.com/ONSdigital/dp-mongodb-in-memory v1.0.0 // indirect
 	github.com/ONSdigital/log.go v1.0.1 // indirect
 	github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487 // indirect
@@ -86,7 +85,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.2 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.mongodb.org/mongo-driver v1.7.1 // indirect
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect

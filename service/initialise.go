@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
@@ -14,8 +14,8 @@ import (
 	dpkafka "github.com/ONSdigital/dp-kafka/v3"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	dps3 "github.com/ONSdigital/dp-s3"
-	vault "github.com/ONSdigital/dp-vault"
+	dps3 "github.com/ONSdigital/dp-s3/v2"
+	vault "github.com/ONSdigital/dp-vault/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"

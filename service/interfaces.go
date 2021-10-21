@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"

@@ -31,6 +31,7 @@ const (
 	testS3Location         = "s3://myBucket/my-file.csv"
 	testDownloadServiceURL = "http://test-download-service:8200"
 	testETag               = "testETag"
+	testRowCount           = 18
 )
 
 var (
@@ -121,11 +122,12 @@ func TestParseQueryResponse(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil)
 
 		Convey("When ParseQueryResponse is triggered with a valid cantabular response", func() {
-			reader, numBytes, err := eventHandler.ParseQueryResponse(cantabularResp())
+			reader, numBytes, rowCount, err := eventHandler.ParseQueryResponse(cantabularResp())
 
 			Convey("Then the expected reader is returned without error", func() {
 				So(err, ShouldBeNil)
 				So(numBytes, ShouldEqual, 641)
+				So(rowCount, ShouldEqual, 18)
 				validateLines(reader, []string{
 					"cantabular_blob,City,Number of siblings (3 mappings),Sex",
 					"2,London,No siblings,Male",
@@ -482,13 +484,14 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, false, "")
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, false, "", testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CommonOutputCreated{
 				FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
 				InstanceID: testInstanceID,
+				RowCount:   testRowCount,
 			}
 
 			Convey("Then the expected message is produced", func() {
@@ -508,13 +511,14 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, true, "publicURL")
+				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, true, "publicURL", testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CommonOutputCreated{
 				FileURL:    "publicURL",
 				InstanceID: testInstanceID,
+				RowCount:   testRowCount,
 			}
 
 			Convey("Then the expected message is produced", func() {

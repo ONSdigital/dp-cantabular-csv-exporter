@@ -15,9 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
+	assistdog "github.com/ONSdigital/dp-assistdog"
 	"github.com/cucumber/godog"
 	"github.com/google/go-cmp/cmp"
-	"github.com/rdumont/assistdog"
 )
 
 // RegisterSteps maps the human-readable regular expressions to their corresponding funcs

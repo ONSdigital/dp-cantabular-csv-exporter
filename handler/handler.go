@@ -48,10 +48,21 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 }
 
 // Handle takes a single event.
-func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete) error {
-	logData := log.Data{
-		"event": e,
+func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+	var e *event.InstanceComplete
+	s := schema.InstanceComplete
+
+	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
+		return &Error{
+			err: fmt.Errorf("failed to unmarshal event: %w", err),
+			logData: map[string]interface{}{
+				"msg_data": msg.GetData(),
+			},
+		}
 	}
+
+	logData := log.Data{"event": e}
+	log.Info(ctx, "event received", logData)
 
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {

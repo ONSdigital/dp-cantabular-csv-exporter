@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -22,7 +21,7 @@ type Service struct {
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
 	producer         kafka.IProducer
-	processor        Processor
+	handler          Handler
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
 	s3Uploader       S3Uploader
@@ -62,7 +61,16 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
-	svc.processor = GetProcessor(cfg)
+	svc.handler = GetHandler(
+		*svc.cfg,
+		svc.cantabularClient,
+		svc.datasetAPIClient,
+		svc.s3Uploader,
+		svc.vaultClient,
+		svc.producer,
+		svc.generator,
+	)
+	svc.consumer.RegisterHandler(ctx, svc.handler.Handle)
 	svc.generator = GetGenerator()
 
 	// Get HealthCheck
@@ -88,25 +96,14 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	// Kafka error logging go-routine
 	svc.consumer.LogErrors(ctx)
 
-	// Event Handler for Kafka Consumer
-	svc.processor.Consume(
-		ctx,
-		svc.consumer,
-		handler.NewInstanceComplete(
-			*svc.cfg,
-			svc.cantabularClient,
-			svc.datasetAPIClient,
-			svc.s3Uploader,
-			svc.vaultClient,
-			svc.producer,
-			svc.generator,
-		),
-	)
-
+	// If start/stop on health updates is disabled, start consuming as soon as possible
 	if !svc.cfg.StopConsumingOnUnhealthy {
 		svc.consumer.Start()
 	}
 
+	// Always start healthcheck.
+	// If start/stop on health updates is enabled,
+	// the consumer will start consuming on the first healthy update
 	svc.healthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine

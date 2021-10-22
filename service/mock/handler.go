@@ -5,7 +5,7 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
+	"github.com/ONSdigital/dp-kafka/v3"
 	"sync"
 )
 
@@ -13,28 +13,24 @@ var (
 	lockHandlerMockHandle sync.RWMutex
 )
 
-// Ensure, that HandlerMock does implement event.Handler.
-// If this is not the case, regenerate this file with moq.
-var _ event.Handler = &HandlerMock{}
-
-// HandlerMock is a mock implementation of event.Handler.
+// HandlerMock is a mock implementation of service.Handler.
 //
 //     func TestSomethingThatUsesHandler(t *testing.T) {
 //
-//         // make and configure a mocked event.Handler
+//         // make and configure a mocked service.Handler
 //         mockedHandler := &HandlerMock{
-//             HandleFunc: func(ctx context.Context, instanceComplete *event.InstanceComplete) error {
+//             HandleFunc: func(ctx context.Context, workerID int, msg kafka.Message) error {
 // 	               panic("mock out the Handle method")
 //             },
 //         }
 //
-//         // use mockedHandler in code that requires event.Handler
+//         // use mockedHandler in code that requires service.Handler
 //         // and then make assertions.
 //
 //     }
 type HandlerMock struct {
 	// HandleFunc mocks the Handle method.
-	HandleFunc func(ctx context.Context, instanceComplete *event.InstanceComplete) error
+	HandleFunc func(ctx context.Context, workerID int, msg kafka.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -42,40 +38,46 @@ type HandlerMock struct {
 		Handle []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// InstanceComplete is the instanceComplete argument value.
-			InstanceComplete *event.InstanceComplete
+			// WorkerID is the workerID argument value.
+			WorkerID int
+			// Msg is the msg argument value.
+			Msg kafka.Message
 		}
 	}
 }
 
 // Handle calls HandleFunc.
-func (mock *HandlerMock) Handle(ctx context.Context, instanceComplete *event.InstanceComplete) error {
+func (mock *HandlerMock) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
 	if mock.HandleFunc == nil {
 		panic("HandlerMock.HandleFunc: method is nil but Handler.Handle was just called")
 	}
 	callInfo := struct {
-		Ctx              context.Context
-		InstanceComplete *event.InstanceComplete
+		Ctx      context.Context
+		WorkerID int
+		Msg      kafka.Message
 	}{
-		Ctx:              ctx,
-		InstanceComplete: instanceComplete,
+		Ctx:      ctx,
+		WorkerID: workerID,
+		Msg:      msg,
 	}
 	lockHandlerMockHandle.Lock()
 	mock.calls.Handle = append(mock.calls.Handle, callInfo)
 	lockHandlerMockHandle.Unlock()
-	return mock.HandleFunc(ctx, instanceComplete)
+	return mock.HandleFunc(ctx, workerID, msg)
 }
 
 // HandleCalls gets all the calls that were made to Handle.
 // Check the length with:
 //     len(mockedHandler.HandleCalls())
 func (mock *HandlerMock) HandleCalls() []struct {
-	Ctx              context.Context
-	InstanceComplete *event.InstanceComplete
+	Ctx      context.Context
+	WorkerID int
+	Msg      kafka.Message
 } {
 	var calls []struct {
-		Ctx              context.Context
-		InstanceComplete *event.InstanceComplete
+		Ctx      context.Context
+		WorkerID int
+		Msg      kafka.Message
 	}
 	lockHandlerMockHandle.RLock()
 	calls = mock.calls.Handle

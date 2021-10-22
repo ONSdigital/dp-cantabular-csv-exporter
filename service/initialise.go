@@ -8,8 +8,8 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -122,9 +122,9 @@ var GetVault = func(cfg *config.Config) (VaultClient, error) {
 	return vault.CreateClient(cfg.VaultToken, cfg.VaultAddress, VaultRetries)
 }
 
-// GetProcessor gets and initialises the event Processor
-var GetProcessor = func(cfg *config.Config) Processor {
-	return event.NewProcessor(*cfg)
+// GetHandler gets and initialises the kafka consumer-group Handler
+var GetHandler = func(cfg config.Config, c CantabularClient, d DatasetAPIClient, s3 S3Uploader, v VaultClient, p kafka.IProducer, g Generator) Handler {
+	return handler.NewInstanceComplete(cfg, c, d, s3, v, p, g)
 }
 
 // GetHealthCheck creates a healthcheck with versionInfo

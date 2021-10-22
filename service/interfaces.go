@@ -8,7 +8,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 
@@ -21,7 +20,7 @@ import (
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
 //go:generate moq -out mock/s3_uploader.go -pkg mock . S3Uploader
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
-//go:generate moq -out mock/processor.go -pkg mock . Processor
+//go:generate moq -out mock/handler.go -pkg mock . Handler
 
 // Initialiser defines the methods to initialise external services
 type Initialiser interface {
@@ -64,8 +63,8 @@ type S3Uploader interface {
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type Processor interface {
-	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
+type Handler interface {
+	Handle(ctx context.Context, workerID int, msg kafka.Message) error
 }
 
 type VaultClient interface {

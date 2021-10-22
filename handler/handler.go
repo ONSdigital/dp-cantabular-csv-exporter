@@ -221,6 +221,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	if err := write(header); err != nil {
 		return nil, 0, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
+	var rowCount int32 = 1 // number of rows, including headers
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
 	for i, count := range resp.Dataset.Table.Values {
@@ -229,6 +230,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 			return nil, 0, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}
+	rowCount += int32(len(resp.Dataset.Table.Values))
 
 	// Flush to make sure all data is present in the byte buffer
 	w.Flush()
@@ -237,7 +239,7 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	}
 
 	// Return a reader with the same underlying Byte buffer that is written by the csv writter
-	return bufio.NewReader(b), b.Len(), int32(len(resp.Dataset.Table.Values)), nil
+	return bufio.NewReader(b), b.Len(), rowCount, nil
 }
 
 // createCSVHeader creates an array of strings corresponding to a csv header

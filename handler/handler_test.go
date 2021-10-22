@@ -127,7 +127,7 @@ func TestParseQueryResponse(t *testing.T) {
 			Convey("Then the expected reader is returned without error", func() {
 				So(err, ShouldBeNil)
 				So(numBytes, ShouldEqual, 641)
-				So(rowCount, ShouldEqual, 18)
+				So(rowCount, ShouldEqual, 19)
 				validateLines(reader, []string{
 					"cantabular_blob,City,Number of siblings (3 mappings),Sex",
 					"2,London,No siblings,Male",

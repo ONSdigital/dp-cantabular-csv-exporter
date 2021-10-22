@@ -97,8 +97,6 @@ Feature: Cantabular-Csv-Exporter
       }
       """
 
-    And dp-dataset-api is healthy
-
     And the following instance with id "instance-happy-01" is available from dp-dataset-api:
       """
       {
@@ -147,5 +145,5 @@ Feature: Cantabular-Csv-Exporter
     And a file with filename "instances/instance-happy-01.csv" can be seen in minio
 
     Then these common-output-created events are produced:
-      | InstanceID        | FileURL                                                                      |
-      | instance-happy-01 | http://minio:9000/dp-cantabular-csv-exporter/instances/instance-happy-01.csv |
+      | InstanceID        | FileURL                                                                      | RowCount |
+      | instance-happy-01 | http://minio:9000/dp-cantabular-csv-exporter/instances/instance-happy-01.csv | 22       |

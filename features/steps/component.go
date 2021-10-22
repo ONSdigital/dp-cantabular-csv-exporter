@@ -94,10 +94,10 @@ func (c *Component) initService(ctx context.Context) error {
 	if c.producer, err = kafka.NewProducer(
 		ctx,
 		&kafka.ProducerConfig{
-			BrokerAddrs:     cfg.KafkaAddr,
-			Topic:           cfg.InstanceCompleteTopic,
-			KafkaVersion:    &cfg.KafkaVersion,
-			MaxMessageBytes: &cfg.KafkaMaxBytes,
+			BrokerAddrs:     cfg.KafkaConfig.Addr,
+			Topic:           cfg.KafkaConfig.InstanceCompleteTopic,
+			KafkaVersion:    &cfg.KafkaConfig.Version,
+			MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 		},
 	); err != nil {
 		return fmt.Errorf("error creating kafka producer: %w", err)
@@ -110,10 +110,10 @@ func (c *Component) initService(ctx context.Context) error {
 	if c.consumer, err = kafka.NewConsumerGroup(
 		ctx,
 		&kafka.ConsumerGroupConfig{
-			BrokerAddrs:  cfg.KafkaAddr,
-			Topic:        cfg.CommonOutputCreatedTopic,
+			BrokerAddrs:  cfg.KafkaConfig.Addr,
+			Topic:        cfg.KafkaConfig.CommonOutputCreatedTopic,
 			GroupName:    "category-dimension-import-group",
-			KafkaVersion: &cfg.KafkaVersion,
+			KafkaVersion: &cfg.KafkaConfig.Version,
 			Offset:       &kafkaOffset,
 		},
 	); err != nil {

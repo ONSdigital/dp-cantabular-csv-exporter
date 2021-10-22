@@ -11,7 +11,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
-	dpkafka "github.com/ONSdigital/dp-kafka/v3"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	dps3 "github.com/ONSdigital/dp-s3/v2"
@@ -32,33 +31,46 @@ var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 }
 
 // GetKafkaConsumer creates a Kafka consumer
-var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (dpkafka.IConsumerGroup, error) {
-	kafkaOffset := dpkafka.OffsetNewest
-	if cfg.KafkaOffsetOldest {
-		kafkaOffset = dpkafka.OffsetOldest
+var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
+	kafkaOffset := kafka.OffsetNewest
+	if cfg.KafkaConfig.OffsetOldest {
+		kafkaOffset = kafka.OffsetOldest
 	}
-
-	return dpkafka.NewConsumerGroup(
-		ctx,
-		&dpkafka.ConsumerGroupConfig{
-			BrokerAddrs:  cfg.KafkaAddr,
-			Topic:        cfg.InstanceCompleteTopic,
-			GroupName:    cfg.InstanceCompleteGroup,
-			KafkaVersion: &cfg.KafkaVersion,
-			Offset:       &kafkaOffset,
-		},
-	)
+	cgConfig := &kafka.ConsumerGroupConfig{
+		BrokerAddrs:  cfg.KafkaConfig.Addr,
+		Topic:        cfg.KafkaConfig.InstanceCompleteTopic,
+		GroupName:    cfg.KafkaConfig.InstanceCompleteGroup,
+		KafkaVersion: &cfg.KafkaConfig.Version,
+		Offset:       &kafkaOffset,
+	}
+	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		cgConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaConfig.SecCACerts,
+			cfg.KafkaConfig.SecClientCert,
+			cfg.KafkaConfig.SecClientKey,
+			cfg.KafkaConfig.SecSkipVerify,
+		)
+	}
+	return kafka.NewConsumerGroup(ctx, cgConfig)
 }
 
 // GetKafkaProducer creates a Kafka producer
-var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (dpkafka.IProducer, error) {
-	return dpkafka.NewProducer(
-		ctx,
-		&kafka.ProducerConfig{
-			BrokerAddrs: cfg.KafkaAddr,
-			Topic:       cfg.CommonOutputCreatedTopic,
-		},
-	)
+var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
+	pConfig := &kafka.ProducerConfig{
+		BrokerAddrs:     cfg.KafkaConfig.Addr,
+		Topic:           cfg.KafkaConfig.CommonOutputCreatedTopic,
+		KafkaVersion:    &cfg.KafkaConfig.Version,
+		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
+	}
+	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaConfig.SecCACerts,
+			cfg.KafkaConfig.SecClientCert,
+			cfg.KafkaConfig.SecClientKey,
+			cfg.KafkaConfig.SecSkipVerify,
+		)
+	}
+	return kafka.NewProducer(ctx, pConfig)
 }
 
 // GetCantabularClient gets and initialises the Cantabular Client

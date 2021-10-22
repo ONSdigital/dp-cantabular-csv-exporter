@@ -15,27 +15,19 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
+	assistdog "github.com/ONSdigital/dp-assistdog"
 	"github.com/cucumber/godog"
 	"github.com/google/go-cmp/cmp"
-	"github.com/rdumont/assistdog"
 )
 
 // RegisterSteps maps the human-readable regular expressions to their corresponding funcs
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" using the GraphQL endpoint:$`, c.theFollowingQueryResponseIsAvailable)
-	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^an instance with id "([^"]*)" is updated to dp-dataset-api`, c.theFollowingInstanceIsUpdated)
 	ctx.Step(`^this instance-complete event is consumed:$`, c.thisInstanceCompleteEventIsConsumed)
 	ctx.Step(`^these common-output-created events are produced:$`, c.theseCommonOutputCreatedEventsAreProduced)
 	ctx.Step(`^a file with filename "([^"]*)" can be seen in minio`, c.theFollowingFileCanBeSeenInMinio)
-}
-
-func (c *Component) datasetAPIIsHealthy() error {
-	c.DatasetAPI.NewHandler().
-		Get("/health").
-		Reply(http.StatusOK)
-	return nil
 }
 
 // theFollowingInstanceIsAvailable generate a mocked response for dataset API

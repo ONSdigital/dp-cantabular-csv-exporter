@@ -92,15 +92,18 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	}
 
 	// Convert Cantabular Response To CSV file
-	file, numBytes, err := h.ParseQueryResponse(resp)
+	file, numBytes, rowCount, err := h.ParseQueryResponse(resp)
 	if err != nil {
 		return fmt.Errorf("failed to generate table from query response: %w", err)
 	}
 
 	isPublished := true
 
-	// Upload CSV file to S3, note that the S3 file location is ignored
-	// because we will use download service to access the file
+	// Upload csv file to S3 bucket
+	// TODO: The S3 file location returned by the Uploader should be ignored and we should use Download Service instead, which will:
+	// - decrypt private files uploaded to the private bucket (for authorised users only)
+	// - or it will redirect to the public S3 URL for public files.
+	// This change will be possible once the Cantabular CSV exporter is triggered by the Dataset API on Dataset 'Associated' (private) or 'Published' (public) events
 	s3Url, err := h.UploadCSVFile(ctx, e.InstanceID, file, isPublished)
 	if err != nil {
 		return &Error{
@@ -120,7 +123,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, e *event.InstanceComplete
 	log.Event(ctx, "producing common output created event", log.INFO, log.Data{})
 
 	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(e.InstanceID, isPublished, s3Url); err != nil {
+	if err := h.ProduceExportCompleteEvent(e.InstanceID, isPublished, s3Url, rowCount); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
@@ -197,9 +200,10 @@ func (h *InstanceComplete) ValidateQueryResponse(resp *cantabular.StaticDatasetQ
 // ParseQueryResponse parses the provided cantabular response into a CSV bufio.Reader,
 // where the first row corresponds to the dimension names header (including a count)
 // and each subsequent row corresponds to a unique combination of dimension values and their count.
+// It returns a reader for the the CSV content, the total size in number of bytes, the number of rows, and any error that may happen.
 //
 // Example by Sensible Code here: https://github.com/cantabular/examples/blob/master/golang/main.go
-func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (*bufio.Reader, int, error) {
+func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuery) (*bufio.Reader, int, int32, error) {
 	// Create CSV writer with underlying buffer
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
@@ -215,25 +219,27 @@ func (h *InstanceComplete) ParseQueryResponse(resp *cantabular.StaticDatasetQuer
 	// Obtain the CSV header
 	header := createCSVHeader(resp.Dataset.Table.Dimensions)
 	if err := write(header); err != nil {
-		return nil, 0, fmt.Errorf("error writing the csv header: %w", err)
+		return nil, 0, 0, fmt.Errorf("error writing the csv header: %w", err)
 	}
+	var rowCount int32 = 1 // number of rows, including headers
 
 	// Obtain the CSV rows according to the cantabular dimensions and counts
 	for i, count := range resp.Dataset.Table.Values {
 		row := createCSVRow(resp.Dataset.Table.Dimensions, i, count)
 		if err := write(row); err != nil {
-			return nil, 0, fmt.Errorf("error writing a csv row: %w", err)
+			return nil, 0, 0, fmt.Errorf("error writing a csv row: %w", err)
 		}
 	}
+	rowCount += int32(len(resp.Dataset.Table.Values))
 
 	// Flush to make sure all data is present in the byte buffer
 	w.Flush()
 	if err := w.Error(); err != nil {
-		return nil, 0, fmt.Errorf("error flushing the csv writer: %w", err)
+		return nil, 0, 0, fmt.Errorf("error flushing the csv writer: %w", err)
 	}
 
 	// Return a reader with the same underlying Byte buffer that is written by the csv writter
-	return bufio.NewReader(b), b.Len(), nil
+	return bufio.NewReader(b), b.Len(), rowCount, nil
 }
 
 // createCSVHeader creates an array of strings corresponding to a csv header
@@ -398,7 +404,7 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, instanceID string
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPublished bool, s3Url string) error {
+func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPublished bool, s3Url string, rowCount int32) error {
 	var downloadURL string
 	if isPublished {
 		downloadURL = s3Url
@@ -410,6 +416,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPubli
 	b, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
 		InstanceID: instanceID,
 		FileURL:    downloadURL, // download service URL for the CSV file
+		RowCount:   rowCount,
 	})
 	if err != nil {
 		return fmt.Errorf("error marshalling instance complete event: %w", err)

@@ -6,9 +6,10 @@ replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v3 v3.0.0-20211020104633-1e29e98a1377
+	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.5.0
 	github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-beta
-	github.com/ONSdigital/dp-kafka/v3 v3.0.0-20211020110419-6254a7b0b2ad
+	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-s3/v2 v2.0.0-20211020114151-f16030eb4de9
 	github.com/ONSdigital/dp-vault/v2 v2.0.0-20211020111909-ab78805f8f04
@@ -19,13 +20,11 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/maxcnunes/httpfake v1.2.1
-	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/stretchr/testify v1.7.0 // indirect
 )
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.40.0 // indirect
+	github.com/ONSdigital/dp-api-clients-go v1.34.3 // indirect
 	github.com/ONSdigital/dp-mongodb-in-memory v1.0.0 // indirect
 	github.com/ONSdigital/log.go v1.0.1 // indirect
 	github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487 // indirect
@@ -39,7 +38,7 @@ require (
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-avro/avro v0.0.0-20171219232920-444163702c11 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gofrs/uuid v3.3.0+incompatible // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
@@ -80,6 +79,7 @@ require (
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
 	github.com/xdg-go/stringprep v1.0.2 // indirect

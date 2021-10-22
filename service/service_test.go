@@ -108,15 +108,6 @@ func TestInit(t *testing.T) {
 			return vaultMock, nil
 		}
 
-		handlerMock := &serviceMock.HandlerMock{
-			HandleFunc: func(ctx context.Context, workerID int, msg kafka.Message) error {
-				return nil
-			},
-		}
-		GetHandler = func(cfg config.Config, c CantabularClient, d DatasetAPIClient, s3 S3Uploader, v VaultClient, p kafka.IProducer, g Generator) Handler {
-			return handlerMock
-		}
-
 		svc := &Service{}
 
 		Convey("Given that initialising Kafka consumer returns an error", func() {
@@ -272,12 +263,6 @@ func TestStart(t *testing.T) {
 			LogErrorsFunc: func(ctx context.Context) {},
 		}
 
-		handlerMock := &serviceMock.HandlerMock{
-			HandleFunc: func(ctx context.Context, workerID int, msg kafka.Message) error {
-				return nil
-			},
-		}
-
 		hcMock := &serviceMock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
@@ -290,7 +275,6 @@ func TestStart(t *testing.T) {
 			server:      serverMock,
 			healthCheck: hcMock,
 			consumer:    consumerMock,
-			handler:     handlerMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {

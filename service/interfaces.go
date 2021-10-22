@@ -20,7 +20,6 @@ import (
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
 //go:generate moq -out mock/s3_uploader.go -pkg mock . S3Uploader
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
-//go:generate moq -out mock/handler.go -pkg mock . Handler
 
 // Initialiser defines the methods to initialise external services
 type Initialiser interface {
@@ -61,10 +60,6 @@ type S3Uploader interface {
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
 	BucketName() string
 	Checker(context.Context, *healthcheck.CheckState) error
-}
-
-type Handler interface {
-	Handle(ctx context.Context, workerID int, msg kafka.Message) error
 }
 
 type VaultClient interface {

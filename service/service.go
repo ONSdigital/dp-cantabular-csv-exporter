@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -21,7 +22,6 @@ type Service struct {
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
 	producer         kafka.IProducer
-	handler          Handler
 	datasetAPIClient DatasetAPIClient
 	cantabularClient CantabularClient
 	s3Uploader       S3Uploader
@@ -61,7 +61,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
-	svc.handler = GetHandler(
+	h := handler.NewInstanceComplete(
 		*svc.cfg,
 		svc.cantabularClient,
 		svc.datasetAPIClient,
@@ -70,7 +70,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.producer,
 		svc.generator,
 	)
-	svc.consumer.RegisterHandler(ctx, svc.handler.Handle)
+	svc.consumer.RegisterHandler(ctx, h.Handle)
 	svc.generator = GetGenerator()
 
 	// Get HealthCheck

@@ -9,7 +9,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -120,11 +119,6 @@ var GetS3Uploader = func(cfg *config.Config) (S3Uploader, error) {
 // GetVault creates a VaultClient
 var GetVault = func(cfg *config.Config) (VaultClient, error) {
 	return vault.CreateClient(cfg.VaultToken, cfg.VaultAddress, VaultRetries)
-}
-
-// GetHandler gets and initialises the kafka consumer-group Handler
-var GetHandler = func(cfg config.Config, c CantabularClient, d DatasetAPIClient, s3 S3Uploader, v VaultClient, p kafka.IProducer, g Generator) Handler {
-	return handler.NewInstanceComplete(cfg, c, d, s3, v, p, g)
 }
 
 // GetHealthCheck creates a healthcheck with versionInfo

@@ -57,7 +57,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 	pConfig := &kafka.ProducerConfig{
 		BrokerAddrs:     cfg.KafkaConfig.Addr,
-		Topic:           cfg.KafkaConfig.CommonOutputCreatedTopic,
+		Topic:           cfg.KafkaConfig.CsvCreatedTopic,
 		KafkaVersion:    &cfg.KafkaConfig.Version,
 		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 	}

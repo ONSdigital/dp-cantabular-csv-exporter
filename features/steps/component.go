@@ -111,7 +111,7 @@ func (c *Component) initService(ctx context.Context) error {
 		ctx,
 		&kafka.ConsumerGroupConfig{
 			BrokerAddrs:  cfg.KafkaConfig.Addr,
-			Topic:        cfg.KafkaConfig.CommonOutputCreatedTopic,
+			Topic:        cfg.KafkaConfig.CsvCreatedTopic,
 			GroupName:    "category-dimension-import-group",
 			KafkaVersion: &cfg.KafkaConfig.Version,
 			Offset:       &kafkaOffset,

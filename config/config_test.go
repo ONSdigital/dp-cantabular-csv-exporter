@@ -50,7 +50,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaConfig.SecSkipVerify, ShouldBeFalse)
 				So(cfg.KafkaConfig.InstanceCompleteGroup, ShouldEqual, "dp-cantabular-csv-exporter")
 				So(cfg.KafkaConfig.InstanceCompleteTopic, ShouldEqual, "cantabular-dataset-instance-complete")
-				So(cfg.KafkaConfig.CommonOutputCreatedTopic, ShouldEqual, "common-output-created")
+				So(cfg.KafkaConfig.CsvCreatedTopic, ShouldEqual, "cantabular-csv-created")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

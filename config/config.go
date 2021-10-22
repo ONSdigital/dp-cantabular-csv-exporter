@@ -38,19 +38,19 @@ type Config struct {
 
 // KafkaConfig contains the config required to connect to Kafka
 type KafkaConfig struct {
-	Addr                     []string `envconfig:"KAFKA_ADDR"                            json:"-"`
-	Version                  string   `envconfig:"KAFKA_VERSION"`
-	OffsetOldest             bool     `envconfig:"KAFKA_OFFSET_OLDEST"`
-	NumWorkers               int      `envconfig:"KAFKA_NUM_WORKERS"`
-	MaxBytes                 int      `envconfig:"KAFKA_MAX_BYTES"`
-	SecProtocol              string   `envconfig:"KAFKA_SEC_PROTO"`
-	SecCACerts               string   `envconfig:"KAFKA_SEC_CA_CERTS"`
-	SecClientKey             string   `envconfig:"KAFKA_SEC_CLIENT_KEY"                  json:"-"`
-	SecClientCert            string   `envconfig:"KAFKA_SEC_CLIENT_CERT"`
-	SecSkipVerify            bool     `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
-	InstanceCompleteGroup    string   `envconfig:"INSTANCE_COMPLETE_GROUP"`
-	InstanceCompleteTopic    string   `envconfig:"INSTANCE_COMPLETE_TOPIC"`
-	CommonOutputCreatedTopic string   `envconfig:"COMMON_OUTPUT_CREATED_TOPIC"`
+	Addr                  []string `envconfig:"KAFKA_ADDR"                            json:"-"`
+	Version               string   `envconfig:"KAFKA_VERSION"`
+	OffsetOldest          bool     `envconfig:"KAFKA_OFFSET_OLDEST"`
+	NumWorkers            int      `envconfig:"KAFKA_NUM_WORKERS"`
+	MaxBytes              int      `envconfig:"KAFKA_MAX_BYTES"`
+	SecProtocol           string   `envconfig:"KAFKA_SEC_PROTO"`
+	SecCACerts            string   `envconfig:"KAFKA_SEC_CA_CERTS"`
+	SecClientKey          string   `envconfig:"KAFKA_SEC_CLIENT_KEY"                  json:"-"`
+	SecClientCert         string   `envconfig:"KAFKA_SEC_CLIENT_CERT"`
+	SecSkipVerify         bool     `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
+	InstanceCompleteGroup string   `envconfig:"INSTANCE_COMPLETE_GROUP"`
+	InstanceCompleteTopic string   `envconfig:"INSTANCE_COMPLETE_TOPIC"`
+	CsvCreatedTopic       string   `envconfig:"COMMON_OUTPUT_CREATED_TOPIC"` // TODO rename env var
 }
 
 var cfg *Config
@@ -86,19 +86,19 @@ func Get() (*Config, error) {
 		EncryptionDisabled:           false,
 		StopConsumingOnUnhealthy:     true,
 		KafkaConfig: KafkaConfig{
-			Addr:                     []string{"localhost:9092"},
-			Version:                  "1.0.2",
-			OffsetOldest:             true,
-			NumWorkers:               1,
-			MaxBytes:                 2000000,
-			SecProtocol:              "",
-			SecCACerts:               "",
-			SecClientKey:             "",
-			SecClientCert:            "",
-			SecSkipVerify:            false,
-			InstanceCompleteGroup:    "dp-cantabular-csv-exporter",
-			InstanceCompleteTopic:    "cantabular-dataset-instance-complete",
-			CommonOutputCreatedTopic: "common-output-created",
+			Addr:                  []string{"localhost:9092"},
+			Version:               "1.0.2",
+			OffsetOldest:          true,
+			NumWorkers:            1,
+			MaxBytes:              2000000,
+			SecProtocol:           "",
+			SecCACerts:            "",
+			SecClientKey:          "",
+			SecClientCert:         "",
+			SecSkipVerify:         false,
+			InstanceCompleteGroup: "dp-cantabular-csv-exporter",
+			InstanceCompleteTopic: "cantabular-dataset-instance-complete",
+			CsvCreatedTopic:       "cantabular-csv-created",
 		},
 	}
 

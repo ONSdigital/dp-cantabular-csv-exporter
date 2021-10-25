@@ -8,7 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
-	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 
@@ -177,11 +177,11 @@ func (svc *Service) Close(ctx context.Context) error {
 
 // registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers() error {
-	if _, err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+	if _, err := svc.healthCheck.AddAndGetCheck("Kafka consumer", svc.consumer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
-	if _, err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+	if _, err := svc.healthCheck.AddAndGetCheck("Kafka producer", svc.producer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
@@ -193,17 +193,17 @@ func (svc *Service) registerCheckers() error {
 			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
 	}
-	checkCantabular, err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker)
+	checkCantabular, err := svc.healthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
 	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
-	checkDataset, err := svc.healthCheck.AddCheck("Dataset API client", svc.datasetAPIClient.Checker)
+	checkDataset, err := svc.healthCheck.AddAndGetCheck("Dataset API client", svc.datasetAPIClient.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	checkS3, err := svc.healthCheck.AddCheck("S3 uploader", svc.s3Uploader.Checker)
+	checkS3, err := svc.healthCheck.AddAndGetCheck("S3 uploader", svc.s3Uploader.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for s3 uploader: %w", err)
 	}
@@ -213,7 +213,7 @@ func (svc *Service) registerCheckers() error {
 	}
 
 	if !svc.cfg.EncryptionDisabled {
-		checkVault, err := svc.healthCheck.AddCheck("Vault", svc.vaultClient.Checker)
+		checkVault, err := svc.healthCheck.AddAndGetCheck("Vault", svc.vaultClient.Checker)
 		if err != nil {
 			return fmt.Errorf("error adding check for vault client: %w", err)
 		}

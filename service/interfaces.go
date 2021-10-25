@@ -5,10 +5,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
-	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -39,7 +39,7 @@ type HealthChecker interface {
 	Handler(w http.ResponseWriter, req *http.Request)
 	Start(ctx context.Context)
 	Stop()
-	AddCheck(name string, checker healthcheck.Checker) (check *healthcheck.Check, err error)
+	AddAndGetCheck(name string, checker healthcheck.Checker) (check *healthcheck.Check, err error)
 	Subscribe(s healthcheck.Subscriber, checks ...*healthcheck.Check)
 }
 

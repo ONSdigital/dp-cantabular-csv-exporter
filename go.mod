@@ -5,14 +5,14 @@ go 1.17
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v3 v3.0.0-20211020104633-1e29e98a1377
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.3.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.5.0
-	github.com/ONSdigital/dp-healthcheck/v2 v2.0.0-beta
-	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta
+	github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211025152942-e19bc4887022
+	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.0.20211025162401-598b539d1441
 	github.com/ONSdigital/dp-net v1.0.12
-	github.com/ONSdigital/dp-s3/v2 v2.0.0-20211020114151-f16030eb4de9
-	github.com/ONSdigital/dp-vault/v2 v2.0.0-20211020111909-ab78805f8f04
+	github.com/ONSdigital/dp-s3 v1.7.0
+	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/aws/aws-sdk-go v1.41.6
 	github.com/cucumber/godog v0.11.0

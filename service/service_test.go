@@ -10,7 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	serviceMock "github.com/ONSdigital/dp-cantabular-csv-exporter/service/mock"
-	"github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 
@@ -23,10 +23,10 @@ var (
 	testGitCommit = "GitCommit"
 	testVersion   = "Version"
 	testChecks    = map[string]*healthcheck.Check{
-		"Cantabular client":  &healthcheck.Check{},
-		"Dataset API client": &healthcheck.Check{},
-		"S3 uploader":        &healthcheck.Check{},
-		"Vault":              &healthcheck.Check{},
+		"Cantabular client":  {},
+		"Dataset API client": {},
+		"S3 uploader":        {},
+		"Vault":              {},
 	}
 )
 
@@ -58,7 +58,7 @@ func TestInit(t *testing.T) {
 		}
 
 		hcMock := &serviceMock.HealthCheckerMock{
-			AddCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
+			AddAndGetCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
 				return testChecks[name], nil
 			},
 			SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check) {},
@@ -121,7 +121,7 @@ func TestInit(t *testing.T) {
 				So(svc.cfg, ShouldResemble, cfg)
 
 				Convey("And no checkers are registered ", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 0)
 				})
 			})
 		})
@@ -138,13 +138,13 @@ func TestInit(t *testing.T) {
 				So(svc.consumer, ShouldResemble, consumerMock)
 
 				Convey("And no checkers are registered ", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 0)
 				})
 			})
 		})
 
 		Convey("Given that Checkers cannot be registered", func() {
-			hcMock.AddCheckFunc = func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) { return nil, errAddCheck }
+			hcMock.AddAndGetCheckFunc = func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) { return nil, errAddCheck }
 
 			Convey("Then service Init fails with the expected error", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
@@ -154,7 +154,7 @@ func TestInit(t *testing.T) {
 				So(svc.consumer, ShouldResemble, consumerMock)
 
 				Convey("And other checkers don't try to register", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 1)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 1)
 				})
 			})
 		})
@@ -176,13 +176,13 @@ func TestInit(t *testing.T) {
 				So(svc.vaultClient, ShouldResemble, vaultMock)
 
 				Convey("Then all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 6)
-					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
-					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
-					So(hcMock.AddCheckCalls()[5].Name, ShouldResemble, "Vault")
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 6)
+					So(hcMock.AddAndGetCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddAndGetCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
+					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "Vault")
 				})
 
 				Convey("Then kafka consumer subscribes to the expected healthcheck checks", func() {
@@ -219,12 +219,12 @@ func TestInit(t *testing.T) {
 				So(svc.s3Uploader, ShouldResemble, s3UploaderMock)
 
 				Convey("Then all checks are registered, except Vault", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
-					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
-					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 5)
+					So(hcMock.AddAndGetCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddAndGetCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "S3 uploader")
 				})
 
 				Convey("Then kafka consumer subscribes to the expected healthcheck checks", func() {

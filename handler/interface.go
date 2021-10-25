@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/v3/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/v3/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 

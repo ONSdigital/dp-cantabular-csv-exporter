@@ -28,3 +28,4 @@ services:
             LOCAL_OBJECT_STORE:     "http://minio:9000"
             MINIO_ACCESS_KEY:       "minio-access-key"
             MINIO_SECRET_KEY:       "minio-secret-key"
+            KAFKA_SEC_PROTO:        ""

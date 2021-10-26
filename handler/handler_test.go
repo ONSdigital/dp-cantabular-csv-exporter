@@ -488,7 +488,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 				c.So(err, ShouldBeNil)
 			}()
 
-			expectedEvent := event.CommonOutputCreated{
+			expectedEvent := event.CsvCreated{
 				FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
 				InstanceID: testInstanceID,
 				RowCount:   testRowCount,
@@ -496,8 +496,8 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 
 			Convey("Then the expected message is produced", func() {
 				producedBytes := <-producer.Channels().Output
-				producedMessage := event.CommonOutputCreated{}
-				err := schema.CommonOutputCreated.Unmarshal(producedBytes, &producedMessage)
+				producedMessage := event.CsvCreated{}
+				err := schema.CsvCreated.Unmarshal(producedBytes, &producedMessage)
 				So(err, ShouldBeNil)
 				So(producedMessage, ShouldResemble, expectedEvent)
 			})
@@ -515,7 +515,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 				c.So(err, ShouldBeNil)
 			}()
 
-			expectedEvent := event.CommonOutputCreated{
+			expectedEvent := event.CsvCreated{
 				FileURL:    "publicURL",
 				InstanceID: testInstanceID,
 				RowCount:   testRowCount,
@@ -523,8 +523,8 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 
 			Convey("Then the expected message is produced", func() {
 				producedBytes := <-producer.Channels().Output
-				producedMessage := event.CommonOutputCreated{}
-				err := schema.CommonOutputCreated.Unmarshal(producedBytes, &producedMessage)
+				producedMessage := event.CsvCreated{}
+				err := schema.CsvCreated.Unmarshal(producedBytes, &producedMessage)
 				So(err, ShouldBeNil)
 				So(producedMessage, ShouldResemble, expectedEvent)
 			})

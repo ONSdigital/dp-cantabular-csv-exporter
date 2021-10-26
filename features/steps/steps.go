@@ -26,7 +26,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^an instance with id "([^"]*)" is updated to dp-dataset-api`, c.theFollowingInstanceIsUpdated)
 	ctx.Step(`^this instance-complete event is consumed:$`, c.thisInstanceCompleteEventIsConsumed)
-	ctx.Step(`^these common-output-created events are produced:$`, c.theseCommonOutputCreatedEventsAreProduced)
+	ctx.Step(`^these cantabular-csv-created events are produced:$`, c.theseCsvCreatedEventsAreProduced)
 	ctx.Step(`^a file with filename "([^"]*)" can be seen in minio`, c.theFollowingFileCanBeSeenInMinio)
 }
 
@@ -84,15 +84,15 @@ func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.
 	return nil
 }
 
-// theseCommonOutputEventsAreProduced consumes kafka messages that are expected to be produced by the service under test
+// theseCsvCreatedEventsAreProduced consumes kafka messages that are expected to be produced by the service under test
 // and validates that they match the expected values in the test
-func (c *Component) theseCommonOutputCreatedEventsAreProduced(events *godog.Table) error {
-	expected, err := assistdog.NewDefault().CreateSlice(new(event.CommonOutputCreated), events)
+func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error {
+	expected, err := assistdog.NewDefault().CreateSlice(new(event.CsvCreated), events)
 	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}
 
-	var got []*event.CommonOutputCreated
+	var got []*event.CsvCreated
 	listen := true
 
 	for listen {
@@ -106,8 +106,8 @@ func (c *Component) theseCommonOutputCreatedEventsAreProduced(events *godog.Tabl
 				return errors.New("upstream channel closed")
 			}
 
-			var e event.CommonOutputCreated
-			var s = schema.CommonOutputCreated
+			var e event.CsvCreated
+			var s = schema.CsvCreated
 
 			if err := s.Unmarshal(msg.GetData(), &e); err != nil {
 				msg.Commit()

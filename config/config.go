@@ -50,7 +50,7 @@ type KafkaConfig struct {
 	SecSkipVerify         bool     `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
 	InstanceCompleteGroup string   `envconfig:"INSTANCE_COMPLETE_GROUP"`
 	InstanceCompleteTopic string   `envconfig:"INSTANCE_COMPLETE_TOPIC"`
-	CsvCreatedTopic       string   `envconfig:"COMMON_OUTPUT_CREATED_TOPIC"` // TODO rename env var
+	CsvCreatedTopic       string   `envconfig:"CSV_CREATED_TOPIC"`
 }
 
 var cfg *Config

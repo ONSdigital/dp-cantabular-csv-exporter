@@ -49,10 +49,12 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
-	var e *event.InstanceComplete
+	e := &event.InstanceComplete{}
 	s := schema.InstanceComplete
 
-	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
+	log.Info(ctx, "message data", log.Data{"msg_data": msg.GetData()})
+
+	if err := s.Unmarshal(msg.GetData(), e); err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to unmarshal event: %w", err),
 			logData: map[string]interface{}{
@@ -131,7 +133,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
-	log.Event(ctx, "producing common output created event", log.INFO, log.Data{})
+	log.Event(ctx, "producing  event", log.INFO, log.Data{})
 
 	// Generate output kafka message
 	if err := h.ProduceExportCompleteEvent(e.InstanceID, isPublished, s3Url, rowCount); err != nil {
@@ -423,8 +425,8 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPubli
 		downloadURL = generatePrivateURL(h.cfg.DownloadServiceURL, instanceID)
 	}
 
-	// create CommonOutputCreated event and Marshal it
-	b, err := schema.CommonOutputCreated.Marshal(&event.CommonOutputCreated{
+	// create CsvCreated event and Marshal it
+	b, err := schema.CsvCreated.Marshal(&event.CsvCreated{
 		InstanceID: instanceID,
 		FileURL:    downloadURL, // download service URL for the CSV file
 		RowCount:   rowCount,

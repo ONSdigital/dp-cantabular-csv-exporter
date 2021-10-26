@@ -144,6 +144,6 @@ Feature: Cantabular-Csv-Exporter
 
     And a file with filename "instances/instance-happy-01.csv" can be seen in minio
 
-    Then these common-output-created events are produced:
+    Then these cantabular-csv-created events are produced:
       | InstanceID        | FileURL                                                                      | RowCount |
       | instance-happy-01 | http://minio:9000/dp-cantabular-csv-exporter/instances/instance-happy-01.csv | 22       |

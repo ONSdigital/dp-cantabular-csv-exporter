@@ -18,9 +18,9 @@ var InstanceComplete = &avro.Schema{
 	Definition: instanceComplete,
 }
 
-var commonOutputCreated = `{
+var csvCreated = `{
   "type": "record",
-  "name": "common-output-created",
+  "name": "cantabular-csv-created",
   "fields": [
     {"name": "filter_output_id", "type": "string", "default": ""},
     {"name": "file_url", "type": "string", "default": ""},
@@ -33,7 +33,7 @@ var commonOutputCreated = `{
   ]
 }`
 
-// CommonOutputCreated the Avro schema for CSV exported messages.
-var CommonOutputCreated = &avro.Schema{
-	Definition: commonOutputCreated,
+// CsvCreated the Avro schema for CSV exported messages.
+var CsvCreated = &avro.Schema{
+	Definition: csvCreated,
 }

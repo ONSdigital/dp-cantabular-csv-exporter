@@ -164,17 +164,16 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
 	f := aws.NewWriteAtBuffer(b)
 
 	// probe bucket with backoff to give time for event to be processed
-	retries := 3
+	retries := 10
 	timeout := 1
 	var numBytes int64
 	var err error
 
 	for {
-		numBytes, err = c.S3Downloader.Download(f, &s3.GetObjectInput{
+		if numBytes, err = c.S3Downloader.Download(f, &s3.GetObjectInput{
 			Bucket: aws.String(c.cfg.UploadBucketName),
 			Key:    aws.String(fileName),
-		})
-		if err == nil || retries <= 0 {
+		}); err == nil || retries <= 0 {
 			break
 		}
 

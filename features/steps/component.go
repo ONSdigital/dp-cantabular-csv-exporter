@@ -131,11 +131,11 @@ func (c *Component) initService(ctx context.Context) error {
 		return &generator{}
 	}
 
-	// wait for producer and consumer to be ready
+	// wait for producer and consumer to be initialised
 	<-c.producer.Channels().Initialised
-	log.Info(ctx, "component-test kafka producer ready")
+	log.Info(ctx, "component-test kafka producer initialised")
 	<-c.consumer.Channels().Initialised
-	log.Info(ctx, "component-test kafka consumer ready")
+	log.Info(ctx, "component-test kafka consumer initialised")
 
 	// Create service and initialise it
 	c.svc = service.New()
@@ -144,6 +144,10 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	c.cfg = cfg
+
+	// Wait 500ms to make sure that the session has been established and the producer can actually send messages
+	// TODO - this should be fixed in dp-kafka!
+	time.Sleep(500 * time.Millisecond)
 
 	return nil
 }

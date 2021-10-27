@@ -130,12 +130,6 @@ func (c *Component) initService(ctx context.Context) error {
 		return &generator{}
 	}
 
-	// wait for producer and consumer to be initialised
-	<-c.producer.Channels().Initialised
-	log.Info(ctx, "component-test kafka producer initialised")
-	<-c.consumer.Channels().Initialised
-	log.Info(ctx, "component-test kafka consumer initialised")
-
 	// Create service and initialise it
 	c.svc = service.New()
 	if err = c.svc.Init(context.Background(), cfg, BuildTime, GitCommit, Version); err != nil {
@@ -143,6 +137,14 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	c.cfg = cfg
+
+	// wait for producer and consumer to be initialised
+	<-c.producer.Channels().Initialised
+	log.Info(ctx, "component-test kafka producer initialised")
+	<-c.consumer.Channels().Initialised
+	log.Info(ctx, "component-test kafka consumer initialised")
+
+	time.Sleep(3 * time.Second)
 
 	return nil
 }

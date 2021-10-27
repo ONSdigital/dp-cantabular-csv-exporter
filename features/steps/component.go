@@ -124,7 +124,6 @@ func (c *Component) initService(ctx context.Context) error {
 	c.consumer.Start()
 
 	// start kafka logging go-routines
-	c.producer.LogErrors(ctx)
 	c.consumer.LogErrors(ctx)
 
 	service.GetGenerator = func() service.Generator {
@@ -144,10 +143,6 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	c.cfg = cfg
-
-	// Wait 500ms to make sure that the session has been established and the producer can actually send messages
-	// TODO - this should be fixed in dp-kafka!
-	time.Sleep(500 * time.Millisecond)
 
 	return nil
 }

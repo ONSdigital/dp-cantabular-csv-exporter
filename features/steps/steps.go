@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -160,7 +161,40 @@ func (c *Component) thisInstanceCompleteEventIsConsumed(input *godog.DocString) 
 		"event": b,
 	})
 
+	time.Sleep(time.Second)
+
 	c.producer.Channels().Output <- b
+
+	// this go-routine retries to send the kafka message on error (we observe the error if the Sarama session is not established)
+	// TODO this will probably need to be moved to dp-kafka/v3
+	go func() {
+		retries := 10
+		timeout := time.Second
+
+		for {
+			select {
+			case err := <-c.producer.Channels().Errors:
+				retries--
+				logData := kafka.UnwrapLogData(err)
+				logData["retries_left"] = retries
+
+				if retries == 0 {
+					log.Error(ctx, "received error in component test kafka producer and no retries left, assuming unrecoverable error", err, logData)
+					c.FailNow() // no retries left - assume error not recoverable
+					return
+				}
+
+				logData["err"] = err
+				log.Info(ctx, "received error in component test kafka producer. Retrying.", logData)
+
+				time.Sleep(timeout)
+				timeout *= 2
+				c.producer.Channels().Output <- b
+			case <-time.After(c.waitEventTimeout):
+				return // assume there is no error
+			}
+		}
+	}()
 
 	return nil
 }
@@ -173,7 +207,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
 
 	// probe bucket with backoff to give time for event to be processed
 	retries := 10
-	timeout := 1
+	timeout := time.Second
 	var numBytes int64
 	var err error
 
@@ -192,7 +226,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
 			"retries_left": retries,
 		})
 
-		time.Sleep(time.Second * time.Duration(timeout))
+		time.Sleep(timeout)
 		timeout *= 2
 	}
 	if err != nil {

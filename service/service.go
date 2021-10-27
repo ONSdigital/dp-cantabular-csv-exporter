@@ -98,6 +98,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// If start/stop on health updates is disabled, start consuming as soon as possible
 	if !svc.cfg.StopConsumingOnUnhealthy {
+		log.Info(ctx, "=== DEBUG Starting consumer in service start")
 		svc.consumer.Start()
 	}
 

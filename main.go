@@ -44,23 +44,26 @@ func run(ctx context.Context) error {
 	}
 	log.Info(ctx, "config on startup", log.Data{"config": cfg, "build_time": BuildTime, "git-commit": GitCommit})
 
+	serviceCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// Run the service
 	svc := service.New()
-	if err := svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
+	if err := svc.Init(serviceCtx, cfg, BuildTime, GitCommit, Version); err != nil {
 		return fmt.Errorf("running service failed with error: %w", err)
 	}
-	svc.Start(ctx, svcErrors)
+	svc.Start(serviceCtx, svcErrors)
 
 	// blocks until an os interrupt or a fatal error occurs
 	select {
 	case err := <-svcErrors:
 		err = fmt.Errorf("service error received: %w", err)
-		if errClose := svc.Close(ctx); errClose != nil {
+		if errClose := svc.Close(serviceCtx); errClose != nil {
 			log.Error(ctx, "service close error during error handling", errClose)
 		}
 		return err
 	case sig := <-signals:
 		log.Info(ctx, "os signal received", log.Data{"signal": sig})
 	}
-	return svc.Close(ctx)
+	return svc.Close(serviceCtx)
 }

@@ -25,10 +25,10 @@ github.com/ONSdigital/dp-component-test v0.5.0 h1:PM3bWLacuWkLNPxhRoqI1Oa1eXrLi/
 github.com/ONSdigital/dp-component-test v0.5.0/go.mod h1:slSUMg+KaQFHXuAVMrZCXJ3XKZoA6eKhT2EDEG01XOM=
 github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf2+NrwzC+So5f5BMLk=
 github.com/ONSdigital/dp-healthcheck v1.1.0/go.mod h1:vZwyjMJiCHjp/sJ2R1ZEqzZT0rJ0+uHVGwxqdP4J5vg=
-github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211025152942-e19bc4887022 h1:pOnc8rrevlml9eEZMAkZg94+OSEtqiyYdKDQvSodsdU=
-github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211025152942-e19bc4887022/go.mod h1:esD+ZudJACAGGqI0iDfYi84EJyhQ84tpFO7eDoVzKLo=
-github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.0.20211025162401-598b539d1441 h1:gHkDderBhnwjdMdIl+TLpVF70U7FFQJAG1l640BPCIo=
-github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.0.20211025162401-598b539d1441/go.mod h1:4Q/2SX9dYTN9+cztB8gSbJGPTON3A5O+nOlIH3av3+c=
+github.com/ONSdigital/dp-healthcheck v1.2.0 h1:k7okbVff7PW/393FxEvSdZ+FbZgaWRMJYKquqnkgDp8=
+github.com/ONSdigital/dp-healthcheck v1.2.0/go.mod h1:XUhXoDIWPCdletDtpDOoXhmDFcc9b/kbedx96jN75aI=
+github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.1.0.20211028144017-55688358a2a1 h1:PDYoqy1v9yAdGOSoDV1ZTJmYMFWLi5MvCLhfp3SaB/k=
+github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.1.0.20211028144017-55688358a2a1/go.mod h1:NEJYQ96YnkXnqSXkOXTEFrpFNV+/lF41UjPB+A/Hjxc=
 github.com/ONSdigital/dp-mocking v0.0.0-20190905163309-fee2702ad1b9/go.mod h1:BcIRgitUju//qgNePRBmNjATarTtynAgc0yV29VpLEk=
 github.com/ONSdigital/dp-mongodb-in-memory v1.0.0 h1:lnV+Fz302qZG4x+DL2mrZ4dzLEACW4UVj8S61hSTlFI=
 github.com/ONSdigital/dp-mongodb-in-memory v1.0.0/go.mod h1:1/9sBl447eRpkidK4eEZ667W8vvg/MaFNy5OnrJbStA=

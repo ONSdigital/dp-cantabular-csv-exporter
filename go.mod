@@ -8,8 +8,8 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.3.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.5.0
-	github.com/ONSdigital/dp-healthcheck v1.1.4-0.20211025152942-e19bc4887022
-	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.0.20211025162401-598b539d1441
+	github.com/ONSdigital/dp-healthcheck v1.2.0
+	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.1.0.20211028144017-55688358a2a1
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-s3 v1.7.0
 	github.com/ONSdigital/dp-vault v1.2.0

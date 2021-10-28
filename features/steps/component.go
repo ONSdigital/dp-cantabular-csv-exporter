@@ -138,13 +138,11 @@ func (c *Component) initService(ctx context.Context) error {
 
 	c.cfg = cfg
 
-	// wait for producer and consumer to be initialised
+	// wait for producer to be initialised and consumer to be in consuming state
 	<-c.producer.Channels().Initialised
 	log.Info(ctx, "component-test kafka producer initialised")
-	<-c.consumer.Channels().Initialised
-	log.Info(ctx, "component-test kafka consumer initialised")
-
-	time.Sleep(3 * time.Second)
+	<-c.consumer.Channels().State.Consuming
+	log.Info(ctx, "component-test kafka consumer is in consuming state")
 
 	return nil
 }

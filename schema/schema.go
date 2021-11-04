@@ -33,7 +33,7 @@ var csvCreated = `{
   ]
 }`
 
-// CsvCreated the Avro schema for CSV exported messages.
-var CsvCreated = &avro.Schema{
+// CSVCreated the Avro schema for CSV exported messages.
+var CSVCreated = &avro.Schema{
 	Definition: csvCreated,
 }

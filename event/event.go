@@ -6,8 +6,8 @@ type InstanceComplete struct {
 	CantabularBlob string `avro:"cantabular_blob"`
 }
 
-// CsvCreated provides an avro structure for a CSV Created event
-type CsvCreated struct {
+// CSVCreated provides an avro structure for a CSV Created event
+type CSVCreated struct {
 	FileURL    string `avro:"file_url"`
 	InstanceID string `avro:"instance_id"`
 	DatasetID  string `avro:"dataset_id"`

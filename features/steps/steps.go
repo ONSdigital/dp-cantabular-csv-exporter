@@ -95,12 +95,12 @@ func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.
 // theseCsvCreatedEventsAreProduced consumes kafka messages that are expected to be produced by the service under test
 // and validates that they match the expected values in the test
 func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error {
-	expected, err := assistdog.NewDefault().CreateSlice(new(event.CsvCreated), events)
+	expected, err := assistdog.NewDefault().CreateSlice(new(event.CSVCreated), events)
 	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}
 
-	var got []*event.CsvCreated
+	var got []*event.CSVCreated
 	listen := true
 
 	for listen {
@@ -114,8 +114,8 @@ func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error 
 				return errors.New("upstream channel closed")
 			}
 
-			var e event.CsvCreated
-			var s = schema.CsvCreated
+			var e event.CSVCreated
+			var s = schema.CSVCreated
 
 			if err := s.Unmarshal(msg.GetData(), &e); err != nil {
 				msg.Commit()

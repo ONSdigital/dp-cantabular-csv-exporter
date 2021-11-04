@@ -426,7 +426,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(instanceID string, isPubli
 	}
 
 	// create CsvCreated event and Marshal it
-	b, err := schema.CsvCreated.Marshal(&event.CsvCreated{
+	b, err := schema.CSVCreated.Marshal(&event.CSVCreated{
 		InstanceID: instanceID,
 		FileURL:    downloadURL, // download service URL for the CSV file
 		RowCount:   rowCount,

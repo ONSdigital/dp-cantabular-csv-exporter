@@ -148,4 +148,4 @@ Feature: Cantabular-Csv-Exporter
 
     Then these cantabular-csv-created events are produced:
       | InstanceID        | FileURL                                                                      | RowCount |
-      | instance-happy-01 | http://minio:9000/dp-cantabular-csv-exporter/instances/instance-happy-01.csv | 22       |
+      | instance-happy-01 | http://minio:9000/public-bucket/instances/instance-happy-01.csv | 22       |

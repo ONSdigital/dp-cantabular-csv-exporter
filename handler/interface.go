@@ -16,7 +16,7 @@ import (
 
 // CantabularClient contains the required method for the Cantabular Client
 type CantabularClient interface {
-	StaticDatasetQuery(context.Context, cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
+	StaticDatasetQueryStreamCSV(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (rowCount int32, err error)
 }
 
 // S3Uploader contains the required method for the S3 Uploader

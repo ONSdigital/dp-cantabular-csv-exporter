@@ -6,6 +6,7 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"sync"
@@ -15,6 +16,7 @@ var (
 	lockS3UploaderMockBucketName    sync.RWMutex
 	lockS3UploaderMockChecker       sync.RWMutex
 	lockS3UploaderMockGet           sync.RWMutex
+	lockS3UploaderMockSession       sync.RWMutex
 	lockS3UploaderMockUpload        sync.RWMutex
 	lockS3UploaderMockUploadWithPSK sync.RWMutex
 )
@@ -33,6 +35,9 @@ var (
 //             },
 //             GetFunc: func(key string) (io.ReadCloser, *int64, error) {
 // 	               panic("mock out the Get method")
+//             },
+//             SessionFunc: func() *session.Session {
+// 	               panic("mock out the Session method")
 //             },
 //             UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 // 	               panic("mock out the Upload method")
@@ -56,6 +61,9 @@ type S3UploaderMock struct {
 	// GetFunc mocks the Get method.
 	GetFunc func(key string) (io.ReadCloser, *int64, error)
 
+	// SessionFunc mocks the Session method.
+	SessionFunc func() *session.Session
+
 	// UploadFunc mocks the Upload method.
 	UploadFunc func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
@@ -78,6 +86,9 @@ type S3UploaderMock struct {
 		Get []struct {
 			// Key is the key argument value.
 			Key string
+		}
+		// Session holds details about calls to the Session method.
+		Session []struct {
 		}
 		// Upload holds details about calls to the Upload method.
 		Upload []struct {
@@ -185,6 +196,32 @@ func (mock *S3UploaderMock) GetCalls() []struct {
 	lockS3UploaderMockGet.RLock()
 	calls = mock.calls.Get
 	lockS3UploaderMockGet.RUnlock()
+	return calls
+}
+
+// Session calls SessionFunc.
+func (mock *S3UploaderMock) Session() *session.Session {
+	if mock.SessionFunc == nil {
+		panic("S3UploaderMock.SessionFunc: method is nil but S3Uploader.Session was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockS3UploaderMockSession.Lock()
+	mock.calls.Session = append(mock.calls.Session, callInfo)
+	lockS3UploaderMockSession.Unlock()
+	return mock.SessionFunc()
+}
+
+// SessionCalls gets all the calls that were made to Session.
+// Check the length with:
+//     len(mockedS3Uploader.SessionCalls())
+func (mock *S3UploaderMock) SessionCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockS3UploaderMockSession.RLock()
+	calls = mock.calls.Session
+	lockS3UploaderMockSession.RUnlock()
 	return calls
 }
 

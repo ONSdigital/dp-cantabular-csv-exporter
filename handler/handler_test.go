@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"testing"
 
@@ -31,16 +32,22 @@ const (
 	testS3Location         = "s3://myBucket/my-file.csv"
 	testDownloadServiceURL = "http://test-download-service:8200"
 	testETag               = "testETag"
+	testNumBytes           = 123
 	testRowCount           = 18
 )
 
 var (
 	testCsvBody = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
 	testPsk     = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	errS3       = errors.New("test S3Upload error")
-	errVault    = errors.New("test Vault error")
-	errPsk      = errors.New("test PSK error")
-	errDataset  = errors.New("test DatasetAPI error")
+	testReq     = cantabular.StaticDatasetQueryRequest{
+		Dataset:   "Example",
+		Variables: []string{"city", "siblings"},
+	}
+	errCantabular = errors.New("test Cantabular error")
+	errS3         = errors.New("test S3Upload error")
+	errVault      = errors.New("test Vault error")
+	errPsk        = errors.New("test PSK error")
+	errDataset    = errors.New("test DatasetAPI error")
 )
 
 func testCfg() config.Config {
@@ -54,197 +61,47 @@ func testCfg() config.Config {
 
 var ctx = context.Background()
 
-func TestValidateQueryResponse(t *testing.T) {
-	Convey("Given an empty handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil)
-
-		Convey("A valid Cantabular response is successfully validated", func() {
-			err := eventHandler.ValidateQueryResponse(cantabularResp())
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Validating a nil cantabular response fails with the expected error", func() {
-			err := eventHandler.ValidateQueryResponse(nil)
-			So(err, ShouldResemble, errors.New("nil response"))
-		})
-
-		Convey("Validating a cantabular response without dimensions fails with the expected error", func() {
-			err := eventHandler.ValidateQueryResponse(&cantabular.StaticDatasetQuery{})
-			So(err, ShouldResemble, errors.New("no dimension in response"))
-		})
-
-		Convey("Validating a cantabular response with a dimension variable with empty label fails with the expected error", func() {
-			c := cantabularResp()
-			c.Dataset.Table.Dimensions[0].Variable.Label = ""
-			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, errors.New("empty variable label in cantabular response"))
-		})
-
-		Convey("Validating a cantabular response with a dimension category with empty label fails with the expected error", func() {
-			c := cantabularResp()
-			c.Dataset.Table.Dimensions[0].Categories[0].Label = ""
-			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, errors.New("empty category label in cantabular response"))
-		})
-
-		Convey("Validating a cantabular response with a dimension count that does not match the number of categories fails with the expected error", func() {
-			c := cantabularResp()
-			c.Dataset.Table.Dimensions[0].Count = 250
-			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, handler.NewError(
-				errors.New("wrong number of categories for a dimensions in response"),
-				log.Data{
-					"categories_length": 3,
-					"dimension_count":   250,
-					"dimension":         "City",
-				},
-			))
-		})
-
-		Convey("Validating a cantabular response with a values array whose length does not match the permutations of all dimension categories fails with the expected error", func() {
-			c := cantabularResp()
-			c.Dataset.Table.Values = []int{0, 1, 2, 3}
-			err := eventHandler.ValidateQueryResponse(c)
-			So(err, ShouldResemble, handler.NewError(
-				errors.New("wrong number of values in response"),
-				log.Data{
-					"expected_values": 18,
-					"values_length":   4,
-				},
-			))
-		})
-	})
-}
-
-func TestParseQueryResponse(t *testing.T) {
-
-	Convey("Given an empty handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil)
-
-		Convey("When ParseQueryResponse is triggered with a valid cantabular response", func() {
-			reader, numBytes, rowCount, err := eventHandler.ParseQueryResponse(cantabularResp())
-
-			Convey("Then the expected reader is returned without error", func() {
-				So(err, ShouldBeNil)
-				So(numBytes, ShouldEqual, 641)
-				So(rowCount, ShouldEqual, 19)
-				validateLines(reader, []string{
-					"cantabular_blob,City,Number of siblings (3 mappings),Sex",
-					"2,London,No siblings,Male",
-					"0,London,No siblings,Female",
-					"1,London,1 or 2 siblings,Male",
-					"3,London,1 or 2 siblings,Female",
-					"5,London,3 or more siblings,Male",
-					"4,London,3 or more siblings,Female",
-					"7,Liverpool,No siblings,Male",
-					"6,Liverpool,No siblings,Female",
-					"11,Liverpool,1 or 2 siblings,Male",
-					"10,Liverpool,1 or 2 siblings,Female",
-					"9,Liverpool,3 or more siblings,Male",
-					"13,Liverpool,3 or more siblings,Female",
-					"14,Belfast,No siblings,Male",
-					"12,Belfast,No siblings,Female",
-					"16,Belfast,1 or 2 siblings,Male",
-					"17,Belfast,1 or 2 siblings,Female",
-					"15,Belfast,3 or more siblings,Male",
-					"8,Belfast,3 or more siblings,Female",
-				})
-			})
-		})
-	})
-}
-
-// validateLines scans the provided reader, line by line, and compares with the corresponding line in the provided array.
-// It also checks that all the expected lines are present in the reader.
-func validateLines(reader *bufio.Reader, expectedLines []string) {
-	i := 0
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		So(scanner.Text(), ShouldEqual, expectedLines[i])
-		i++
-	}
-	So(expectedLines, ShouldHaveLength, i) // Check that there aren't any more expected lines
-	So(scanner.Err(), ShouldBeNil)
-}
-
-func TestUploadCSVFile(t *testing.T) {
-
-	generator := &mock.GeneratorMock{
-		NewPSKFunc: func() ([]byte, error) {
-			return testPsk, nil
-		},
-	}
-
+func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	isPublished := false
-
 	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
-	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
 
-	Convey("Given an event handler with a successful S3Uploader", t, func() {
-		s3Uploader := s3UploaderHappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+	Convey("Given an event handler with a successful cantabular client and private S3Uploader", t, func() {
+		c := cantabularMock(testCsvBody)
+		sPrivate := s3UploaderHappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			loc, numBytes, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
-			Convey("Then the expected location is returned with no error ", func() {
+			Convey("Then the expected location, numBytes and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
 				So(loc, ShouldEqual, testS3Location)
+				So(numBytes, ShouldEqual, 123)
+				So(rowCount, ShouldEqual, testRowCount)
 			})
 
 			Convey("Then the expected call Upload call is executed", func() {
-				So(s3Uploader.UploadCalls(), ShouldHaveLength, 1)
-				So(*s3Uploader.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*s3Uploader.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(s3Uploader.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+				So(sPrivate.UploadCalls(), ShouldHaveLength, 1)
+				So(*sPrivate.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPrivate.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPrivate.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
 
-	Convey("Given an event handler with a successful S3Uploader, Vault client and encryption enabled", t, func() {
-		s3Uploader := s3UploaderHappy(true)
-		vaultClient := vaultHappy()
-		cfg := testCfg()
-		cfg.EncryptionDisabled = false
-		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
-
-		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
-
-			Convey("Then the expected location is returned with no error ", func() {
-				So(err, ShouldBeNil)
-				So(loc, ShouldEqual, testS3Location)
-			})
-
-			Convey("Then the expected key is stored in vault", func() {
-				So(vaultClient.WriteKeyCalls(), ShouldHaveLength, 1)
-				expectedPsk := hex.EncodeToString(testPsk)
-				So(vaultClient.WriteKeyCalls()[0].Path, ShouldResemble, expectedVaultPath)
-				So(vaultClient.WriteKeyCalls()[0].Key, ShouldResemble, "key")
-				So(vaultClient.WriteKeyCalls()[0].Value, ShouldResemble, expectedPsk)
-			})
-
-			Convey("Then the expected call UploadWithPSK call is executed with the expected psk", func() {
-				So(s3Uploader.UploadWithPSKCalls(), ShouldHaveLength, 1)
-				expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
-				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*s3Uploader.UploadWithPSKCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(s3Uploader.UploadWithPSKCalls()[0].Input.Body, ShouldResemble, testCsvBody)
-				So(s3Uploader.UploadWithPSKCalls()[0].Psk, ShouldResemble, testPsk)
-			})
-		})
-	})
-
-	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
-		s3Uploader := s3UploaderUnhappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+	Convey("Given an event handler with a successful cantabular client and an unsuccessful private S3Uploader", t, func() {
+		c := cantabularMock(testCsvBody)
+		sPrivate := s3UploaderUnhappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload unencrypted file to S3: %w", errS3),
+					fmt.Errorf("failed to stream csv data: %w",
+						fmt.Errorf("failed to upload private file to S3: %w", errS3),
+					),
 					log.Data{
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
@@ -256,17 +113,98 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with an unsuccessful Vault client and encryption enabled", t, func() {
-		cfg := testCfg()
-		cfg.EncryptionDisabled = false
-		s3Uploader := mock.S3UploaderMock{
-			BucketNameFunc: func() string { return cfg.UploadBucketName },
+	Convey("Given an event handler with an unsuccessful cantabular client", t, func() {
+		c := cantabularUnhappy()
+		sPrivate := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testBucket },
 		}
-		vaultClient := vaultUnhappy()
-		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, handler.NewError(
+					fmt.Errorf("failed to stream csv data: %w", errCantabular),
+					log.Data{
+						"bucket":              testBucket,
+						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"encryption_disabled": true,
+						"is_published":        false,
+					},
+				))
+			})
+		})
+	})
+
+	Convey("Given an empty event handler", t, func() {
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil, nil)
+
+		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, "", isPublished, testReq)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
+			})
+		})
+	})
+}
+
+func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
+	generator := &mock.GeneratorMock{
+		NewPSKFunc: func() ([]byte, error) {
+			return testPsk, nil
+		},
+	}
+	isPublished := false
+	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
+	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
+	cfg := testCfg()
+	cfg.EncryptionDisabled = false
+
+	Convey("Given an event handler with a successful cantabular client, private S3Uploader, Vault client and encryption enabled", t, func() {
+		c := cantabularMock(testCsvBody)
+		sPrivate := s3UploaderHappy(true)
+		v := vaultHappy()
+		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &v, nil, generator)
+
+		Convey("When UploadCSVFile is triggered with valid paramters", func() {
+			loc, numBytes, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+
+			Convey("Then the expected location, numBytes and rowCount is returned with no error ", func() {
+				So(err, ShouldBeNil)
+				So(loc, ShouldEqual, testS3Location)
+				So(numBytes, ShouldEqual, testNumBytes)
+				So(rowCount, ShouldEqual, testRowCount)
+			})
+
+			Convey("Then the expected key is stored in vault", func() {
+				So(v.WriteKeyCalls(), ShouldHaveLength, 1)
+				expectedPsk := hex.EncodeToString(testPsk)
+				So(v.WriteKeyCalls()[0].Path, ShouldResemble, expectedVaultPath)
+				So(v.WriteKeyCalls()[0].Key, ShouldResemble, "key")
+				So(v.WriteKeyCalls()[0].Value, ShouldResemble, expectedPsk)
+			})
+
+			Convey("Then the expected call UploadWithPSK call is executed with the expected psk", func() {
+				So(sPrivate.UploadWithPSKCalls(), ShouldHaveLength, 1)
+				So(*sPrivate.UploadWithPSKCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPrivate.UploadWithPSKCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPrivate.UploadWithPSKCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+				So(sPrivate.UploadWithPSKCalls()[0].Psk, ShouldResemble, testPsk)
+			})
+		})
+	})
+
+	Convey("Given an event handler with an unsuccessful Vault client and encryption enabled", t, func() {
+		sPrivate := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testBucket },
+		}
+		vaultClient := vaultUnhappy()
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &sPrivate, nil, &vaultClient, nil, generator)
+
+		Convey("When UploadCSVFile is triggered", func() {
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -282,19 +220,20 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a successful Vault client, an unsuccessful S3 client and encryption enabled", t, func() {
-		cfg := testCfg()
-		cfg.EncryptionDisabled = false
-		s3Uploader := s3UploaderUnhappy(true)
+	Convey("Given an event handler with a successful Vault client, a successful cantabular client, an unsuccessful private S3 client and encryption enabled", t, func() {
+		c := cantabularMock(testCsvBody)
+		sPrivate := s3UploaderUnhappy(true)
 		vaultClient := vaultHappy()
-		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, &vaultClient, nil, generator)
+		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload encrypted file to S3: %w", errS3),
+					fmt.Errorf("failed to stream csv data: %w",
+						fmt.Errorf("failed to upload encrypted private file to S3: %w", errS3),
+					),
 					log.Data{
 						"bucket":              testBucket,
 						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
@@ -306,41 +245,44 @@ func TestUploadCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an empty event handler", t, func() {
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil)
+	Convey("Given an event handler with a successful Vault client, an unsuccessful cantabular client and encryption enabled", t, func() {
+		c := cantabularUnhappy()
+		sPrivate := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testBucket },
+		}
+		vaultClient := vaultHappy()
+		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
-		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, "", testCsvBody, isPublished)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
-			})
-		})
-
-		Convey("When UploadCSVFile is triggered with a nil csv reader", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, nil, isPublished)
+		Convey("When UploadCSVFile is triggered", func() {
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New("no file content has been provided"))
+				So(err, ShouldResemble, handler.NewError(
+					fmt.Errorf("failed to stream csv data: %w", errCantabular),
+					log.Data{
+						"bucket":              testBucket,
+						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"encryption_disabled": false,
+						"is_published":        false,
+					},
+				))
 			})
 		})
 	})
 
 	Convey("Given an event handler, a failing createPSK function and encryption enabled", t, func() {
-		cfg := testCfg()
-		cfg.EncryptionDisabled = false
-		s3Uploader := mock.S3UploaderMock{
-			BucketNameFunc: func() string { return cfg.UploadBucketName },
+		sPrivate := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testBucket },
 		}
 
 		generator.NewPSKFunc = func() ([]byte, error) {
 			return nil, errPsk
 		}
 
-		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &s3Uploader, nil, nil, generator)
+		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &sPrivate, nil, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -351,54 +293,76 @@ func TestUploadCSVFile(t *testing.T) {
 }
 
 func TestUploadPublishedCSVFile(t *testing.T) {
-
-	generator := &mock.GeneratorMock{
-		NewPSKFunc: func() ([]byte, error) {
-			return testPsk, nil
-		},
-	}
-
 	isPublished := true
-
 	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
 
-	Convey("Given an event handler with a successful S3Uploader", t, func() {
-		s3Uploader := s3UploaderHappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+	Convey("Given an event handler with a successful cantabular client and public S3Uploader", t, func() {
+		c := cantabularMock(testCsvBody)
+		sPublic := s3UploaderHappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPublic, nil, nil, nil)
 
-		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+		Convey("When UploadCSVFile is triggered with valid paramters", func() {
+			loc, numBytes, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
-			Convey("Then the expected location is returned with no error ", func() {
+			Convey("Then the expected location, numBytes and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
 				So(loc, ShouldEqual, testS3Location)
+				So(numBytes, ShouldEqual, testNumBytes)
+				So(rowCount, ShouldEqual, testRowCount)
 			})
 
 			Convey("Then the expected call Upload call is executed", func() {
-				So(s3Uploader.UploadCalls(), ShouldHaveLength, 1)
-				So(*s3Uploader.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*s3Uploader.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(s3Uploader.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+				So(sPublic.UploadCalls(), ShouldHaveLength, 1)
+				So(*sPublic.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPublic.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPublic.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
 
-	Convey("Given an event handler with an unsuccessful S3Uploader", t, func() {
-		s3Uploader := s3UploaderUnhappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &s3Uploader, nil, nil, generator)
+	Convey("Given an event handler with a successful cantabular client and an unsuccessful public S3Uploader", t, func() {
+		c := cantabularMock(testCsvBody)
+		publicS3Uploader := s3UploaderUnhappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &publicS3Uploader, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, err := eventHandler.UploadCSVFile(ctx, testInstanceID, testCsvBody, isPublished)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
-					fmt.Errorf("failed to upload published file to S3: %w", errS3),
+					fmt.Errorf("failed to stream csv data: %w",
+						fmt.Errorf("failed to upload published file to S3: %w", errS3),
+					),
 					log.Data{
 						"bucket":       testBucket,
 						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),
 						"is_published": true,
-					},
-				))
+					}),
+				)
+			})
+		})
+	})
+
+	Convey("Given an event handler with an unsuccessful cantabular client", t, func() {
+		cfg := testCfg()
+		c := cantabularUnhappy()
+		publicS3Uploader := mock.S3UploaderMock{
+			BucketNameFunc: func() string { return testBucket },
+		}
+		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &publicS3Uploader, nil, nil, nil)
+
+		Convey("When UploadCSVFile is triggered", func() {
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, handler.NewError(
+					fmt.Errorf("failed to stream csv data: %w", errCantabular),
+					log.Data{
+						"bucket":       testBucket,
+						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"is_published": true,
+					}),
+				)
 			})
 		})
 	})
@@ -409,7 +373,7 @@ func TestUpdateInstance(t *testing.T) {
 
 	Convey("Given an event handler with a successful dataset API mock", t, func() {
 		datasetAPIMock := datasetAPIClientHappy()
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called for a private csv file", func() {
 			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
@@ -462,7 +426,7 @@ func TestUpdateInstance(t *testing.T) {
 
 	Convey("Given an event handler with a failing dataset API mock", t, func() {
 		datasetAPIMock := datasetAPIClientUnhappy()
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
 			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
@@ -477,7 +441,7 @@ func TestUpdateInstance(t *testing.T) {
 func TestProduceExportCompleteEvent(t *testing.T) {
 	Convey("Given an event handler with a successful Kafka Producer", t, func(c C) {
 		producer := kafkatest.NewMessageProducer(true)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, producer, nil)
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, producer, nil)
 
 		Convey("When ProduceExportCompleteEvent is called for a private csv file", func(c C) {
 			wg := sync.WaitGroup{}
@@ -533,6 +497,25 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Wait()
 		})
 	})
+}
+
+// cantabularMock creates a Cantabular Client mock that executes consume with the provided io.Reader
+func cantabularMock(r io.Reader) mock.CantabularClientMock {
+	return mock.CantabularClientMock{
+		StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
+			err := consume(ctx, r)
+			return testRowCount, err
+		},
+	}
+}
+
+// cantabularUnhappy creates a Cantabular Client mock that returns an error and does not execute the consumer
+func cantabularUnhappy() mock.CantabularClientMock {
+	return mock.CantabularClientMock{
+		StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
+			return 0, errCantabular
+		},
+	}
 }
 
 func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
@@ -615,78 +598,6 @@ func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 		},
 		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
 			return "", errDataset
-		},
-	}
-}
-
-// cantabularResp returns a valid cantabular StaticDatasetQuery for testing
-func cantabularResp() *cantabular.StaticDatasetQuery {
-	return &cantabular.StaticDatasetQuery{
-		Dataset: cantabular.StaticDataset{
-			Table: cantabular.Table{
-				Dimensions: []cantabular.Dimension{
-					{
-						Variable: cantabular.VariableBase{
-							Name:  "city",
-							Label: "City",
-						},
-						Count: 3,
-						Categories: []cantabular.Category{
-							{
-								Code:  "0",
-								Label: "London",
-							},
-							{
-								Code:  "1",
-								Label: "Liverpool",
-							},
-							{
-								Code:  "2",
-								Label: "Belfast",
-							},
-						},
-					},
-					{
-						Variable: cantabular.VariableBase{
-							Name:  "siblings_3",
-							Label: "Number of siblings (3 mappings)",
-						},
-						Count: 3,
-						Categories: []cantabular.Category{
-							{
-								Code:  "0",
-								Label: "No siblings",
-							},
-							{
-								Code:  "1-2",
-								Label: "1 or 2 siblings",
-							},
-							{
-								Code:  "3+",
-								Label: "3 or more siblings",
-							},
-						},
-					},
-					{
-						Variable: cantabular.VariableBase{
-							Name:  "sex",
-							Label: "Sex",
-						},
-						Count: 2,
-						Categories: []cantabular.Category{
-							{
-								Code:  "0",
-								Label: "Male",
-							},
-							{
-								Code:  "1",
-								Label: "Female",
-							},
-						},
-					},
-				},
-				Values: []int{2, 0, 1, 3, 5, 4, 7, 6, 11, 10, 9, 13, 14, 12, 16, 17, 15, 8},
-			},
 		},
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -44,8 +45,9 @@ type HealthChecker interface {
 }
 
 type CantabularClient interface {
+	StaticDatasetQueryStreamCSV(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (rowCount int32, err error)
 	Checker(context.Context, *healthcheck.CheckState) error
-	StaticDatasetQuery(context.Context, cantabular.StaticDatasetQueryRequest) (*cantabular.StaticDatasetQuery, error)
+	CheckerAPIExt(ctx context.Context, state *healthcheck.CheckState) error
 }
 
 type DatasetAPIClient interface {
@@ -59,6 +61,7 @@ type S3Uploader interface {
 	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
 	BucketName() string
+	Session() *session.Session
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 

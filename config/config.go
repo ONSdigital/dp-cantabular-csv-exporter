@@ -24,6 +24,7 @@ type Config struct {
 	CantabularHealthcheckEnabled bool          `envconfig:"CANTABULAR_HEALTHCHECK_ENABLED"`
 	AWSRegion                    string        `envconfig:"AWS_REGION"`
 	UploadBucketName             string        `envconfig:"UPLOAD_BUCKET_NAME"`
+	PrivateUploadBucketName      string        `envconfig:"PRIVATE_UPLOAD_BUCKET_NAME"`
 	LocalObjectStore             string        `envconfig:"LOCAL_OBJECT_STORE"`
 	MinioAccessKey               string        `envconfig:"MINIO_ACCESS_KEY"`
 	MinioSecretKey               string        `envconfig:"MINIO_SECRET_KEY"`
@@ -75,7 +76,8 @@ func Get() (*Config, error) {
 		DownloadServiceURL:           "http://localhost:23600",
 		CantabularHealthcheckEnabled: false,
 		AWSRegion:                    "eu-west-1",
-		UploadBucketName:             "dp-cantabular-csv-exporter",
+		UploadBucketName:             "public-bucket",
+		PrivateUploadBucketName:      "private-bucket",
 		LocalObjectStore:             "",
 		MinioAccessKey:               "",
 		MinioSecretKey:               "",

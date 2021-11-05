@@ -17,16 +17,17 @@ import (
 
 // Service contains all the configs, server and clients to run the event handler service
 type Service struct {
-	cfg              *config.Config
-	server           HTTPServer
-	healthCheck      HealthChecker
-	consumer         kafka.IConsumerGroup
-	producer         kafka.IProducer
-	datasetAPIClient DatasetAPIClient
-	cantabularClient CantabularClient
-	s3Uploader       S3Uploader
-	vaultClient      VaultClient
-	generator        Generator
+	cfg               *config.Config
+	server            HTTPServer
+	healthCheck       HealthChecker
+	consumer          kafka.IConsumerGroup
+	producer          kafka.IProducer
+	datasetAPIClient  DatasetAPIClient
+	cantabularClient  CantabularClient
+	s3PrivateUploader S3Uploader
+	s3PublicUploader  S3Uploader
+	vaultClient       VaultClient
+	generator         Generator
 }
 
 func New() *Service {
@@ -49,8 +50,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.producer, err = GetKafkaProducer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
-	if svc.s3Uploader, err = GetS3Uploader(cfg); err != nil {
-		return fmt.Errorf("failed to initialise s3 uploader: %w", err)
+	if svc.s3PrivateUploader, svc.s3PublicUploader, err = GetS3Uploaders(cfg); err != nil {
+		return fmt.Errorf("failed to initialise s3 uploaders: %w", err)
 	}
 	if !cfg.EncryptionDisabled {
 		if svc.vaultClient, err = GetVault(cfg); err != nil {
@@ -65,7 +66,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		*svc.cfg,
 		svc.cantabularClient,
 		svc.datasetAPIClient,
-		svc.s3Uploader,
+		svc.s3PrivateUploader,
+		svc.s3PublicUploader,
 		svc.vaultClient,
 		svc.producer,
 		svc.generator,
@@ -188,14 +190,24 @@ func (svc *Service) registerCheckers() error {
 	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
 	// and always use the real Checker instead: svc.cantabularClient.Checker
 	cantabularChecker := svc.cantabularClient.Checker
+	cantabularAPIExtChecker := svc.cantabularClient.CheckerAPIExt
 	if !svc.cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
 			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
+		cantabularAPIExtChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
+			return state.Update(healthcheck.StatusOK, "Cantabular APIExt healthcheck placeholder", http.StatusOK)
+		}
 	}
+
 	checkCantabular, err := svc.healthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
 	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
+	}
+
+	checkCantabularAPIExt, err := svc.healthCheck.AddAndGetCheck("Cantabular API Extension", cantabularAPIExtChecker)
+	if err != nil {
+		return fmt.Errorf("error adding check for Cantabular api extension: %w", err)
 	}
 
 	checkDataset, err := svc.healthCheck.AddAndGetCheck("Dataset API client", svc.datasetAPIClient.Checker)
@@ -203,13 +215,18 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	checkS3, err := svc.healthCheck.AddAndGetCheck("S3 uploader", svc.s3Uploader.Checker)
+	checkS3Private, err := svc.healthCheck.AddAndGetCheck("S3 private uploader", svc.s3PrivateUploader.Checker)
 	if err != nil {
-		return fmt.Errorf("error adding check for s3 uploader: %w", err)
+		return fmt.Errorf("error adding check for s3 private uploader: %w", err)
+	}
+
+	checkS3Public, err := svc.healthCheck.AddAndGetCheck("S3 public uploader", svc.s3PublicUploader.Checker)
+	if err != nil {
+		return fmt.Errorf("error adding check for s3 public uploader: %w", err)
 	}
 
 	if svc.cfg.StopConsumingOnUnhealthy {
-		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkDataset, checkS3)
+		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkCantabularAPIExt, checkDataset, checkS3Private, checkS3Public)
 	}
 
 	if !svc.cfg.EncryptionDisabled {

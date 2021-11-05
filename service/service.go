@@ -17,16 +17,16 @@ import (
 
 // Service contains all the configs, server and clients to run the event handler service
 type Service struct {
-	cfg               *config.Config
-	server            HTTPServer
-	healthCheck       HealthChecker
-	consumer          kafka.IConsumerGroup
-	producer          kafka.IProducer
-	datasetAPIClient  DatasetAPIClient
-	cantabularClient  CantabularClient
-	s3PrivateUploader S3Uploader
-	s3PublicUploader  S3Uploader
-	vaultClient       VaultClient
+	Cfg               *config.Config
+	Server            HTTPServer
+	HealthCheck       HealthChecker
+	Consumer          kafka.IConsumerGroup
+	Producer          kafka.IProducer
+	DatasetAPIClient  DatasetAPIClient
+	CantabularClient  CantabularClient
+	S3PrivateUploader S3Uploader
+	S3PublicUploader  S3Uploader
+	VaultClient       VaultClient
 	generator         Generator
 }
 
@@ -42,41 +42,41 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return errors.New("nil config passed to service init")
 	}
 
-	svc.cfg = cfg
+	svc.Cfg = cfg
 
-	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
+	if svc.Consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create kafka consumer: %w", err)
 	}
-	if svc.producer, err = GetKafkaProducer(ctx, cfg); err != nil {
+	if svc.Producer, err = GetKafkaProducer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
-	if svc.s3PrivateUploader, svc.s3PublicUploader, err = GetS3Uploaders(cfg); err != nil {
+	if svc.S3PrivateUploader, svc.S3PublicUploader, err = GetS3Uploaders(cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 uploaders: %w", err)
 	}
 	if !cfg.EncryptionDisabled {
-		if svc.vaultClient, err = GetVault(cfg); err != nil {
+		if svc.VaultClient, err = GetVault(cfg); err != nil {
 			return fmt.Errorf("failed to initialise vault client: %w", err)
 		}
 	}
 
-	svc.cantabularClient = GetCantabularClient(cfg)
-	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
+	svc.CantabularClient = GetCantabularClient(cfg)
+	svc.DatasetAPIClient = GetDatasetAPIClient(cfg)
 
 	h := handler.NewInstanceComplete(
-		*svc.cfg,
-		svc.cantabularClient,
-		svc.datasetAPIClient,
-		svc.s3PrivateUploader,
-		svc.s3PublicUploader,
-		svc.vaultClient,
-		svc.producer,
+		*svc.Cfg,
+		svc.CantabularClient,
+		svc.DatasetAPIClient,
+		svc.S3PrivateUploader,
+		svc.S3PublicUploader,
+		svc.VaultClient,
+		svc.Producer,
 		svc.generator,
 	)
-	svc.consumer.RegisterHandler(ctx, h.Handle)
+	svc.Consumer.RegisterHandler(ctx, h.Handle)
 	svc.generator = GetGenerator()
 
 	// Get HealthCheck
-	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
+	if svc.HealthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
 
@@ -85,8 +85,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	r := mux.NewRouter()
-	r.StrictSlash(true).Path("/health").HandlerFunc(svc.healthCheck.Handler)
-	svc.server = GetHTTPServer(cfg.BindAddr, r)
+	r.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
+	svc.Server = GetHTTPServer(cfg.BindAddr, r)
 
 	return nil
 }
@@ -96,21 +96,21 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	log.Info(ctx, "starting service")
 
 	// Kafka error logging go-routine
-	svc.consumer.LogErrors(ctx)
+	svc.Consumer.LogErrors(ctx)
 
 	// If start/stop on health updates is disabled, start consuming as soon as possible
-	if !svc.cfg.StopConsumingOnUnhealthy {
-		svc.consumer.Start()
+	if !svc.Cfg.StopConsumingOnUnhealthy {
+		svc.Consumer.Start()
 	}
 
 	// Always start healthcheck.
 	// If start/stop on health updates is enabled,
 	// the consumer will start consuming on the first healthy update
-	svc.healthCheck.Start(ctx)
+	svc.HealthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
 	go func() {
-		if err := svc.server.ListenAndServe(); err != nil {
+		if err := svc.Server.ListenAndServe(); err != nil {
 			svcErrors <- fmt.Errorf("failure in http listen and serve: %w", err)
 		}
 	}()
@@ -118,7 +118,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 // Close gracefully shuts the service down in the required order, with timeout
 func (svc *Service) Close(ctx context.Context) error {
-	timeout := svc.cfg.GracefulShutdownTimeout
+	timeout := svc.Cfg.GracefulShutdownTimeout
 	log.Info(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": timeout})
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	hasShutdownError := false
@@ -127,23 +127,23 @@ func (svc *Service) Close(ctx context.Context) error {
 		defer cancel()
 
 		// stop healthcheck, as it depends on everything else
-		if svc.healthCheck != nil {
-			svc.healthCheck.Stop()
+		if svc.HealthCheck != nil {
+			svc.HealthCheck.Stop()
 			log.Info(ctx, "stopped health checker")
 		}
 
 		// If kafka consumer exists, stop listening to it.
 		// This will automatically stop the event consumer loops and no more messages will be processed.
 		// The kafka consumer will be closed after the service shuts down.
-		if svc.consumer != nil {
+		if svc.Consumer != nil {
 			log.Info(ctx, "stoping kafka consumer listener")
-			svc.consumer.StopAndWait()
+			svc.Consumer.StopAndWait()
 			log.Info(ctx, "stopped kafka consumer listener")
 		}
 
 		// stop any incoming requests before closing any outbound connections
-		if svc.server != nil {
-			if err := svc.server.Shutdown(ctx); err != nil {
+		if svc.Server != nil {
+			if err := svc.Server.Shutdown(ctx); err != nil {
 				log.Error(ctx, "failed to shutdown http server", err)
 				hasShutdownError = true
 			}
@@ -151,8 +151,8 @@ func (svc *Service) Close(ctx context.Context) error {
 		}
 
 		// If kafka consumer exists, close it.
-		if svc.consumer != nil {
-			if err := svc.consumer.Close(ctx); err != nil {
+		if svc.Consumer != nil {
+			if err := svc.Consumer.Close(ctx); err != nil {
 				log.Error(ctx, "error closing kafka consumer", err)
 				hasShutdownError = true
 			}
@@ -179,19 +179,19 @@ func (svc *Service) Close(ctx context.Context) error {
 
 // registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers() error {
-	if _, err := svc.healthCheck.AddAndGetCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+	if _, err := svc.HealthCheck.AddAndGetCheck("Kafka consumer", svc.Consumer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
-	if _, err := svc.healthCheck.AddAndGetCheck("Kafka producer", svc.producer.Checker); err != nil {
+	if _, err := svc.HealthCheck.AddAndGetCheck("Kafka producer", svc.Producer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
 	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
 	// and always use the real Checker instead: svc.cantabularClient.Checker
-	cantabularChecker := svc.cantabularClient.Checker
-	cantabularAPIExtChecker := svc.cantabularClient.CheckerAPIExt
-	if !svc.cfg.CantabularHealthcheckEnabled {
+	cantabularChecker := svc.CantabularClient.Checker
+	cantabularAPIExtChecker := svc.CantabularClient.CheckerAPIExt
+	if !svc.Cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
 			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
@@ -200,42 +200,42 @@ func (svc *Service) registerCheckers() error {
 		}
 	}
 
-	checkCantabular, err := svc.healthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
+	checkCantabular, err := svc.HealthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
 	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
-	checkCantabularAPIExt, err := svc.healthCheck.AddAndGetCheck("Cantabular API Extension", cantabularAPIExtChecker)
+	checkCantabularAPIExt, err := svc.HealthCheck.AddAndGetCheck("Cantabular API Extension", cantabularAPIExtChecker)
 	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular api extension: %w", err)
 	}
 
-	checkDataset, err := svc.healthCheck.AddAndGetCheck("Dataset API client", svc.datasetAPIClient.Checker)
+	checkDataset, err := svc.HealthCheck.AddAndGetCheck("Dataset API client", svc.DatasetAPIClient.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	checkS3Private, err := svc.healthCheck.AddAndGetCheck("S3 private uploader", svc.s3PrivateUploader.Checker)
+	checkS3Private, err := svc.HealthCheck.AddAndGetCheck("S3 private uploader", svc.S3PrivateUploader.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for s3 private uploader: %w", err)
 	}
 
-	checkS3Public, err := svc.healthCheck.AddAndGetCheck("S3 public uploader", svc.s3PublicUploader.Checker)
+	checkS3Public, err := svc.HealthCheck.AddAndGetCheck("S3 public uploader", svc.S3PublicUploader.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for s3 public uploader: %w", err)
 	}
 
-	if svc.cfg.StopConsumingOnUnhealthy {
-		svc.healthCheck.Subscribe(svc.consumer, checkCantabular, checkCantabularAPIExt, checkDataset, checkS3Private, checkS3Public)
+	if svc.Cfg.StopConsumingOnUnhealthy {
+		svc.HealthCheck.Subscribe(svc.Consumer, checkCantabular, checkCantabularAPIExt, checkDataset, checkS3Private, checkS3Public)
 	}
 
-	if !svc.cfg.EncryptionDisabled {
-		checkVault, err := svc.healthCheck.AddAndGetCheck("Vault", svc.vaultClient.Checker)
+	if !svc.Cfg.EncryptionDisabled {
+		checkVault, err := svc.HealthCheck.AddAndGetCheck("Vault", svc.VaultClient.Checker)
 		if err != nil {
 			return fmt.Errorf("error adding check for vault client: %w", err)
 		}
-		if svc.cfg.StopConsumingOnUnhealthy {
-			svc.healthCheck.Subscribe(svc.consumer, checkVault)
+		if svc.Cfg.StopConsumingOnUnhealthy {
+			svc.HealthCheck.Subscribe(svc.Consumer, checkVault)
 		}
 		return nil
 	}

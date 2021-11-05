@@ -6,6 +6,7 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"io"
 	"sync"
@@ -16,6 +17,10 @@ var (
 	lockCantabularClientMockCheckerAPIExt               sync.RWMutex
 	lockCantabularClientMockStaticDatasetQueryStreamCSV sync.RWMutex
 )
+
+// Ensure, that CantabularClientMock does implement service.CantabularClient.
+// If this is not the case, regenerate this file with moq.
+var _ service.CantabularClient = &CantabularClientMock{}
 
 // CantabularClientMock is a mock implementation of service.CantabularClient.
 //

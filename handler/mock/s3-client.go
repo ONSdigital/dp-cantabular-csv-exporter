@@ -4,15 +4,18 @@
 package mock
 
 import (
+	"context"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
 
 var (
-	lockS3UploaderMockBucketName    sync.RWMutex
-	lockS3UploaderMockUpload        sync.RWMutex
-	lockS3UploaderMockUploadWithPSK sync.RWMutex
+	lockS3UploaderMockBucketName        sync.RWMutex
+	lockS3UploaderMockHead              sync.RWMutex
+	lockS3UploaderMockUploadWithContext sync.RWMutex
+	lockS3UploaderMockUploadWithPSK     sync.RWMutex
 )
 
 // Ensure, that S3UploaderMock does implement handler.S3Uploader.
@@ -28,8 +31,11 @@ var _ handler.S3Uploader = &S3UploaderMock{}
 //             BucketNameFunc: func() string {
 // 	               panic("mock out the BucketName method")
 //             },
-//             UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the Upload method")
+//             HeadFunc: func(key string) (*s3.HeadObjectOutput, error) {
+// 	               panic("mock out the Head method")
+//             },
+//             UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 	               panic("mock out the UploadWithContext method")
 //             },
 //             UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
 // 	               panic("mock out the UploadWithPSK method")
@@ -44,8 +50,11 @@ type S3UploaderMock struct {
 	// BucketNameFunc mocks the BucketName method.
 	BucketNameFunc func() string
 
-	// UploadFunc mocks the Upload method.
-	UploadFunc func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	// HeadFunc mocks the Head method.
+	HeadFunc func(key string) (*s3.HeadObjectOutput, error)
+
+	// UploadWithContextFunc mocks the UploadWithContext method.
+	UploadWithContextFunc func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
 	// UploadWithPSKFunc mocks the UploadWithPSK method.
 	UploadWithPSKFunc func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
@@ -55,8 +64,15 @@ type S3UploaderMock struct {
 		// BucketName holds details about calls to the BucketName method.
 		BucketName []struct {
 		}
-		// Upload holds details about calls to the Upload method.
-		Upload []struct {
+		// Head holds details about calls to the Head method.
+		Head []struct {
+			// Key is the key argument value.
+			Key string
+		}
+		// UploadWithContext holds details about calls to the UploadWithContext method.
+		UploadWithContext []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// Input is the input argument value.
 			Input *s3manager.UploadInput
 			// Options is the options argument value.
@@ -98,38 +114,73 @@ func (mock *S3UploaderMock) BucketNameCalls() []struct {
 	return calls
 }
 
-// Upload calls UploadFunc.
-func (mock *S3UploaderMock) Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-	if mock.UploadFunc == nil {
-		panic("S3UploaderMock.UploadFunc: method is nil but S3Uploader.Upload was just called")
+// Head calls HeadFunc.
+func (mock *S3UploaderMock) Head(key string) (*s3.HeadObjectOutput, error) {
+	if mock.HeadFunc == nil {
+		panic("S3UploaderMock.HeadFunc: method is nil but S3Uploader.Head was just called")
 	}
 	callInfo := struct {
+		Key string
+	}{
+		Key: key,
+	}
+	lockS3UploaderMockHead.Lock()
+	mock.calls.Head = append(mock.calls.Head, callInfo)
+	lockS3UploaderMockHead.Unlock()
+	return mock.HeadFunc(key)
+}
+
+// HeadCalls gets all the calls that were made to Head.
+// Check the length with:
+//     len(mockedS3Uploader.HeadCalls())
+func (mock *S3UploaderMock) HeadCalls() []struct {
+	Key string
+} {
+	var calls []struct {
+		Key string
+	}
+	lockS3UploaderMockHead.RLock()
+	calls = mock.calls.Head
+	lockS3UploaderMockHead.RUnlock()
+	return calls
+}
+
+// UploadWithContext calls UploadWithContextFunc.
+func (mock *S3UploaderMock) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	if mock.UploadWithContextFunc == nil {
+		panic("S3UploaderMock.UploadWithContextFunc: method is nil but S3Uploader.UploadWithContext was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
 		Input   *s3manager.UploadInput
 		Options []func(*s3manager.Uploader)
 	}{
+		Ctx:     ctx,
 		Input:   input,
 		Options: options,
 	}
-	lockS3UploaderMockUpload.Lock()
-	mock.calls.Upload = append(mock.calls.Upload, callInfo)
-	lockS3UploaderMockUpload.Unlock()
-	return mock.UploadFunc(input, options...)
+	lockS3UploaderMockUploadWithContext.Lock()
+	mock.calls.UploadWithContext = append(mock.calls.UploadWithContext, callInfo)
+	lockS3UploaderMockUploadWithContext.Unlock()
+	return mock.UploadWithContextFunc(ctx, input, options...)
 }
 
-// UploadCalls gets all the calls that were made to Upload.
+// UploadWithContextCalls gets all the calls that were made to UploadWithContext.
 // Check the length with:
-//     len(mockedS3Uploader.UploadCalls())
-func (mock *S3UploaderMock) UploadCalls() []struct {
+//     len(mockedS3Uploader.UploadWithContextCalls())
+func (mock *S3UploaderMock) UploadWithContextCalls() []struct {
+	Ctx     context.Context
 	Input   *s3manager.UploadInput
 	Options []func(*s3manager.Uploader)
 } {
 	var calls []struct {
+		Ctx     context.Context
 		Input   *s3manager.UploadInput
 		Options []func(*s3manager.Uploader)
 	}
-	lockS3UploaderMockUpload.RLock()
-	calls = mock.calls.Upload
-	lockS3UploaderMockUpload.RUnlock()
+	lockS3UploaderMockUploadWithContext.RLock()
+	calls = mock.calls.UploadWithContext
+	lockS3UploaderMockUploadWithContext.RUnlock()
 	return calls
 }
 

@@ -5,6 +5,7 @@ package mock
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
 )
@@ -13,6 +14,10 @@ var (
 	lockVaultClientMockChecker  sync.RWMutex
 	lockVaultClientMockWriteKey sync.RWMutex
 )
+
+// Ensure, that VaultClientMock does implement service.VaultClient.
+// If this is not the case, regenerate this file with moq.
+var _ service.VaultClient = &VaultClientMock{}
 
 // VaultClientMock is a mock implementation of service.VaultClient.
 //

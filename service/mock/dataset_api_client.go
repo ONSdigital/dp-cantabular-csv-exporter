@@ -6,6 +6,7 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
 )
@@ -15,6 +16,10 @@ var (
 	lockDatasetAPIClientMockGetInstance sync.RWMutex
 	lockDatasetAPIClientMockPutInstance sync.RWMutex
 )
+
+// Ensure, that DatasetAPIClientMock does implement service.DatasetAPIClient.
+// If this is not the case, regenerate this file with moq.
+var _ service.DatasetAPIClient = &DatasetAPIClientMock{}
 
 // DatasetAPIClientMock is a mock implementation of service.DatasetAPIClient.
 //

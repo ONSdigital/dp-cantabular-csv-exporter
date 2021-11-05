@@ -61,6 +61,66 @@ func testCfg() config.Config {
 
 var ctx = context.Background()
 
+func TestValidateInstance(t *testing.T) {
+	h := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil, nil)
+
+	Convey("Given an instance with 2 CSV headers in 'published' state", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1", "2"},
+				State:     dataset.StatePublished.String(),
+			},
+		}
+		Convey("Then ValidateInstance determines that instance is published, without error", func() {
+			isPublished, err := h.ValidateInstance(i)
+			So(err, ShouldBeNil)
+			So(isPublished, ShouldBeTrue)
+		})
+	})
+
+	Convey("Given an instance with 2 CSV headers in 'associated' state", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1", "2"},
+				State:     dataset.StateAssociated.String(),
+			},
+		}
+		Convey("Then ValidateInstance determines that instance is not published, without error", func() {
+			isPublished, err := h.ValidateInstance(i)
+			So(err, ShouldBeNil)
+			So(isPublished, ShouldBeFalse)
+		})
+	})
+
+	Convey("Given an instance with 2 CSV headers and no state", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1", "2"},
+			},
+		}
+		Convey("Then ValidateInstance determines that instance is not published, without error", func() {
+			isPublished, err := h.ValidateInstance(i)
+			So(err, ShouldBeNil)
+			So(isPublished, ShouldBeFalse)
+		})
+	})
+
+	Convey("Given an instance wit only 1 CSV header", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1"},
+			},
+		}
+		Convey("Then ValidateInstance returns the expected error", func() {
+			_, err := h.ValidateInstance(i)
+			So(err, ShouldResemble, handler.NewError(
+				errors.New("no dimensions in headers"),
+				log.Data{"headers": []string{"1"}},
+			))
+		})
+	})
+}
+
 func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	isPublished := false
 	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
@@ -80,11 +140,12 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 				So(rowCount, ShouldEqual, testRowCount)
 			})
 
-			Convey("Then the expected call Upload call is executed", func() {
-				So(sPrivate.UploadCalls(), ShouldHaveLength, 1)
-				So(*sPrivate.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*sPrivate.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(sPrivate.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+			Convey("Then the expected UploadWithContext call is executed", func() {
+				So(sPrivate.UploadWithContextCalls(), ShouldHaveLength, 1)
+				So(sPrivate.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
+				So(*sPrivate.UploadWithContextCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPrivate.UploadWithContextCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPrivate.UploadWithContextCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
@@ -311,11 +372,12 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 				So(rowCount, ShouldEqual, testRowCount)
 			})
 
-			Convey("Then the expected call Upload call is executed", func() {
-				So(sPublic.UploadCalls(), ShouldHaveLength, 1)
-				So(*sPublic.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*sPublic.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(sPublic.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+			Convey("Then the expected UploadWithContext call is executed", func() {
+				So(sPublic.UploadWithContextCalls(), ShouldHaveLength, 1)
+				So(sPublic.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
+				So(*sPublic.UploadWithContextCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPublic.UploadWithContextCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPublic.UploadWithContextCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
@@ -499,7 +561,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 	})
 }
 
-// cantabularMock creates a Cantabular Client mock that executes consume with the provided io.Reader
+// cantabularMock creates a Cantabular Client mock that executes consume with the provided io.Reader and propagates any error returned by it
 func cantabularMock(r io.Reader) mock.CantabularClientMock {
 	return mock.CantabularClientMock{
 		StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
@@ -532,7 +594,7 @@ func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
 		}
 	}
 	return mock.S3UploaderMock{
-		UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 			return &s3manager.UploadOutput{
 				Location: testS3Location,
 			}, nil
@@ -571,7 +633,7 @@ func s3UploaderUnhappy(encryptionEnabled bool) mock.S3UploaderMock {
 		}
 	}
 	return mock.S3UploaderMock{
-		UploadFunc: func(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 			return nil, errS3
 		},
 		BucketNameFunc: func() string {

@@ -126,9 +126,7 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 			},
 		}
 	}
-
-	// TODO check if instance is published
-	return true, nil
+	return i.State == dataset.StatePublished.String(), nil
 }
 
 // UploadCSVFile queries a static dataset to cantabular using the provided request,
@@ -160,7 +158,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 			}
 			log.Info(ctx, "uploading published file to S3", logData)
 
-			result, err := h.s3Public.Upload(&s3manager.UploadInput{
+			result, err := h.s3Public.UploadWithContext(ctx, &s3manager.UploadInput{
 				Body:   file,
 				Bucket: &bucketName,
 				Key:    &filename,
@@ -192,7 +190,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, instanceID string,
 				}
 				log.Info(ctx, "uploading private file to S3", logData)
 
-				result, err := h.s3Private.Upload(&s3manager.UploadInput{
+				result, err := h.s3Private.UploadWithContext(ctx, &s3manager.UploadInput{
 					Body:   file,
 					Bucket: &bucketName,
 					Key:    &filename,

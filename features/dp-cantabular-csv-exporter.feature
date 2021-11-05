@@ -125,7 +125,7 @@ Feature: Cantabular-Csv-Exporter
             "href": "http://10.201.4.160:10400/instances/057cd26b-e0ae-431f-9316-913db61cec39"
           }
         },
-        "state": "edition-confirmed",
+        "state": "published",
         "headers": [
           "ftb_table",
           "city",

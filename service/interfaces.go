@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"io"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
@@ -12,6 +11,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/aws/aws-sdk-go/aws/session"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
@@ -57,8 +57,8 @@ type DatasetAPIClient interface {
 }
 
 type S3Uploader interface {
-	Get(key string) (io.ReadCloser, *int64, error)
-	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	Head(key string) (*s3.HeadObjectOutput, error)
+	UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
 	BucketName() string
 	Session() *session.Session

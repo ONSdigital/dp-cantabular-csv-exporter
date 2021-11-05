@@ -11,7 +11,7 @@ require (
 	github.com/ONSdigital/dp-healthcheck v1.2.0
 	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.3.0.20211105102522-6432f244d157
 	github.com/ONSdigital/dp-net v1.0.12
-	github.com/ONSdigital/dp-s3 v1.7.0
+	github.com/ONSdigital/dp-s3 v1.8.1-0.20211105120141-56754002d8f2
 	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/aws/aws-sdk-go v1.41.6

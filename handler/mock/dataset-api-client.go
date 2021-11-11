@@ -19,6 +19,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ handler.DatasetAPIClient = &DatasetAPIClientMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // DatasetAPIClientMock is a mock implementation of handler.DatasetAPIClient.
 //
 //     func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {

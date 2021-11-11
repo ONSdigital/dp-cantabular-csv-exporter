@@ -19,6 +19,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ handler.CantabularClient = &CantabularClientMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // CantabularClientMock is a mock implementation of handler.CantabularClient.
 //
 //     func TestSomethingThatUsesCantabularClient(t *testing.T) {

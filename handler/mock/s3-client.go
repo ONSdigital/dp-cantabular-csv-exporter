@@ -22,6 +22,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ handler.S3Uploader = &S3UploaderMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // S3UploaderMock is a mock implementation of handler.S3Uploader.
 //
 //     func TestSomethingThatUsesS3Uploader(t *testing.T) {

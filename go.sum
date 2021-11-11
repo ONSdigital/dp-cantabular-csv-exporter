@@ -17,8 +17,8 @@ github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3
 github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5UHt6+Q8XmN9uwmURO+9Oj4=
 github.com/ONSdigital/dp-api-clients-go v1.34.3 h1:nS3ZG3Eql9T68Q0IFehpnqkUy2AFoTDktVgaD90Yj+s=
 github.com/ONSdigital/dp-api-clients-go v1.34.3/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.3.1-0.20211104124924-63d416a85785 h1:ur1BuWBK8qbjwiw/neO3zqZW4ACxWcU3hLhY+XZ28As=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.3.1-0.20211104124924-63d416a85785/go.mod h1:oB+Pw1BJlLHUh+a6BJY52VFTRGBEM5RSPlg2Xkq7D9k=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.4.2 h1:mMe4f0MLSsvwyYfkquBo/LflX5ziCr7hxIacnD+KOCY=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.4.2/go.mod h1:oB+Pw1BJlLHUh+a6BJY52VFTRGBEM5RSPlg2Xkq7D9k=
 github.com/ONSdigital/dp-assistdog v0.0.1 h1:5jzUWZ3EmweVjSx+5c40oLh/+WBJtD3VOErzURy+B8g=
 github.com/ONSdigital/dp-assistdog v0.0.1/go.mod h1:Agb8iTx42/V+eSffc/gD2oXEvOcerN3GER76FAcBr+I=
 github.com/ONSdigital/dp-component-test v0.5.0 h1:PM3bWLacuWkLNPxhRoqI1Oa1eXrLi/1IKjOJRJJY/x8=
@@ -27,8 +27,8 @@ github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf
 github.com/ONSdigital/dp-healthcheck v1.1.0/go.mod h1:vZwyjMJiCHjp/sJ2R1ZEqzZT0rJ0+uHVGwxqdP4J5vg=
 github.com/ONSdigital/dp-healthcheck v1.2.0 h1:k7okbVff7PW/393FxEvSdZ+FbZgaWRMJYKquqnkgDp8=
 github.com/ONSdigital/dp-healthcheck v1.2.0/go.mod h1:XUhXoDIWPCdletDtpDOoXhmDFcc9b/kbedx96jN75aI=
-github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.3.0.20211105102522-6432f244d157 h1:/HBtLOid/Vxfy9fE9s69gnIMfEC2uh6pwlDnBdT53rM=
-github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.3.0.20211105102522-6432f244d157/go.mod h1:NEJYQ96YnkXnqSXkOXTEFrpFNV+/lF41UjPB+A/Hjxc=
+github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.4 h1:VgVSX2PDYcRazboZQEHnOzsJnTUQhRV9xgYSxs+hh00=
+github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.4/go.mod h1:NEJYQ96YnkXnqSXkOXTEFrpFNV+/lF41UjPB+A/Hjxc=
 github.com/ONSdigital/dp-mocking v0.0.0-20190905163309-fee2702ad1b9/go.mod h1:BcIRgitUju//qgNePRBmNjATarTtynAgc0yV29VpLEk=
 github.com/ONSdigital/dp-mongodb-in-memory v1.0.0 h1:lnV+Fz302qZG4x+DL2mrZ4dzLEACW4UVj8S61hSTlFI=
 github.com/ONSdigital/dp-mongodb-in-memory v1.0.0/go.mod h1:1/9sBl447eRpkidK4eEZ667W8vvg/MaFNy5OnrJbStA=
@@ -38,8 +38,8 @@ github.com/ONSdigital/dp-net v1.0.5-0.20200805150805-cac050646ab5/go.mod h1:de3L
 github.com/ONSdigital/dp-net v1.0.7/go.mod h1:1QFzx32FwPKD2lgZI6MtcsUXritsBdJihlzIWDrQ/gc=
 github.com/ONSdigital/dp-net v1.0.12 h1:Vd06ia1FXKR9uyhzWykQ52b1LTp4N0VOLnrF7KOeP78=
 github.com/ONSdigital/dp-net v1.0.12/go.mod h1:2lvIKOlD4T3BjWQwjHhBUO2UNWDk82u/+mHRn0R3C9A=
-github.com/ONSdigital/dp-s3 v1.8.1-0.20211105120141-56754002d8f2 h1:LCb5PW24UCZtTLzG8fjounCsiwWtTXYbx4uzEHqyX4k=
-github.com/ONSdigital/dp-s3 v1.8.1-0.20211105120141-56754002d8f2/go.mod h1:kFntfUWr58JGHI8vTNCFvDbgnueoFq+eVUlMqJD/TLU=
+github.com/ONSdigital/dp-s3 v1.9.0 h1:1Ma0pgH5ZuDdoCDjqj/nSP36epIfs9JXt3RCdYbtWQI=
+github.com/ONSdigital/dp-s3 v1.9.0/go.mod h1:kFntfUWr58JGHI8vTNCFvDbgnueoFq+eVUlMqJD/TLU=
 github.com/ONSdigital/dp-vault v1.2.0 h1:oRXzVlI11ShMLFu+OnPvpJrpJXi2uGaoysvXwScQZKo=
 github.com/ONSdigital/dp-vault v1.2.0/go.mod h1:GIXMJ6y7OSWN6ayamvAMKqV1/nKdbR5DyEfm6EfiOpU=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58/go.mod h1:iWos35il+NjbvDEqwtB736pyHru0MPFE/LqcwkV1wDc=

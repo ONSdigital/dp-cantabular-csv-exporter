@@ -4,18 +4,20 @@ import (
 	"github.com/ONSdigital/dp-kafka/v3/avro"
 )
 
-var instanceComplete = `{
+var exportStart = `{
   "type": "record",
-  "name": "cantabular-dataset-instance-complete",
+  "name": "cantabular-export-start",
   "fields": [
-    {"name": "instance_id",     "type": "string", "default": ""},
-    {"name": "cantabular_blob", "type": "string", "default": ""}
+    {"name": "instance_id", "type": "string", "default": ""},
+    {"name": "dataset_id",  "type": "string", "default": ""},
+    {"name": "edition",     "type": "string", "default": ""},
+    {"name": "version",     "type": "string", "default": ""}
   ]
 }`
 
-// InstanceComplete is the Avro schema for Instance Complete messages.
-var InstanceComplete = &avro.Schema{
-	Definition: instanceComplete,
+// ExportStart is the Avro schema for Instance Complete messages.
+var ExportStart = &avro.Schema{
+	Definition: exportStart,
 }
 
 var csvCreated = `{

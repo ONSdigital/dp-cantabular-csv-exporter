@@ -17,8 +17,8 @@ github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3
 github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5UHt6+Q8XmN9uwmURO+9Oj4=
 github.com/ONSdigital/dp-api-clients-go v1.34.3 h1:nS3ZG3Eql9T68Q0IFehpnqkUy2AFoTDktVgaD90Yj+s=
 github.com/ONSdigital/dp-api-clients-go v1.34.3/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.3.1-0.20211104124924-63d416a85785 h1:ur1BuWBK8qbjwiw/neO3zqZW4ACxWcU3hLhY+XZ28As=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.3.1-0.20211104124924-63d416a85785/go.mod h1:oB+Pw1BJlLHUh+a6BJY52VFTRGBEM5RSPlg2Xkq7D9k=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.4.2 h1:mMe4f0MLSsvwyYfkquBo/LflX5ziCr7hxIacnD+KOCY=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.4.2/go.mod h1:oB+Pw1BJlLHUh+a6BJY52VFTRGBEM5RSPlg2Xkq7D9k=
 github.com/ONSdigital/dp-assistdog v0.0.1 h1:5jzUWZ3EmweVjSx+5c40oLh/+WBJtD3VOErzURy+B8g=
 github.com/ONSdigital/dp-assistdog v0.0.1/go.mod h1:Agb8iTx42/V+eSffc/gD2oXEvOcerN3GER76FAcBr+I=
 github.com/ONSdigital/dp-component-test v0.5.0 h1:PM3bWLacuWkLNPxhRoqI1Oa1eXrLi/1IKjOJRJJY/x8=

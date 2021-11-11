@@ -30,7 +30,7 @@ func main() {
 	// Create Kafka Producer
 	pConfig := &kafka.ProducerConfig{
 		BrokerAddrs:     cfg.KafkaConfig.Addr,
-		Topic:           cfg.KafkaConfig.InstanceCompleteTopic,
+		Topic:           cfg.KafkaConfig.ExportStartTopic,
 		KafkaVersion:    &cfg.KafkaConfig.Version,
 		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 	}
@@ -44,7 +44,7 @@ func main() {
 	}
 	kafkaProducer, err := kafka.NewProducer(ctx, pConfig)
 	if err != nil {
-		log.Fatal(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.KafkaConfig.InstanceCompleteTopic})
+		log.Fatal(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.KafkaConfig.ExportStartTopic})
 		os.Exit(1)
 	}
 
@@ -57,7 +57,7 @@ func main() {
 		e := scanEvent(scanner)
 		log.Info(ctx, "sending hello-called event", log.Data{"helloCalledEvent": e})
 
-		bytes, err := schema.InstanceComplete.Marshal(e)
+		bytes, err := schema.ExportStart.Marshal(e)
 		if err != nil {
 			log.Fatal(ctx, "hello-called event error", err)
 			os.Exit(1)
@@ -72,21 +72,33 @@ func main() {
 }
 
 // scanEvent creates a HelloCalled event according to the user input
-func scanEvent(scanner *bufio.Scanner) *event.InstanceComplete {
+func scanEvent(scanner *bufio.Scanner) *event.ExportStart {
 	fmt.Println("--- [Send Kafka InstanceComplete] ---")
 
 	fmt.Println("Please type the instance_id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	name := scanner.Text()
+	instanceID := scanner.Text()
 
-	fmt.Println("Please type the cantabular_blob")
+	fmt.Println("Please type the dataset_id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	blob := scanner.Text()
+	datasetID := scanner.Text()
 
-	return &event.InstanceComplete{
-		InstanceID:     name,
-		CantabularBlob: blob,
+	fmt.Println("Please type the edition")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	edition := scanner.Text()
+
+	fmt.Println("Please type the version")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	version := scanner.Text()
+
+	return &event.ExportStart{
+		InstanceID: instanceID,
+		DatasetID:  datasetID,
+		Edition:    edition,
+		Version:    version,
 	}
 }

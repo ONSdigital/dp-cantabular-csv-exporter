@@ -48,8 +48,8 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
-	e := &event.InstanceComplete{}
-	s := schema.InstanceComplete
+	e := &event.ExportStart{}
+	s := schema.ExportStart
 
 	log.Info(ctx, "message data", log.Data{"msg_data": msg.GetData()})
 
@@ -83,7 +83,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	}
 
 	req := cantabular.StaticDatasetQueryRequest{
-		Dataset:   e.CantabularBlob,
+		Dataset:   instance.IsBasedOn.ID, // This value corresponds to the CantabularBlob that was used in import process
 		Variables: instance.CSVHeader[1:],
 	}
 	logData["request"] = req

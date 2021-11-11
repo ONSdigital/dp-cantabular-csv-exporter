@@ -37,8 +37,8 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 	}
 	cgConfig := &kafka.ConsumerGroupConfig{
 		BrokerAddrs:  cfg.KafkaConfig.Addr,
-		Topic:        cfg.KafkaConfig.InstanceCompleteTopic,
-		GroupName:    cfg.KafkaConfig.InstanceCompleteGroup,
+		Topic:        cfg.KafkaConfig.ExportStartTopic,
+		GroupName:    cfg.KafkaConfig.ExportStartGroup,
 		KafkaVersion: &cfg.KafkaConfig.Version,
 		Offset:       &kafkaOffset,
 	}

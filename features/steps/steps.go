@@ -26,7 +26,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^an instance with id "([^"]*)" is updated to dp-dataset-api`, c.theFollowingInstanceIsUpdated)
-	ctx.Step(`^this instance-complete event is consumed:$`, c.thisInstanceCompleteEventIsConsumed)
+	ctx.Step(`^this cantabular-export-start event is consumed:$`, c.thisExportStartEventIsConsumed)
 	ctx.Step(`^these cantabular-csv-created events are produced:$`, c.theseCsvCreatedEventsAreProduced)
 	ctx.Step(`^a file with filename "([^"]*)" can be seen in minio`, c.theFollowingFileCanBeSeenInMinio)
 }
@@ -137,11 +137,11 @@ func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error 
 	return nil
 }
 
-func (c *Component) thisInstanceCompleteEventIsConsumed(input *godog.DocString) error {
+func (c *Component) thisExportStartEventIsConsumed(input *godog.DocString) error {
 	ctx := context.Background()
 
 	// testing kafka message that will be produced
-	var testEvent event.InstanceComplete
+	var testEvent event.ExportStart
 	if err := json.Unmarshal([]byte(input.Content), &testEvent); err != nil {
 		return fmt.Errorf("error unmarshaling input to event: %w body: %s", err, input.Content)
 	}
@@ -151,7 +151,7 @@ func (c *Component) thisInstanceCompleteEventIsConsumed(input *godog.DocString) 
 	})
 
 	// marshal and send message
-	b, err := schema.InstanceComplete.Marshal(testEvent)
+	b, err := schema.ExportStart.Marshal(testEvent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event from schema: %w", err)
 	}

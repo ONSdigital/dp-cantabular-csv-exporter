@@ -1,9 +1,11 @@
 package event
 
-// InstanceComplete provides an avro structure for a Instance Complete event
-type InstanceComplete struct {
-	InstanceID     string `avro:"instance_id"`
-	CantabularBlob string `avro:"cantabular_blob"`
+// ExportStart provides an avro structure for a Export Start event
+type ExportStart struct {
+	InstanceID string `avro:"instance_id"`
+	DatasetID  string `avro:"dataset_id"`
+	Edition    string `avro:"edition"`
+	Version    string `avro:"version"`
 }
 
 // CSVCreated provides an avro structure for a CSV Created event

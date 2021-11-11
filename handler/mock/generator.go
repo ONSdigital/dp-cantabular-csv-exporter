@@ -16,6 +16,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ handler.Generator = &GeneratorMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // GeneratorMock is a mock implementation of handler.Generator.
 //
 //     func TestSomethingThatUsesGenerator(t *testing.T) {

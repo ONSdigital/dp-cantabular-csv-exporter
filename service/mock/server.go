@@ -18,6 +18,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ service.HTTPServer = &HTTPServerMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // HTTPServerMock is a mock implementation of service.HTTPServer.
 //
 //     func TestSomethingThatUsesHTTPServer(t *testing.T) {

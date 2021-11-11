@@ -16,6 +16,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ handler.VaultClient = &VaultClientMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // VaultClientMock is a mock implementation of handler.VaultClient.
 //
 //     func TestSomethingThatUsesVaultClient(t *testing.T) {

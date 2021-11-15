@@ -13,7 +13,6 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
@@ -35,7 +34,6 @@ const (
 	testVersion            = "test-version"
 	testS3Location         = "s3://myBucket/my-file.csv"
 	testDownloadServiceURL = "http://test-download-service:8200"
-	testETag               = "testETag"
 	testNumBytes           = 123
 	testRowCount           = 18
 )
@@ -171,7 +169,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to stream csv data: %w",
-						fmt.Errorf("failed to upload private file to S3: %w", errS3),
+						fmt.Errorf("failed to upload un-encrypted private file to S3: %w", errS3),
 					),
 					log.Data{
 						"bucket":              testBucket,
@@ -507,19 +505,20 @@ func TestUpdateInstance(t *testing.T) {
 			})
 
 			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
-				expectedURL := fmt.Sprintf("%s/downloads/datasets/%s-%s-%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion)
+				expectedURL := fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion)
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
-				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
-					Downloads: dataset.DownloadList{
-						CSV: &dataset.Download{
+				So(datasetAPIMock.PutVersionCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutVersionCalls()[0].DatasetID, ShouldEqual, testDatasetID)
+				So(datasetAPIMock.PutVersionCalls()[0].Edition, ShouldEqual, testEdition)
+				So(datasetAPIMock.PutVersionCalls()[0].Version, ShouldEqual, testVersion)
+				So(datasetAPIMock.PutVersionCalls()[0].V, ShouldResemble, dataset.Version{
+					Downloads: map[string]dataset.Download{
+						"CSV": {
 							URL:  expectedURL,
 							Size: fmt.Sprintf("%d", testSize),
 						},
 					},
 				})
-				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
 
@@ -531,14 +530,16 @@ func TestUpdateInstance(t *testing.T) {
 			})
 
 			Convey("Then the expected UpdateInstance call is executed once to update the public download link and associate it, and once more to publish it", func() {
-				expectedURL := "publicURL"
+				expectedURL := fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion)
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
-				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
-					Downloads: dataset.DownloadList{
-						CSV: &dataset.Download{
-							Public: expectedURL,
+				So(datasetAPIMock.PutVersionCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutVersionCalls()[0].DatasetID, ShouldEqual, testDatasetID)
+				So(datasetAPIMock.PutVersionCalls()[0].Edition, ShouldEqual, testEdition)
+				So(datasetAPIMock.PutVersionCalls()[0].Version, ShouldEqual, testVersion)
+				So(datasetAPIMock.PutVersionCalls()[0].V, ShouldResemble, dataset.Version{
+					Downloads: map[string]dataset.Download{
+						"CSV": {
+							Public: "publicURL",
 							URL:    expectedURL,
 							Size:   fmt.Sprintf("%d", testSize),
 						},
@@ -556,7 +557,7 @@ func TestUpdateInstance(t *testing.T) {
 			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "")
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
+				So(err, ShouldResemble, fmt.Errorf("error while attempting update version downloads: %w", errDataset))
 			})
 		})
 	})
@@ -572,12 +573,11 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, false, "", testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CSVCreated{
-				FileURL:    fmt.Sprintf("%s/downloads/datasets/%s-%s-%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion),
 				InstanceID: testInstanceID,
 				DatasetID:  testDatasetID,
 				Edition:    testEdition,
@@ -602,12 +602,11 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, true, "publicURL", testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CSVCreated{
-				FileURL:    "publicURL",
 				InstanceID: testInstanceID,
 				DatasetID:  testDatasetID,
 				Edition:    testEdition,
@@ -715,8 +714,8 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", nil
 		},
-		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
-			return testETag, nil
+		PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
+			return nil
 		},
 	}
 }
@@ -726,8 +725,8 @@ func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", errDataset
 		},
-		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
-			return "", errDataset
+		PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
+			return errDataset
 		},
 	}
 }

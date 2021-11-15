@@ -51,8 +51,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
-	log.Info(ctx, "message data", log.Data{"msg_data": msg.GetData()})
-
 	if err := s.Unmarshal(msg.GetData(), e); err != nil {
 		return &Error{
 			err: fmt.Errorf("failed to unmarshal event: %w", err),
@@ -77,6 +75,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		"instance_id": instance.ID,
 	})
 
+	// validate the instance and determine wether it is published or not
 	isPublished, err := h.ValidateInstance(instance)
 	if err != nil {
 		return fmt.Errorf("failed to validate instance: %w", err)
@@ -88,11 +87,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	}
 	logData["request"] = req
 
-	// Upload csv file to S3 bucket
-	// TODO: The S3 file location returned by the Uploader should be ignored and we should use Download Service instead, which will:
-	// - decrypt private files uploaded to the private bucket (for authorised users only)
-	// - or it will redirect to the public S3 URL for public files.
-	// This change will be possible once the Cantabular CSV exporter is triggered by the Dataset API on Dataset 'Associated' (private) or 'Published' (public) events
+	// Stream data from Cantabular to S3 bucket in CSV format
 	s3Url, rowCount, err := h.UploadCSVFile(ctx, e, isPublished, req)
 	if err != nil {
 		return &Error{
@@ -117,7 +112,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	log.Event(ctx, "producing  event", log.INFO, log.Data{})
 
 	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(e, isPublished, s3Url, rowCount); err != nil {
+	if err := h.ProduceExportCompleteEvent(e, rowCount); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
@@ -196,7 +191,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				if file == nil {
 					return errors.New("no file content has been provided")
 				}
-				log.Info(ctx, "uploading private file to S3", logData)
+				log.Info(ctx, "uploading un-encrypted private file to S3", logData)
 
 				result, err := h.s3Private.UploadWithContext(ctx, &s3manager.UploadInput{
 					Body:   file,
@@ -204,7 +199,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 					Key:    &filename,
 				})
 				if err != nil {
-					return fmt.Errorf("failed to upload private file to S3: %w", err)
+					return fmt.Errorf("failed to upload un-encrypted private file to S3: %w", err)
 				}
 
 				s3Location, err = url.PathUnescape(result.Location)
@@ -298,47 +293,45 @@ func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.Expo
 // if the instance is published, then the s3Url will be set as public link and the instance state will be set to published
 // otherwise, a private url will be generated and the state will not be changed
 func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string) error {
-	if isPublished {
-		update := dataset.UpdateInstance{
-			Downloads: dataset.DownloadList{
-				CSV: &dataset.Download{
-					URL:    s3Url,                   // Public URL, as returned by the S3 uploader
-					Public: s3Url,                   // Public URL, as returned by the S3 uploader
-					Size:   fmt.Sprintf("%d", size), // size of the file in number of bytes
-				},
-			},
-		}
-		if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, update, headers.IfMatchAnyETag); err != nil {
-			return fmt.Errorf("error during put instance: %w", err)
-		}
-		return nil
+	csvDownload := dataset.Download{
+		Size: fmt.Sprintf("%d", size),
+		URL: fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv",
+			h.cfg.DownloadServiceURL,
+			e.DatasetID,
+			e.Edition,
+			e.Version,
+		),
 	}
 
-	update := dataset.UpdateInstance{
-		Downloads: dataset.DownloadList{
-			CSV: &dataset.Download{
-				Size: fmt.Sprintf("%d", size),                         // size of the file in number of bytes
-				URL:  generatePrivateURL(h.cfg.DownloadServiceURL, e), // Private downloadService URL
-			},
+	if isPublished {
+		csvDownload.Public = s3Url
+	} else {
+		csvDownload.Private = s3Url
+	}
+
+	log.Info(ctx, "updating dataset api with download link", log.Data{
+		"is_published": isPublished,
+		"csv_download": csvDownload,
+	})
+
+	versionUpdate := dataset.Version{
+		Downloads: map[string]dataset.Download{
+			"CSV": csvDownload,
 		},
 	}
-	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, update, headers.IfMatchAnyETag); err != nil {
-		return fmt.Errorf("error during put instance: %w", err)
+
+	err := h.datasets.PutVersion(
+		ctx, "", h.cfg.ServiceAuthToken, "", e.DatasetID, e.Edition, e.Version, versionUpdate)
+	if err != nil {
+		return fmt.Errorf("error while attempting update version downloads: %w", err)
 	}
+
 	return nil
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, isPublished bool, s3Url string, rowCount int32) error {
-	var downloadURL string
-	if isPublished {
-		downloadURL = s3Url
-	} else {
-		downloadURL = generatePrivateURL(h.cfg.DownloadServiceURL, e)
-	}
-
+func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32) error {
 	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
-		FileURL:    downloadURL, // download service URL for the CSV file
 		InstanceID: e.InstanceID,
 		DatasetID:  e.DatasetID,
 		Edition:    e.Edition,
@@ -348,16 +341,6 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, isPu
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}
 	return nil
-}
-
-// generatePrivateURL generates the download service private URL for the file defined by the provided event
-func generatePrivateURL(downloadServiceURL string, e *event.ExportStart) string {
-	return fmt.Sprintf("%s/downloads/datasets/%s-%s-%s.csv",
-		downloadServiceURL,
-		e.DatasetID,
-		e.Edition,
-		e.Version,
-	)
 }
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID

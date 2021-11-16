@@ -61,6 +61,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	svc.CantabularClient = GetCantabularClient(cfg)
 	svc.DatasetAPIClient = GetDatasetAPIClient(cfg)
+	svc.generator = GetGenerator()
 
 	h := handler.NewInstanceComplete(
 		*svc.Cfg,
@@ -73,7 +74,6 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.generator,
 	)
 	svc.Consumer.RegisterHandler(ctx, h.Handle)
-	svc.generator = GetGenerator()
 
 	// Get HealthCheck
 	if svc.HealthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {

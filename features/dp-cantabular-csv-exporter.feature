@@ -130,22 +130,28 @@ Feature: Cantabular-Csv-Exporter
           "ftb_table",
           "city",
           "siblings"
-        ]
+        ],
+        "is_based_on": {
+          "@type": "cantabular_table",
+          "@id": "Example"
+        }
       }
       """
 
     Scenario: Consuming a instance-complete event with correct fields
-    When this instance-complete event is consumed:
+    When this cantabular-export-start event is consumed:
       """
       {
-        "InstanceId":     "instance-happy-01",
-        "CantabularBlob": "Example"
+        "InstanceID": "instance-happy-01",
+        "DatasetID":  "dataset-happy-01",
+        "Edition":    "edition-happy-01",
+	      "Version":    "version-happy-01"
       }
       """  
-    And an instance with id "instance-happy-01" is updated to dp-dataset-api
+    And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated to dp-dataset-api
 
-    And a file with filename "instances/instance-happy-01.csv" can be seen in minio
+    And a file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 
     Then these cantabular-csv-created events are produced:
-      | InstanceID        | FileURL                                                                      | RowCount |
-      | instance-happy-01 | http://minio:9000/public-bucket/instances/instance-happy-01.csv | 22       |
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
+      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |

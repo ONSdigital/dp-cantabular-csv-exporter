@@ -95,7 +95,7 @@ func (c *Component) initService(ctx context.Context) error {
 		ctx,
 		&kafka.ProducerConfig{
 			BrokerAddrs:     cfg.KafkaConfig.Addr,
-			Topic:           cfg.KafkaConfig.InstanceCompleteTopic,
+			Topic:           cfg.KafkaConfig.ExportStartTopic,
 			KafkaVersion:    &cfg.KafkaConfig.Version,
 			MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 		},

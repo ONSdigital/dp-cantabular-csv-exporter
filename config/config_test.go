@@ -49,8 +49,8 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaConfig.SecClientKey, ShouldEqual, "")
 				So(cfg.KafkaConfig.SecClientCert, ShouldEqual, "")
 				So(cfg.KafkaConfig.SecSkipVerify, ShouldBeFalse)
-				So(cfg.KafkaConfig.InstanceCompleteGroup, ShouldEqual, "dp-cantabular-csv-exporter")
-				So(cfg.KafkaConfig.InstanceCompleteTopic, ShouldEqual, "cantabular-dataset-instance-complete")
+				So(cfg.KafkaConfig.ExportStartGroup, ShouldEqual, "dp-cantabular-csv-exporter")
+				So(cfg.KafkaConfig.ExportStartTopic, ShouldEqual, "cantabular-export-start")
 				So(cfg.KafkaConfig.CsvCreatedTopic, ShouldEqual, "cantabular-csv-created")
 			})
 

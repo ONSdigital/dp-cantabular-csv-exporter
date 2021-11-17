@@ -13,7 +13,6 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
@@ -30,14 +29,23 @@ const (
 	testBucket             = "test-bucket"
 	testVaultPath          = "vault-root"
 	testInstanceID         = "test-instance-id"
+	testDatasetID          = "test-dataset-id"
+	testEdition            = "test-edition"
+	testVersion            = "test-version"
 	testS3Location         = "s3://myBucket/my-file.csv"
 	testDownloadServiceURL = "http://test-download-service:8200"
-	testETag               = "testETag"
 	testNumBytes           = 123
 	testRowCount           = 18
 )
 
 var (
+	testExportStartEvent = &event.ExportStart{
+		InstanceID: testInstanceID,
+		DatasetID:  testDatasetID,
+		Edition:    testEdition,
+		Version:    testVersion,
+	}
+
 	testCsvBody = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
 	testPsk     = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	testReq     = cantabular.StaticDatasetQueryRequest{
@@ -124,7 +132,7 @@ func TestValidateInstance(t *testing.T) {
 
 func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	isPublished := false
-	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
+	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
 	Convey("Given an event handler with a successful cantabular client and private S3Uploader", t, func() {
 		c := cantabularMock(testCsvBody)
@@ -132,7 +140,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected location and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -156,16 +164,16 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to stream csv data: %w",
-						fmt.Errorf("failed to upload private file to S3: %w", errS3),
+						fmt.Errorf("failed to upload un-encrypted private file to S3: %w", errS3),
 					),
 					log.Data{
 						"bucket":              testBucket,
-						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":            expectedS3Key,
 						"encryption_disabled": true,
 						"is_published":        false,
 					},
@@ -182,14 +190,14 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to stream csv data: %w", errCantabular),
 					log.Data{
 						"bucket":              testBucket,
-						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":            expectedS3Key,
 						"encryption_disabled": true,
 						"is_published":        false,
 					},
@@ -201,8 +209,8 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	Convey("Given an empty event handler", t, func() {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil, nil)
 
-		Convey("When UploadCSVFile is triggered with an empty instanceID", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, "", isPublished, testReq)
+		Convey("When UploadCSVFile is triggered with an empty export-start event", func() {
+			_, _, err := eventHandler.UploadCSVFile(ctx, &event.ExportStart{}, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New("empty instance id not allowed"))
@@ -218,8 +226,8 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		},
 	}
 	isPublished := false
-	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
-	expectedVaultPath := fmt.Sprintf("%s/%s.csv", testVaultPath, testInstanceID)
+	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
+	expectedVaultPath := fmt.Sprintf("%s/%s-%s-%s.csv", testVaultPath, testDatasetID, testEdition, testVersion)
 	cfg := testCfg()
 	cfg.EncryptionDisabled = false
 
@@ -230,7 +238,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &v, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected location and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -264,14 +272,14 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to write key to vault: %w", errVault),
 					log.Data{
 						"bucket":              testBucket,
-						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":            expectedS3Key,
 						"encryption_disabled": false,
 						"is_published":        false,
 					},
@@ -287,7 +295,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -296,7 +304,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 					),
 					log.Data{
 						"bucket":              testBucket,
-						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":            expectedS3Key,
 						"encryption_disabled": false,
 						"is_published":        false,
 					},
@@ -314,14 +322,14 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to stream csv data: %w", errCantabular),
 					log.Data{
 						"bucket":              testBucket,
-						"filename":            fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":            expectedS3Key,
 						"encryption_disabled": false,
 						"is_published":        false,
 					},
@@ -342,7 +350,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, &sPrivate, nil, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -354,7 +362,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 
 func TestUploadPublishedCSVFile(t *testing.T) {
 	isPublished := true
-	expectedS3Key := fmt.Sprintf("instances/%s.csv", testInstanceID)
+	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
 	Convey("Given an event handler with a successful cantabular client and public S3Uploader", t, func() {
 		c := cantabularMock(testCsvBody)
@@ -362,7 +370,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			loc, rowCount, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected location and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -386,7 +394,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &publicS3Uploader, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -395,7 +403,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 					),
 					log.Data{
 						"bucket":       testBucket,
-						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":     expectedS3Key,
 						"is_published": true,
 					}),
 				)
@@ -412,14 +420,14 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &publicS3Uploader, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, err := eventHandler.UploadCSVFile(ctx, testInstanceID, isPublished, testReq)
+			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
 					fmt.Errorf("failed to stream csv data: %w", errCantabular),
 					log.Data{
 						"bucket":       testBucket,
-						"filename":     fmt.Sprintf("instances/%s.csv", testInstanceID),
+						"filename":     expectedS3Key,
 						"is_published": true,
 					}),
 				)
@@ -444,7 +452,7 @@ func TestGetS3ContentLength(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected size with no error", func() {
-			numBytes, err := eventHandler.GetS3ContentLength(ctx, testInstanceID, false)
+			numBytes, err := eventHandler.GetS3ContentLength(ctx, testExportStartEvent, false)
 			So(err, ShouldBeNil)
 			So(numBytes, ShouldEqual, testNumBytes)
 		})
@@ -455,7 +463,7 @@ func TestGetS3ContentLength(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected error", func() {
-			_, err := eventHandler.GetS3ContentLength(ctx, testInstanceID, false)
+			_, err := eventHandler.GetS3ContentLength(ctx, testExportStartEvent, false)
 			So(err, ShouldResemble, fmt.Errorf("private s3 head object error: %w", errS3))
 		})
 	})
@@ -465,7 +473,7 @@ func TestGetS3ContentLength(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected size with no error", func() {
-			numBytes, err := eventHandler.GetS3ContentLength(ctx, testInstanceID, true)
+			numBytes, err := eventHandler.GetS3ContentLength(ctx, testExportStartEvent, true)
 			So(err, ShouldBeNil)
 			So(numBytes, ShouldEqual, testNumBytes)
 		})
@@ -476,7 +484,7 @@ func TestGetS3ContentLength(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected error", func() {
-			_, err := eventHandler.GetS3ContentLength(ctx, testInstanceID, true)
+			_, err := eventHandler.GetS3ContentLength(ctx, testExportStartEvent, true)
 			So(err, ShouldResemble, fmt.Errorf("public s3 head object error: %w", errS3))
 		})
 	})
@@ -490,45 +498,48 @@ func TestUpdateInstance(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called for a private csv file", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "")
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
-				expectedURL := fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID)
+				expectedURL := fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion)
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
-				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
-					Downloads: dataset.DownloadList{
-						CSV: &dataset.Download{
+				So(datasetAPIMock.PutVersionCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutVersionCalls()[0].DatasetID, ShouldEqual, testDatasetID)
+				So(datasetAPIMock.PutVersionCalls()[0].Edition, ShouldEqual, testEdition)
+				So(datasetAPIMock.PutVersionCalls()[0].Version, ShouldEqual, testVersion)
+				So(datasetAPIMock.PutVersionCalls()[0].V, ShouldResemble, dataset.Version{
+					Downloads: map[string]dataset.Download{
+						"CSV": {
 							URL:  expectedURL,
 							Size: fmt.Sprintf("%d", testSize),
 						},
 					},
 				})
-				So(datasetAPIMock.PutInstanceCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
 
 		Convey("When UpdateInstance is called for a public csv file", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, true, "publicURL")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, true, "publicURL")
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Then the expected UpdateInstance call is executed once to update the public download link and associate it, and once more to publish it", func() {
-				expectedURL := "publicURL"
+				expectedURL := fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv", testDownloadServiceURL, testDatasetID, testEdition, testVersion)
 				So(datasetAPIMock.GetInstanceCalls(), ShouldHaveLength, 0)
-				So(datasetAPIMock.PutInstanceCalls(), ShouldHaveLength, 1)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-				So(datasetAPIMock.PutInstanceCalls()[0].InstanceUpdate, ShouldResemble, dataset.UpdateInstance{
-					Downloads: dataset.DownloadList{
-						CSV: &dataset.Download{
-							Public: expectedURL,
+				So(datasetAPIMock.PutVersionCalls(), ShouldHaveLength, 1)
+				So(datasetAPIMock.PutVersionCalls()[0].DatasetID, ShouldEqual, testDatasetID)
+				So(datasetAPIMock.PutVersionCalls()[0].Edition, ShouldEqual, testEdition)
+				So(datasetAPIMock.PutVersionCalls()[0].Version, ShouldEqual, testVersion)
+				So(datasetAPIMock.PutVersionCalls()[0].V, ShouldResemble, dataset.Version{
+					Downloads: map[string]dataset.Download{
+						"CSV": {
+							Public: "publicURL",
 							URL:    expectedURL,
 							Size:   fmt.Sprintf("%d", testSize),
 						},
@@ -543,10 +554,10 @@ func TestUpdateInstance(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testInstanceID, testSize, false, "")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "")
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, fmt.Errorf("error during put instance: %w", errDataset))
+				So(err, ShouldResemble, fmt.Errorf("error while attempting update version downloads: %w", errDataset))
 			})
 		})
 	})
@@ -562,13 +573,15 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, false, "", testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CSVCreated{
-				FileURL:    fmt.Sprintf("%s/downloads/instances/%s.csv", testDownloadServiceURL, testInstanceID),
 				InstanceID: testInstanceID,
+				DatasetID:  testDatasetID,
+				Edition:    testEdition,
+				Version:    testVersion,
 				RowCount:   testRowCount,
 			}
 
@@ -589,13 +602,15 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testInstanceID, true, "publicURL", testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
 				c.So(err, ShouldBeNil)
 			}()
 
 			expectedEvent := event.CSVCreated{
-				FileURL:    "publicURL",
 				InstanceID: testInstanceID,
+				DatasetID:  testDatasetID,
+				Edition:    testEdition,
+				Version:    testVersion,
 				RowCount:   testRowCount,
 			}
 
@@ -699,8 +714,8 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", nil
 		},
-		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
-			return testETag, nil
+		PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
+			return nil
 		},
 	}
 }
@@ -710,8 +725,8 @@ func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", errDataset
 		},
-		PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, instanceUpdate dataset.UpdateInstance, ifMatch string) (string, error) {
-			return "", errDataset
+		PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
+			return errDataset
 		},
 	}
 }

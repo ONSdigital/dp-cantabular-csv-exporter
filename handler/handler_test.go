@@ -61,10 +61,10 @@ var (
 
 func testCfg() config.Config {
 	return config.Config{
-		UploadBucketName:   testBucket,
-		VaultPath:          testVaultPath,
-		EncryptionDisabled: true,
-		DownloadServiceURL: testDownloadServiceURL,
+		PublicUploadBucketName: testBucket,
+		VaultPath:              testVaultPath,
+		EncryptionDisabled:     true,
+		DownloadServiceURL:     testDownloadServiceURL,
 	}
 }
 

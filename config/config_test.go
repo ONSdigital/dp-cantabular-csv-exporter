@@ -32,7 +32,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.DownloadServiceURL, ShouldEqual, "http://localhost:23600")
 				So(cfg.CantabularHealthcheckEnabled, ShouldBeFalse)
 				So(cfg.AWSRegion, ShouldEqual, "eu-west-1")
-				So(cfg.UploadBucketName, ShouldEqual, "public-bucket")
+				So(cfg.PublicUploadBucketName, ShouldEqual, "public-bucket")
 				So(cfg.PrivateUploadBucketName, ShouldEqual, "private-bucket")
 				So(cfg.VaultPath, ShouldEqual, "secret/shared/psk")
 				So(cfg.VaultAddress, ShouldEqual, "http://localhost:8200")

@@ -81,8 +81,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		return fmt.Errorf("failed to validate instance: %w", err)
 	}
 
-	log.Info(ctx, "+++ DEBUG +++ Instance validated", log.Data{"is_published": isPublished})
-
 	req := cantabular.StaticDatasetQueryRequest{
 		Dataset:   instance.IsBasedOn.ID, // This value corresponds to the CantabularBlob that was used in import process
 		Variables: instance.CSVHeader[1:],
@@ -131,6 +129,16 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 			},
 		}
 	}
+
+	if i.IsBasedOn == nil || len(i.IsBasedOn.ID) == 0 {
+		return false, &Error{
+			err: errors.New("missing instance isBasedOn.ID"),
+			logData: log.Data{
+				"is_based_on": i.IsBasedOn,
+			},
+		}
+	}
+
 	return i.State == dataset.StatePublished.String(), nil
 }
 
@@ -158,8 +166,6 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 
 		// stream consumer/uploader for public files
 		consume = func(ctx context.Context, file io.Reader) error {
-			log.Info(ctx, "+++ DEBUG +++ Starting published consume...", logData)
-
 			if file == nil {
 				return errors.New("no file content has been provided")
 			}
@@ -217,8 +223,6 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				return nil
 			}
 		} else {
-			log.Info(ctx, "+++ DEBUG +++ Generating new PSK", logData)
-
 			psk, err := h.generator.NewPSK()
 			if err != nil {
 				return "", 0, NewError(
@@ -226,8 +230,6 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 					logData,
 				)
 			}
-
-			log.Info(ctx, "+++ DEBUG +++ Generating vault path for file", logData)
 
 			vaultPath := generateVaultPathForFile(h.cfg.VaultPath, e)
 			vaultKey := "key"

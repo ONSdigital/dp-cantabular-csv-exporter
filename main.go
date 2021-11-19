@@ -37,6 +37,7 @@ func run(ctx context.Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic: %s", r)
+			fmt.Printf("\n%s\n", err)
 		}
 	}()
 

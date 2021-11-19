@@ -77,6 +77,7 @@ func TestValidateInstance(t *testing.T) {
 		i := dataset.Instance{
 			Version: dataset.Version{
 				CSVHeader: []string{"1", "2"},
+				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
 				State:     dataset.StatePublished.String(),
 			},
 		}
@@ -91,6 +92,7 @@ func TestValidateInstance(t *testing.T) {
 		i := dataset.Instance{
 			Version: dataset.Version{
 				CSVHeader: []string{"1", "2"},
+				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
 				State:     dataset.StateAssociated.String(),
 			},
 		}
@@ -105,6 +107,7 @@ func TestValidateInstance(t *testing.T) {
 		i := dataset.Instance{
 			Version: dataset.Version{
 				CSVHeader: []string{"1", "2"},
+				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
 			},
 		}
 		Convey("Then ValidateInstance determines that instance is not published, without error", func() {
@@ -118,6 +121,7 @@ func TestValidateInstance(t *testing.T) {
 		i := dataset.Instance{
 			Version: dataset.Version{
 				CSVHeader: []string{"1"},
+				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
 			},
 		}
 		Convey("Then ValidateInstance returns the expected error", func() {
@@ -125,6 +129,39 @@ func TestValidateInstance(t *testing.T) {
 			So(err, ShouldResemble, handler.NewError(
 				errors.New("no dimensions in headers"),
 				log.Data{"headers": []string{"1"}},
+			))
+		})
+	})
+
+	Convey("Given an instance without isBasedOn field", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1", "2"},
+				State:     dataset.StatePublished.String(),
+			},
+		}
+		Convey("Then ValidateInstance returns the expected error", func() {
+			_, err := h.ValidateInstance(i)
+			So(err, ShouldResemble, handler.NewError(
+				errors.New("missing instance isBasedOn.ID"),
+				log.Data{"is_based_on": (*dataset.IsBasedOn)(nil)},
+			))
+		})
+	})
+
+	Convey("Given an instance with an empty isBasedOn field", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{"1", "2"},
+				State:     dataset.StatePublished.String(),
+				IsBasedOn: &dataset.IsBasedOn{},
+			},
+		}
+		Convey("Then ValidateInstance returns the expected error", func() {
+			_, err := h.ValidateInstance(i)
+			So(err, ShouldResemble, handler.NewError(
+				errors.New("missing instance isBasedOn.ID"),
+				log.Data{"is_based_on": &dataset.IsBasedOn{}},
 			))
 		})
 	})

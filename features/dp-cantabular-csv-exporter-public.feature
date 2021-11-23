@@ -1,4 +1,4 @@
-Feature: Cantabular-Csv-Exporter
+Feature: Cantabular-Csv-Exporter-Public
 
   Background:
     Given the following response is available from Cantabular from the codebook "Example" using the GraphQL endpoint:
@@ -98,7 +98,9 @@ Feature: Cantabular-Csv-Exporter
       """
 
     And dp-dataset-api is healthy
-
+    And cantabular server is healthy
+    And cantabular api extension is healthy
+    
     And the following instance with id "instance-happy-01" is available from dp-dataset-api:
       """
       {
@@ -138,7 +140,8 @@ Feature: Cantabular-Csv-Exporter
       }
       """
 
-    Scenario: Consuming a instance-complete event with correct fields
+    Scenario: Consuming a cantabular-export-start event with correct fields
+
     When this cantabular-export-start event is consumed:
       """
       {
@@ -150,7 +153,7 @@ Feature: Cantabular-Csv-Exporter
       """  
     And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated to dp-dataset-api
 
-    And a file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
+    And a public file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 
     Then these cantabular-csv-created events are produced:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |

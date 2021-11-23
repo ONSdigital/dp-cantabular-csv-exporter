@@ -24,17 +24,61 @@ import (
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" using the GraphQL endpoint:$`, c.theFollowingQueryResponseIsAvailable)
 	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
+	ctx.Step(`^dp-dataset-api is unhealthy`, c.datasetAPIIsUnhealthy)
+	ctx.Step(`^vault is healthy`, c.vaultIsHealthy)
+	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
+	ctx.Step(`^cantabular api extension is healthy`, c.cantabularApiExtensionIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^a dataset version with dataset-id "([^"]*)", edition "([^"]*)" and version "([^"]*)" is updated to dp-dataset-api`, c.theFollowingVersionIsUpdated)
 	ctx.Step(`^this cantabular-export-start event is consumed:$`, c.thisExportStartEventIsConsumed)
 	ctx.Step(`^these cantabular-csv-created events are produced:$`, c.theseCsvCreatedEventsAreProduced)
-	ctx.Step(`^a file with filename "([^"]*)" can be seen in minio`, c.theFollowingFileCanBeSeenInMinio)
+	ctx.Step(`^no cantabular-csv-created events are produced`, c.noCsvCreatedEventsAreProduced)
+	ctx.Step(`^a public file with filename "([^"]*)" can be seen in minio`, c.theFollowingPublicFileCanBeSeenInMinio)
+	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
 }
 
 func (c *Component) datasetAPIIsHealthy() error {
+	const res = `{"status": "OK"}`
 	c.DatasetAPI.NewHandler().
 		Get("/health").
-		Reply(http.StatusOK)
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+func (c *Component) datasetAPIIsUnhealthy() error {
+	const res = `{"status": "CRITICAL"}`
+	c.DatasetAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusInternalServerError).
+		BodyString(res)
+	return nil
+}
+
+func (c *Component) vaultIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.Vault.NewHandler().
+		Get("/health").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+func (c *Component) cantabularServerIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.CantabularSrv.NewHandler().
+		Get("/v9/datasets").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+func (c *Component) cantabularApiExtensionIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.CantabularAPIExt.NewHandler().
+		Get("/graphql?query={}").
+		Reply(http.StatusOK).
+		BodyString(res)
 	return nil
 }
 
@@ -136,6 +180,33 @@ func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error 
 	return nil
 }
 
+func (c *Component) noCsvCreatedEventsAreProduced() error {
+	select {
+	case <-time.After(c.waitEventTimeout):
+		return nil
+	case <-c.consumer.Channels().Closer:
+		return errors.New("closer channel closed")
+	case msg, ok := <-c.consumer.Channels().Upstream:
+		if !ok {
+			return errors.New("upstream channel closed")
+		}
+
+		var e event.CSVCreated
+		var s = schema.CSVCreated
+
+		if err := s.Unmarshal(msg.GetData(), &e); err != nil {
+			msg.Commit()
+			msg.Release()
+			return fmt.Errorf("error unmarshalling message: %w", err)
+		}
+
+		msg.Commit()
+		msg.Release()
+
+		return fmt.Errorf("kafka event received in csv-created topic: %v", e)
+	}
+}
+
 func (c *Component) thisExportStartEventIsConsumed(input *godog.DocString) error {
 	ctx := context.Background()
 
@@ -164,21 +235,29 @@ func (c *Component) thisExportStartEventIsConsumed(input *godog.DocString) error
 	return nil
 }
 
-func (c *Component) theFollowingFileCanBeSeenInMinio(fileName string) error {
+func (c *Component) theFollowingPublicFileCanBeSeenInMinio(fileName string) error {
+	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PublicUploadBucketName)
+}
+
+func (c *Component) theFollowingPrivateFileCanBeSeenInMinio(fileName string) error {
+	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PrivateUploadBucketName)
+}
+
+func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string) error {
 	ctx := context.Background()
 
 	var b []byte
 	f := aws.NewWriteAtBuffer(b)
 
 	// probe bucket with backoff to give time for event to be processed
-	retries := 3
+	retries := 5
 	timeout := time.Second
 	var numBytes int64
 	var err error
 
 	for {
 		if numBytes, err = c.S3Downloader.Download(f, &s3.GetObjectInput{
-			Bucket: aws.String(c.cfg.PublicUploadBucketName),
+			Bucket: aws.String(bucketName),
 			Key:    aws.String(fileName),
 		}); err == nil || retries <= 0 {
 			break

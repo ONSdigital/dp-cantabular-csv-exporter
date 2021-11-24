@@ -39,7 +39,6 @@ var (
 type Component struct {
 	componenttest.ErrorFeature
 	DatasetAPI       *httpfake.HTTPFake
-	Vault            *httpfake.HTTPFake
 	CantabularSrv    *httpfake.HTTPFake
 	CantabularAPIExt *httpfake.HTTPFake
 	S3Downloader     *s3manager.Downloader
@@ -59,7 +58,6 @@ func NewComponent() *Component {
 	return &Component{
 		errorChan:        make(chan error),
 		DatasetAPI:       httpfake.New(),
-		Vault:            httpfake.New(),
 		CantabularSrv:    httpfake.New(),
 		CantabularAPIExt: httpfake.New(),
 		wg:               &sync.WaitGroup{},
@@ -84,7 +82,6 @@ func (c *Component) initService(ctx context.Context) error {
 	cfg.StopConsumingOnUnhealthy = true
 	cfg.CantabularHealthcheckEnabled = true
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
-	cfg.VaultAddress = c.Vault.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.CantabularExtURL = c.CantabularAPIExt.ResolveURL("")
 
@@ -313,7 +310,6 @@ func (c *Component) Reset() error {
 	}
 
 	c.DatasetAPI.Reset()
-	c.Vault.Reset()
 	c.CantabularSrv.Reset()
 	c.CantabularAPIExt.Reset()
 

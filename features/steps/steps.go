@@ -1,7 +1,6 @@
 package steps
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,20 +22,30 @@ import (
 // RegisterSteps maps the human-readable regular expressions to their corresponding funcs
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" using the GraphQL endpoint:$`, c.theFollowingQueryResponseIsAvailable)
+	ctx.Step(`^the service starts`, c.theServiceStarts)
 	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
 	ctx.Step(`^dp-dataset-api is unhealthy`, c.datasetAPIIsUnhealthy)
-	ctx.Step(`^vault is healthy`, c.vaultIsHealthy)
 	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
 	ctx.Step(`^cantabular api extension is healthy`, c.cantabularApiExtensionIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^a dataset version with dataset-id "([^"]*)", edition "([^"]*)" and version "([^"]*)" is updated to dp-dataset-api`, c.theFollowingVersionIsUpdated)
-	ctx.Step(`^this cantabular-export-start event is consumed:$`, c.thisExportStartEventIsConsumed)
+	ctx.Step(`^this cantabular-export-start event is queued:$`, c.thisExportStartEventIsQueued)
 	ctx.Step(`^these cantabular-csv-created events are produced:$`, c.theseCsvCreatedEventsAreProduced)
 	ctx.Step(`^no cantabular-csv-created events are produced`, c.noCsvCreatedEventsAreProduced)
 	ctx.Step(`^a public file with filename "([^"]*)" can be seen in minio`, c.theFollowingPublicFileCanBeSeenInMinio)
 	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
 }
 
+// theServiceStarts starts the service under test in a new go-routine
+// note that this step should be called only after all dependencies have been setup,
+// to prevent any race condition, specially during the first healthcheck iteration.
+func (c *Component) theServiceStarts() error {
+	c.wg.Add(1)
+	go c.startService(c.ctx)
+	return nil
+}
+
+// datasetAPIIsHealthy generates a mocked healthy response for dataset API healthecheck
 func (c *Component) datasetAPIIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.DatasetAPI.NewHandler().
@@ -46,6 +55,7 @@ func (c *Component) datasetAPIIsHealthy() error {
 	return nil
 }
 
+// datasetAPIIsUnhealthy generates a mocked unhealthy response for dataset API healthecheck
 func (c *Component) datasetAPIIsUnhealthy() error {
 	const res = `{"status": "CRITICAL"}`
 	c.DatasetAPI.NewHandler().
@@ -55,15 +65,7 @@ func (c *Component) datasetAPIIsUnhealthy() error {
 	return nil
 }
 
-func (c *Component) vaultIsHealthy() error {
-	const res = `{"status": "OK"}`
-	c.Vault.NewHandler().
-		Get("/health").
-		Reply(http.StatusOK).
-		BodyString(res)
-	return nil
-}
-
+// cantabularServerIsHealthy generates a mocked healthy response for cantabular server
 func (c *Component) cantabularServerIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularSrv.NewHandler().
@@ -73,6 +75,7 @@ func (c *Component) cantabularServerIsHealthy() error {
 	return nil
 }
 
+// cantabularApiExtensionIsHealthy generates a mocked healthy response for cantabular api extension
 func (c *Component) cantabularApiExtensionIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularAPIExt.NewHandler().
@@ -180,6 +183,8 @@ func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error 
 	return nil
 }
 
+// noCsvCreatedEventsAreProduced listens to the kafka topic that is produced by the service under test
+// and validates that nothing is received, within a time window of duration waitEventTimeout
 func (c *Component) noCsvCreatedEventsAreProduced() error {
 	select {
 	case <-time.After(c.waitEventTimeout):
@@ -207,50 +212,43 @@ func (c *Component) noCsvCreatedEventsAreProduced() error {
 	}
 }
 
-func (c *Component) thisExportStartEventIsConsumed(input *godog.DocString) error {
-	ctx := context.Background()
-
-	// testing kafka message that will be produced
+// thisExportStartEventIsQueued produces a new ExportStart event with the contents defined by the input
+func (c *Component) thisExportStartEventIsQueued(input *godog.DocString) error {
 	var testEvent event.ExportStart
 	if err := json.Unmarshal([]byte(input.Content), &testEvent); err != nil {
 		return fmt.Errorf("error unmarshaling input to event: %w body: %s", err, input.Content)
 	}
 
-	log.Info(ctx, "event to marshal: ", log.Data{
+	log.Info(c.ctx, "event to send for testing: ", log.Data{
 		"event": testEvent,
 	})
 
-	// marshal and send message
-	b, err := schema.ExportStart.Marshal(testEvent)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event from schema: %w", err)
+	if err := c.producer.Send(schema.ExportStart, testEvent); err != nil {
+		return fmt.Errorf("failed to send event for testing: %w", err)
 	}
-
-	log.Info(ctx, "marshalled event: ", log.Data{
-		"event": b,
-	})
-
-	c.producer.Channels().Output <- b
-
 	return nil
 }
 
+// theFollowingPrivateFileCanBeSeenInMinio checks that the provided fileName is available in the public bucket.
+// If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingPublicFileCanBeSeenInMinio(fileName string) error {
 	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PublicUploadBucketName)
 }
 
+// theFollowingPrivateFileCanBeSeenInMinio checks that the provided fileName is available in the private bucket.
+// If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingPrivateFileCanBeSeenInMinio(fileName string) error {
 	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PrivateUploadBucketName)
 }
 
+// theFollowingFileCanBeSeenInMinio checks that the provided fileName is available in the provided bucket.
+// If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string) error {
-	ctx := context.Background()
-
 	var b []byte
 	f := aws.NewWriteAtBuffer(b)
 
 	// probe bucket with backoff to give time for event to be processed
-	retries := 5
+	retries := MinioCheckRetries
 	timeout := time.Second
 	var numBytes int64
 	var err error
@@ -265,7 +263,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 
 		retries--
 
-		log.Info(ctx, "error obtaining file from minio. Retrying.", log.Data{
+		log.Info(c.ctx, "error obtaining file from minio. Retrying.", log.Data{
 			"error":        err,
 			"retries_left": retries,
 		})
@@ -284,7 +282,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 		return errors.New("file length zero")
 	}
 
-	log.Info(ctx, "got file contents", log.Data{
+	log.Info(c.ctx, "got file contents", log.Data{
 		"contents": string(f.Bytes()),
 	})
 

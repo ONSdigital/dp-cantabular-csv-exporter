@@ -141,8 +141,10 @@ Feature: Cantabular-Csv-Exporter-Private
       """
 
     Scenario: Consuming a cantabular-export-start event with correct fields
+
+    When the service starts
     
-    When this cantabular-export-start event is consumed:
+    And this cantabular-export-start event is queued:
       """
       {
         "InstanceID": "instance-happy-01",
@@ -151,10 +153,10 @@ Feature: Cantabular-Csv-Exporter-Private
 	      "Version":    "version-happy-01"
       }
       """  
-    And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated to dp-dataset-api
+    Then a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated to dp-dataset-api
 
     And a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 
-    Then these cantabular-csv-created events are produced:
+    And these cantabular-csv-created events are produced:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
       | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |

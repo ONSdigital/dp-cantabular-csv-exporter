@@ -23,9 +23,11 @@ import (
 )
 
 const (
-	ComponentTestGroup    = "component-test-group"
-	DrainTopicTimeout     = time.Second
-	DrainTopicMaxMessages = 1000
+	ComponentTestGroup    = "component-test" // kafka group name for the component test consumer
+	DrainTopicTimeout     = 1 * time.Second  // maximum time to wait for a topic to be drained
+	DrainTopicMaxMessages = 1000             // maximum number of messages that will be drained from a topic
+	MinioCheckRetries     = 3                // maximum number of retires to validate that a file is present in minio
+	WaitEventTimeout      = 5 * time.Second  // maximum time that the component test consumer will wait for a kafka event
 )
 
 var (
@@ -36,7 +38,6 @@ var (
 
 type Component struct {
 	componenttest.ErrorFeature
-	apiFeature       *componenttest.APIFeature
 	DatasetAPI       *httpfake.HTTPFake
 	Vault            *httpfake.HTTPFake
 	CantabularSrv    *httpfake.HTTPFake
@@ -51,6 +52,7 @@ type Component struct {
 	signals          chan os.Signal
 	waitEventTimeout time.Duration
 	testETag         string
+	ctx              context.Context
 }
 
 func NewComponent() *Component {
@@ -61,8 +63,9 @@ func NewComponent() *Component {
 		CantabularSrv:    httpfake.New(),
 		CantabularAPIExt: httpfake.New(),
 		wg:               &sync.WaitGroup{},
-		waitEventTimeout: time.Second * 5,
+		waitEventTimeout: WaitEventTimeout,
 		testETag:         "13c7791bafdbaaf5e6660754feb1a58cd6aaa892",
+		ctx:              context.Background(),
 	}
 }
 
@@ -77,17 +80,15 @@ func (c *Component) initService(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
-
-	log.Info(ctx, "config read", log.Data{"cfg": cfg})
-
 	cfg.EncryptionDisabled = true
 	cfg.StopConsumingOnUnhealthy = true
 	cfg.CantabularHealthcheckEnabled = true
-	cfg.HealthCheckInterval = 250 * time.Millisecond // Frequent helathcheck to prevent race condition between healthchecks and fakehttp endpoints register
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.VaultAddress = c.Vault.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.CantabularExtURL = c.CantabularAPIExt.ResolveURL("")
+
+	log.Info(ctx, "config used by component tests", log.Data{"cfg": cfg})
 
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
@@ -97,7 +98,11 @@ func (c *Component) initService(ctx context.Context) error {
 		S3ForcePathStyle: aws.Bool(true),
 	}
 
-	s := session.New(s3Config)
+	// S3 downloader to check minio files
+	s, err := session.NewSession(s3Config)
+	if err != nil {
+		return fmt.Errorf("error creating aws session: %w", err)
+	}
 	c.S3Downloader = s3manager.NewDownloader(s)
 
 	// producer for triggering test events
@@ -142,7 +147,7 @@ func (c *Component) initService(ctx context.Context) error {
 
 	// Create service and initialise it
 	c.svc = service.New()
-	if err = c.svc.Init(context.Background(), cfg, BuildTime, GitCommit, Version); err != nil {
+	if err = c.svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
 		return fmt.Errorf("unexpected service Init error in NewComponent: %w", err)
 	}
 
@@ -157,11 +162,12 @@ func (c *Component) initService(ctx context.Context) error {
 	return nil
 }
 
+// startService starts the service under test and blocks until an error or an os interrupt is received.
+// Then it closes the service (graceful shutdown)
 func (c *Component) startService(ctx context.Context) {
 	defer c.wg.Done()
-	c.svc.Start(context.Background(), c.errorChan)
+	c.svc.Start(ctx, c.errorChan)
 
-	// blocks until an os interrupt or a fatal error occurs
 	select {
 	case err := <-c.errorChan:
 		err = fmt.Errorf("service error received: %w", err)
@@ -233,8 +239,9 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 	// start kafka logging go-routines
 	consumer.LogErrors(ctx)
 
+	// waitUntilDrained is a func that will wait until the batch is consumed or the timeout expires
+	// (with 100 ms of extra time to allow any in-flight drain)
 	waitUntilDrained := func() {
-		// wait until one batch is consumed or the timeout expires (with 100 ms of extra time to allow any in-flight drain)
 		select {
 		case <-time.After(DrainTopicTimeout + 100*time.Millisecond):
 		case <-drained:
@@ -261,8 +268,6 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 
 // Close kills the application under test, and then it shuts down the testing consumer and producer.
 func (c *Component) Close() {
-	ctx := context.Background()
-
 	// kill application
 	c.signals <- os.Interrupt
 
@@ -273,25 +278,25 @@ func (c *Component) Close() {
 	c.consumer.StopAndWait()
 
 	// close producer
-	if err := c.producer.Close(ctx); err != nil {
-		log.Error(ctx, "error closing kafka producer", err)
+	if err := c.producer.Close(c.ctx); err != nil {
+		log.Error(c.ctx, "error closing kafka producer", err)
 	}
 
 	// close consumer
-	if err := c.consumer.Close(ctx); err != nil {
-		log.Error(ctx, "error closing kafka consumer", err)
+	if err := c.consumer.Close(c.ctx); err != nil {
+		log.Error(c.ctx, "error closing kafka consumer", err)
 	}
 
-	// drain topics
+	// drain topics in parallel
 	wg := &sync.WaitGroup{}
-	if err := c.drainTopic(ctx, c.cfg.KafkaConfig.CsvCreatedTopic, ComponentTestGroup, wg); err != nil {
-		log.Error(ctx, "error draining topic", err, log.Data{
+	if err := c.drainTopic(c.ctx, c.cfg.KafkaConfig.CsvCreatedTopic, ComponentTestGroup, wg); err != nil {
+		log.Error(c.ctx, "error draining topic", err, log.Data{
 			"topic": c.cfg.KafkaConfig.CsvCreatedTopic,
 			"group": ComponentTestGroup,
 		})
 	}
-	if err := c.drainTopic(ctx, c.cfg.KafkaConfig.ExportStartTopic, c.cfg.KafkaConfig.ExportStartGroup, wg); err != nil {
-		log.Error(ctx, "error draining topic", err, log.Data{
+	if err := c.drainTopic(c.ctx, c.cfg.KafkaConfig.ExportStartTopic, c.cfg.KafkaConfig.ExportStartGroup, wg); err != nil {
+		log.Error(c.ctx, "error draining topic", err, log.Data{
 			"topic": c.cfg.KafkaConfig.ExportStartTopic,
 			"group": c.cfg.KafkaConfig.ExportStartGroup,
 		})
@@ -299,11 +304,11 @@ func (c *Component) Close() {
 	wg.Wait()
 }
 
-// Reset initialises the service under test, the api mocks and then starts the service
+// Reset re-initialises the service under test and the api mocks.
+// Note that the service under test should not be started yet
+// to prevent race conditions if it tries to call un-initialised dependencies (steps)
 func (c *Component) Reset() error {
-	ctx := context.Background()
-
-	if err := c.initService(ctx); err != nil {
+	if err := c.initService(c.ctx); err != nil {
 		return fmt.Errorf("failed to initialise service: %w", err)
 	}
 
@@ -311,10 +316,6 @@ func (c *Component) Reset() error {
 	c.Vault.Reset()
 	c.CantabularSrv.Reset()
 	c.CantabularAPIExt.Reset()
-
-	// run application in separate goroutine
-	c.wg.Add(1)
-	go c.startService(ctx)
 
 	return nil
 }

@@ -6,8 +6,10 @@ Feature: Cantabular-Csv-Exporter-Unhealthy
     And cantabular api extension is healthy
 
     Scenario: Not consuming cantabular-export-start events
+
+    When the service starts
     
-    When this cantabular-export-start event is consumed:
+    And this cantabular-export-start event is queued:
       """
       {
         "InstanceID": "instance-happy-01",

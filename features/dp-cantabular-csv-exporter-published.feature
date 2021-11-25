@@ -1,4 +1,6 @@
-Feature: Cantabular-Csv-Exporter-Private
+Feature: Cantabular-Csv-Exporter-Published
+
+  # This file validates that CSV files generated for an instance in published state are stored in the public S3 bucket
 
   Background:
     Given the following response is available from Cantabular from the codebook "Example" using the GraphQL endpoint:
@@ -100,7 +102,7 @@ Feature: Cantabular-Csv-Exporter-Private
     And dp-dataset-api is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy
-
+    
     And the following instance with id "instance-happy-01" is available from dp-dataset-api:
       """
       {
@@ -127,7 +129,7 @@ Feature: Cantabular-Csv-Exporter-Private
             "href": "http://10.201.4.160:10400/instances/057cd26b-e0ae-431f-9316-913db61cec39"
           }
         },
-        "state": "associated",
+        "state": "published",
         "headers": [
           "ftb_table",
           "city",
@@ -140,11 +142,11 @@ Feature: Cantabular-Csv-Exporter-Private
       }
       """
 
-    Scenario: Consuming a cantabular-export-start event with correct fields
+    Scenario: Consuming a cantabular-export-start event with correct fields for a published instance
 
     When the service starts
-    
-    And this cantabular-export-start event is queued:
+
+    And this cantabular-export-start event is queued, to be consumed:
       """
       {
         "InstanceID": "instance-happy-01",
@@ -152,11 +154,11 @@ Feature: Cantabular-Csv-Exporter-Private
         "Edition":    "edition-happy-01",
 	      "Version":    "version-happy-01"
       }
-      """  
-    Then a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated to dp-dataset-api
+      """
+    Then a dataset version with dataset-id “dataset-happy-01”, edition “edition-happy-01" and version “version-happy-01” is updated by an API call to dp-dataset-api
 
-    And a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
+    And a public file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 
-    And these cantabular-csv-created events are produced:
+    And one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
       | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |

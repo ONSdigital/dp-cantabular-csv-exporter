@@ -1,15 +1,17 @@
 Feature: Cantabular-Csv-Exporter-Unhealthy
 
+  # This file validates that events are not consumed by the service if a dependency is not healthy
+
   Background:
     Given dp-dataset-api is unhealthy
     And cantabular server is healthy
     And cantabular api extension is healthy
 
-    Scenario: Not consuming cantabular-export-start events
+    Scenario: Not consuming cantabular-export-start events, because a dependency is not healthy
 
     When the service starts
     
-    And this cantabular-export-start event is queued:
+    And this cantabular-export-start event is queued, to be consumed:
       """
       {
         "InstanceID": "instance-happy-01",

@@ -171,9 +171,9 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	isPublished := false
 	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
-	Convey("Given an event handler with a successful cantabular client and private S3Uploader", t, func() {
+	Convey("Given an event handler with a successful cantabular client and private S3Client", t, func() {
 		c := cantabularMock(testCsvBody)
-		sPrivate := s3UploaderHappy(false)
+		sPrivate := s3ClientHappy(false)
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
@@ -195,9 +195,9 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a successful cantabular client and an unsuccessful private S3Uploader", t, func() {
+	Convey("Given an event handler with a successful cantabular client and an unsuccessful private S3Client", t, func() {
 		c := cantabularMock(testCsvBody)
-		sPrivate := s3UploaderUnhappy(false)
+		sPrivate := s3ClientUnhappy(false)
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
@@ -221,7 +221,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 
 	Convey("Given an event handler with an unsuccessful cantabular client", t, func() {
 		c := cantabularUnhappy()
-		sPrivate := mock.S3UploaderMock{
+		sPrivate := mock.S3ClientMock{
 			BucketNameFunc: func() string { return testBucket },
 		}
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, &sPrivate, nil, nil, nil, nil)
@@ -268,9 +268,9 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 	cfg := testCfg()
 	cfg.EncryptionDisabled = false
 
-	Convey("Given an event handler with a successful cantabular client, private S3Uploader, Vault client and encryption enabled", t, func() {
+	Convey("Given an event handler with a successful cantabular client, private S3Client, Vault client and encryption enabled", t, func() {
 		c := cantabularMock(testCsvBody)
-		sPrivate := s3UploaderHappy(true)
+		sPrivate := s3ClientHappy(true)
 		v := vaultHappy()
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &v, nil, generator)
 
@@ -302,7 +302,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an event handler with an unsuccessful Vault client and encryption enabled", t, func() {
-		sPrivate := mock.S3UploaderMock{
+		sPrivate := mock.S3ClientMock{
 			BucketNameFunc: func() string { return testBucket },
 		}
 		vaultClient := vaultUnhappy()
@@ -327,7 +327,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 
 	Convey("Given an event handler with a successful Vault client, a successful cantabular client, an unsuccessful private S3 client and encryption enabled", t, func() {
 		c := cantabularMock(testCsvBody)
-		sPrivate := s3UploaderUnhappy(true)
+		sPrivate := s3ClientUnhappy(true)
 		vaultClient := vaultHappy()
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
@@ -352,7 +352,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 
 	Convey("Given an event handler with a successful Vault client, an unsuccessful cantabular client and encryption enabled", t, func() {
 		c := cantabularUnhappy()
-		sPrivate := mock.S3UploaderMock{
+		sPrivate := mock.S3ClientMock{
 			BucketNameFunc: func() string { return testBucket },
 		}
 		vaultClient := vaultHappy()
@@ -376,7 +376,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 	})
 
 	Convey("Given an event handler, a failing createPSK function and encryption enabled", t, func() {
-		sPrivate := mock.S3UploaderMock{
+		sPrivate := mock.S3ClientMock{
 			BucketNameFunc: func() string { return testBucket },
 		}
 
@@ -401,9 +401,9 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 	isPublished := true
 	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
-	Convey("Given an event handler with a successful cantabular client and public S3Uploader", t, func() {
+	Convey("Given an event handler with a successful cantabular client and public S3Client", t, func() {
 		c := cantabularMock(testCsvBody)
-		sPublic := s3UploaderHappy(false)
+		sPublic := s3ClientHappy(false)
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
@@ -425,10 +425,10 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a successful cantabular client and an unsuccessful public S3Uploader", t, func() {
+	Convey("Given an event handler with a successful cantabular client and an unsuccessful public S3Client", t, func() {
 		c := cantabularMock(testCsvBody)
-		publicS3Uploader := s3UploaderUnhappy(false)
-		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &publicS3Uploader, nil, nil, nil)
+		publicS3Client := s3ClientUnhappy(false)
+		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &publicS3Client, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
 			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
@@ -451,10 +451,10 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 	Convey("Given an event handler with an unsuccessful cantabular client", t, func() {
 		cfg := testCfg()
 		c := cantabularUnhappy()
-		publicS3Uploader := mock.S3UploaderMock{
+		publicS3Client := mock.S3ClientMock{
 			BucketNameFunc: func() string { return testBucket },
 		}
-		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &publicS3Uploader, nil, nil, nil)
+		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &publicS3Client, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
 			_, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
@@ -484,8 +484,8 @@ func TestGetS3ContentLength(t *testing.T) {
 		return nil, errS3
 	}
 
-	Convey("Given an event handler with a successful s3 private uploader", t, func() {
-		sPrivate := mock.S3UploaderMock{HeadFunc: headOk}
+	Convey("Given an event handler with a successful s3 private client", t, func() {
+		sPrivate := mock.S3ClientMock{HeadFunc: headOk}
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected size with no error", func() {
@@ -495,8 +495,8 @@ func TestGetS3ContentLength(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a failing s3 private uploader", t, func() {
-		sPrivate := mock.S3UploaderMock{HeadFunc: headErr}
+	Convey("Given an event handler with a failing s3 private client", t, func() {
+		sPrivate := mock.S3ClientMock{HeadFunc: headErr}
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected error", func() {
@@ -505,8 +505,8 @@ func TestGetS3ContentLength(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a successful s3 public uploader", t, func() {
-		sPublic := mock.S3UploaderMock{HeadFunc: headOk}
+	Convey("Given an event handler with a successful s3 public client", t, func() {
+		sPublic := mock.S3ClientMock{HeadFunc: headOk}
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected size with no error", func() {
@@ -516,8 +516,8 @@ func TestGetS3ContentLength(t *testing.T) {
 		})
 	})
 
-	Convey("Given an event handler with a failing s3 public uploader", t, func() {
-		sPublic := mock.S3UploaderMock{HeadFunc: headErr}
+	Convey("Given an event handler with a failing s3 public client", t, func() {
+		sPublic := mock.S3ClientMock{HeadFunc: headErr}
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("Then GetS3ContentLength returns the expected error", func() {
@@ -684,9 +684,9 @@ func cantabularUnhappy() mock.CantabularClientMock {
 	}
 }
 
-func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
+func s3ClientHappy(encryptionEnabled bool) mock.S3ClientMock {
 	if encryptionEnabled {
-		return mock.S3UploaderMock{
+		return mock.S3ClientMock{
 			UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
 				return &s3manager.UploadOutput{
 					Location: testS3Location,
@@ -697,7 +697,7 @@ func s3UploaderHappy(encryptionEnabled bool) mock.S3UploaderMock {
 			},
 		}
 	}
-	return mock.S3UploaderMock{
+	return mock.S3ClientMock{
 		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 			return &s3manager.UploadOutput{
 				Location: testS3Location,
@@ -725,9 +725,9 @@ func vaultUnhappy() mock.VaultClientMock {
 	}
 }
 
-func s3UploaderUnhappy(encryptionEnabled bool) mock.S3UploaderMock {
+func s3ClientUnhappy(encryptionEnabled bool) mock.S3ClientMock {
 	if encryptionEnabled {
-		return mock.S3UploaderMock{
+		return mock.S3ClientMock{
 			UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
 				return nil, errS3
 			},
@@ -736,7 +736,7 @@ func s3UploaderUnhappy(encryptionEnabled bool) mock.S3UploaderMock {
 			},
 		}
 	}
-	return mock.S3UploaderMock{
+	return mock.S3ClientMock{
 		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 			return nil, errS3
 		},

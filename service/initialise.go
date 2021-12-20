@@ -12,7 +12,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	dps3 "github.com/ONSdigital/dp-s3"
+	dps3 "github.com/ONSdigital/dp-s3/v2"
 	vault "github.com/ONSdigital/dp-vault"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,11 +36,12 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 		kafkaOffset = kafka.OffsetOldest
 	}
 	cgConfig := &kafka.ConsumerGroupConfig{
-		BrokerAddrs:  cfg.KafkaConfig.Addr,
-		Topic:        cfg.KafkaConfig.ExportStartTopic,
-		GroupName:    cfg.KafkaConfig.ExportStartGroup,
-		KafkaVersion: &cfg.KafkaConfig.Version,
-		Offset:       &kafkaOffset,
+		BrokerAddrs:       cfg.KafkaConfig.Addr,
+		Topic:             cfg.KafkaConfig.ExportStartTopic,
+		GroupName:         cfg.KafkaConfig.ExportStartGroup,
+		MinBrokersHealthy: &cfg.KafkaConfig.ConsumerMinBrokersHealthy,
+		KafkaVersion:      &cfg.KafkaConfig.Version,
+		Offset:            &kafkaOffset,
 	}
 	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
 		cgConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -56,10 +57,11 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 // GetKafkaProducer creates a Kafka producer
 var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 	pConfig := &kafka.ProducerConfig{
-		BrokerAddrs:     cfg.KafkaConfig.Addr,
-		Topic:           cfg.KafkaConfig.CsvCreatedTopic,
-		KafkaVersion:    &cfg.KafkaConfig.Version,
-		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
+		BrokerAddrs:       cfg.KafkaConfig.Addr,
+		Topic:             cfg.KafkaConfig.CsvCreatedTopic,
+		MinBrokersHealthy: &cfg.KafkaConfig.ProducerMinBrokersHealthy,
+		KafkaVersion:      &cfg.KafkaConfig.Version,
+		MaxMessageBytes:   &cfg.KafkaConfig.MaxBytes,
 	}
 	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -90,8 +92,8 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-// GetS3Uploaders creates the private and public S3 Uploaders using the same AWS session
-var GetS3Uploaders = func(cfg *config.Config) (private, public S3Uploader, err error) {
+// GetS3Clients creates the private and public S3 Clients using the same AWS session
+var GetS3Clients = func(cfg *config.Config) (private, public S3Client, err error) {
 	if cfg.LocalObjectStore != "" {
 		s3Config := &aws.Config{
 			Credentials:      credentials.NewStaticCredentials(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
@@ -105,16 +107,16 @@ var GetS3Uploaders = func(cfg *config.Config) (private, public S3Uploader, err e
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to create aws session: %w", err)
 		}
-		return dps3.NewUploaderWithSession(cfg.PrivateUploadBucketName, s),
-			dps3.NewUploaderWithSession(cfg.PublicUploadBucketName, s),
+		return dps3.NewClientWithSession(cfg.PrivateUploadBucketName, s),
+			dps3.NewClientWithSession(cfg.PublicUploadBucketName, s),
 			nil
 	}
 
-	private, err = dps3.NewUploader(cfg.AWSRegion, cfg.PrivateUploadBucketName)
+	private, err = dps3.NewClient(cfg.AWSRegion, cfg.PrivateUploadBucketName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create S3 Client: %w", err)
 	}
-	public = dps3.NewUploaderWithSession(cfg.PublicUploadBucketName, private.Session())
+	public = dps3.NewClientWithSession(cfg.PublicUploadBucketName, private.Session())
 	return private, public, nil
 }
 

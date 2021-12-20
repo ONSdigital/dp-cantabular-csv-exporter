@@ -17,17 +17,17 @@ import (
 
 // Service contains all the configs, server and clients to run the event handler service
 type Service struct {
-	Cfg               *config.Config
-	Server            HTTPServer
-	HealthCheck       HealthChecker
-	Consumer          kafka.IConsumerGroup
-	Producer          kafka.IProducer
-	DatasetAPIClient  DatasetAPIClient
-	CantabularClient  CantabularClient
-	S3PrivateUploader S3Uploader
-	S3PublicUploader  S3Uploader
-	VaultClient       VaultClient
-	generator         Generator
+	Cfg              *config.Config
+	Server           HTTPServer
+	HealthCheck      HealthChecker
+	Consumer         kafka.IConsumerGroup
+	Producer         kafka.IProducer
+	DatasetAPIClient DatasetAPIClient
+	CantabularClient CantabularClient
+	S3PrivateClient  S3Client
+	S3PublicClient   S3Client
+	VaultClient      VaultClient
+	generator        Generator
 }
 
 func New() *Service {
@@ -50,8 +50,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.Producer, err = GetKafkaProducer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
-	if svc.S3PrivateUploader, svc.S3PublicUploader, err = GetS3Uploaders(cfg); err != nil {
-		return fmt.Errorf("failed to initialise s3 uploaders: %w", err)
+	if svc.S3PrivateClient, svc.S3PublicClient, err = GetS3Clients(cfg); err != nil {
+		return fmt.Errorf("failed to initialise s3 clients: %w", err)
 	}
 	if !cfg.EncryptionDisabled {
 		if svc.VaultClient, err = GetVault(cfg); err != nil {
@@ -67,8 +67,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		*svc.Cfg,
 		svc.CantabularClient,
 		svc.DatasetAPIClient,
-		svc.S3PrivateUploader,
-		svc.S3PublicUploader,
+		svc.S3PrivateClient,
+		svc.S3PublicClient,
 		svc.VaultClient,
 		svc.Producer,
 		svc.generator,
@@ -215,14 +215,14 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
-	checkS3Private, err := svc.HealthCheck.AddAndGetCheck("S3 private uploader", svc.S3PrivateUploader.Checker)
+	checkS3Private, err := svc.HealthCheck.AddAndGetCheck("S3 private client", svc.S3PrivateClient.Checker)
 	if err != nil {
-		return fmt.Errorf("error adding check for s3 private uploader: %w", err)
+		return fmt.Errorf("error adding check for s3 private client: %w", err)
 	}
 
-	checkS3Public, err := svc.HealthCheck.AddAndGetCheck("S3 public uploader", svc.S3PublicUploader.Checker)
+	checkS3Public, err := svc.HealthCheck.AddAndGetCheck("S3 public client", svc.S3PublicClient.Checker)
 	if err != nil {
-		return fmt.Errorf("error adding check for s3 public uploader: %w", err)
+		return fmt.Errorf("error adding check for s3 public client: %w", err)
 	}
 
 	if svc.Cfg.StopConsumingOnUnhealthy {

@@ -11,7 +11,7 @@ import (
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
-//go:generate moq -out mock/s3-client.go -pkg mock . S3Uploader
+//go:generate moq -out mock/s3-client.go -pkg mock . S3Client
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
 //go:generate moq -out mock/generator.go -pkg mock . Generator
 
@@ -20,8 +20,8 @@ type CantabularClient interface {
 	StaticDatasetQueryStreamCSV(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (rowCount int32, err error)
 }
 
-// S3Uploader contains the required method for the S3 Uploader
-type S3Uploader interface {
+// S3Client contains the required method for the S3 Client
+type S3Client interface {
 	Head(key string) (*s3.HeadObjectOutput, error)
 	UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)

@@ -5,27 +5,35 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
 
-// Ensure, that S3ClientMock does implement handler.S3Client.
+// Ensure, that S3ClientMock does implement service.S3Client.
 // If this is not the case, regenerate this file with moq.
-var _ handler.S3Client = &S3ClientMock{}
+var _ service.S3Client = &S3ClientMock{}
 
-// S3ClientMock is a mock implementation of handler.S3Client.
+// S3ClientMock is a mock implementation of service.S3Client.
 //
 // 	func TestSomethingThatUsesS3Client(t *testing.T) {
 //
-// 		// make and configure a mocked handler.S3Client
+// 		// make and configure a mocked service.S3Client
 // 		mockedS3Client := &S3ClientMock{
 // 			BucketNameFunc: func() string {
 // 				panic("mock out the BucketName method")
 // 			},
+// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+// 				panic("mock out the Checker method")
+// 			},
 // 			HeadFunc: func(key string) (*s3.HeadObjectOutput, error) {
 // 				panic("mock out the Head method")
+// 			},
+// 			SessionFunc: func() *session.Session {
+// 				panic("mock out the Session method")
 // 			},
 // 			UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 // 				panic("mock out the UploadWithContext method")
@@ -35,7 +43,7 @@ var _ handler.S3Client = &S3ClientMock{}
 // 			},
 // 		}
 //
-// 		// use mockedS3Client in code that requires handler.S3Client
+// 		// use mockedS3Client in code that requires service.S3Client
 // 		// and then make assertions.
 //
 // 	}
@@ -43,8 +51,14 @@ type S3ClientMock struct {
 	// BucketNameFunc mocks the BucketName method.
 	BucketNameFunc func() string
 
+	// CheckerFunc mocks the Checker method.
+	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
+
 	// HeadFunc mocks the Head method.
 	HeadFunc func(key string) (*s3.HeadObjectOutput, error)
+
+	// SessionFunc mocks the Session method.
+	SessionFunc func() *session.Session
 
 	// UploadWithContextFunc mocks the UploadWithContext method.
 	UploadWithContextFunc func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
@@ -57,10 +71,20 @@ type S3ClientMock struct {
 		// BucketName holds details about calls to the BucketName method.
 		BucketName []struct {
 		}
+		// Checker holds details about calls to the Checker method.
+		Checker []struct {
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// CheckState is the checkState argument value.
+			CheckState *healthcheck.CheckState
+		}
 		// Head holds details about calls to the Head method.
 		Head []struct {
 			// Key is the key argument value.
 			Key string
+		}
+		// Session holds details about calls to the Session method.
+		Session []struct {
 		}
 		// UploadWithContext holds details about calls to the UploadWithContext method.
 		UploadWithContext []struct {
@@ -80,7 +104,9 @@ type S3ClientMock struct {
 		}
 	}
 	lockBucketName        sync.RWMutex
+	lockChecker           sync.RWMutex
 	lockHead              sync.RWMutex
+	lockSession           sync.RWMutex
 	lockUploadWithContext sync.RWMutex
 	lockUploadWithPSK     sync.RWMutex
 }
@@ -108,6 +134,41 @@ func (mock *S3ClientMock) BucketNameCalls() []struct {
 	mock.lockBucketName.RLock()
 	calls = mock.calls.BucketName
 	mock.lockBucketName.RUnlock()
+	return calls
+}
+
+// Checker calls CheckerFunc.
+func (mock *S3ClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+	if mock.CheckerFunc == nil {
+		panic("S3ClientMock.CheckerFunc: method is nil but S3Client.Checker was just called")
+	}
+	callInfo := struct {
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
+	}{
+		ContextMoqParam: contextMoqParam,
+		CheckState:      checkState,
+	}
+	mock.lockChecker.Lock()
+	mock.calls.Checker = append(mock.calls.Checker, callInfo)
+	mock.lockChecker.Unlock()
+	return mock.CheckerFunc(contextMoqParam, checkState)
+}
+
+// CheckerCalls gets all the calls that were made to Checker.
+// Check the length with:
+//     len(mockedS3Client.CheckerCalls())
+func (mock *S3ClientMock) CheckerCalls() []struct {
+	ContextMoqParam context.Context
+	CheckState      *healthcheck.CheckState
+} {
+	var calls []struct {
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
+	}
+	mock.lockChecker.RLock()
+	calls = mock.calls.Checker
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -139,6 +200,32 @@ func (mock *S3ClientMock) HeadCalls() []struct {
 	mock.lockHead.RLock()
 	calls = mock.calls.Head
 	mock.lockHead.RUnlock()
+	return calls
+}
+
+// Session calls SessionFunc.
+func (mock *S3ClientMock) Session() *session.Session {
+	if mock.SessionFunc == nil {
+		panic("S3ClientMock.SessionFunc: method is nil but S3Client.Session was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockSession.Lock()
+	mock.calls.Session = append(mock.calls.Session, callInfo)
+	mock.lockSession.Unlock()
+	return mock.SessionFunc()
+}
+
+// SessionCalls gets all the calls that were made to Session.
+// Check the length with:
+//     len(mockedS3Client.SessionCalls())
+func (mock *S3ClientMock) SessionCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockSession.RLock()
+	calls = mock.calls.Session
+	mock.lockSession.RUnlock()
 	return calls
 }
 

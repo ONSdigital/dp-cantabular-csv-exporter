@@ -152,10 +152,10 @@ Feature: Cantabular-Csv-Exporter-Unpublished
         "InstanceID": "instance-happy-01",
         "DatasetID":  "dataset-happy-01",
         "Edition":    "edition-happy-01",
-	      "Version":    "version-happy-01"
+        "Version":    "version-happy-01"
       }
       """
-    Then a dataset version with dataset-id “dataset-happy-01”, edition “edition-happy-01" and version “version-happy-01” is updated by an API call to dp-dataset-api
+    Then a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
 
     And a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 

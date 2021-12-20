@@ -19,7 +19,7 @@ import (
 //go:generate moq -out mock/health_check.go -pkg mock . HealthChecker
 //go:generate moq -out mock/cantabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
-//go:generate moq -out mock/s3_uploader.go -pkg mock . S3Uploader
+//go:generate moq -out mock/s3_client.go -pkg mock . S3Client
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
 
 // Initialiser defines the methods to initialise external services
@@ -56,7 +56,7 @@ type DatasetAPIClient interface {
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type S3Uploader interface {
+type S3Client interface {
 	Head(key string) (*s3.HeadObjectOutput, error)
 	UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)

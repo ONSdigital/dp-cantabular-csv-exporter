@@ -26,7 +26,7 @@ var (
 	testChecks    = map[string]*healthcheck.Check{
 		"Cantabular client":  {},
 		"Dataset API client": {},
-		"S3 uploader":        {},
+		"S3 client":          {},
 		"Vault":              {},
 	}
 )
@@ -94,18 +94,18 @@ func TestInit(t *testing.T) {
 			return datasetApiMock
 		}
 
-		s3PrivateUploaderMock := &serviceMock.S3UploaderMock{
+		s3PrivateClientMock := &serviceMock.S3ClientMock{
 			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 				return nil
 			},
 		}
-		s3PublicUploaderMock := &serviceMock.S3UploaderMock{
+		s3PublicClientMock := &serviceMock.S3ClientMock{
 			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 				return nil
 			},
 		}
-		service.GetS3Uploaders = func(cfg *config.Config) (service.S3Uploader, service.S3Uploader, error) {
-			return s3PrivateUploaderMock, s3PublicUploaderMock, nil
+		service.GetS3Clients = func(cfg *config.Config) (service.S3Client, service.S3Client, error) {
+			return s3PrivateClientMock, s3PublicClientMock, nil
 		}
 
 		vaultMock := &serviceMock.VaultClientMock{
@@ -181,8 +181,8 @@ func TestInit(t *testing.T) {
 				So(svc.CantabularClient, ShouldResemble, cantabularMock)
 				So(svc.Producer, ShouldResemble, producerMock)
 				So(svc.DatasetAPIClient, ShouldResemble, datasetApiMock)
-				So(svc.S3PrivateUploader, ShouldResemble, s3PrivateUploaderMock)
-				So(svc.S3PublicUploader, ShouldResemble, s3PublicUploaderMock)
+				So(svc.S3PrivateClient, ShouldResemble, s3PrivateClientMock)
+				So(svc.S3PublicClient, ShouldResemble, s3PublicClientMock)
 				So(svc.VaultClient, ShouldResemble, vaultMock)
 
 				Convey("Then all checks are registered", func() {
@@ -192,8 +192,8 @@ func TestInit(t *testing.T) {
 					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
 					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Cantabular API Extension")
 					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "S3 private uploader")
-					So(hcMock.AddAndGetCheckCalls()[6].Name, ShouldResemble, "S3 public uploader")
+					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "S3 private client")
+					So(hcMock.AddAndGetCheckCalls()[6].Name, ShouldResemble, "S3 public client")
 					So(hcMock.AddAndGetCheckCalls()[7].Name, ShouldResemble, "Vault")
 				})
 
@@ -202,8 +202,8 @@ func TestInit(t *testing.T) {
 					So(subscribedTo[0], ShouldEqual, testChecks["Cantabular client"])
 					So(subscribedTo[1], ShouldEqual, testChecks["Cantabular API Extension"])
 					So(subscribedTo[2], ShouldEqual, testChecks["Dataset API client"])
-					So(subscribedTo[3], ShouldEqual, testChecks["S3 private uploader"])
-					So(subscribedTo[4], ShouldEqual, testChecks["S3 public uploader"])
+					So(subscribedTo[3], ShouldEqual, testChecks["S3 private client"])
+					So(subscribedTo[4], ShouldEqual, testChecks["S3 public client"])
 					So(subscribedTo[5], ShouldEqual, testChecks["Vault"])
 				})
 
@@ -226,8 +226,8 @@ func TestInit(t *testing.T) {
 				So(svc.CantabularClient, ShouldResemble, cantabularMock)
 				So(svc.Producer, ShouldResemble, producerMock)
 				So(svc.DatasetAPIClient, ShouldResemble, datasetApiMock)
-				So(svc.S3PrivateUploader, ShouldResemble, s3PrivateUploaderMock)
-				So(svc.S3PublicUploader, ShouldResemble, s3PublicUploaderMock)
+				So(svc.S3PrivateClient, ShouldResemble, s3PrivateClientMock)
+				So(svc.S3PublicClient, ShouldResemble, s3PublicClientMock)
 
 				Convey("Then all checks are registered, except Vault", func() {
 					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 7)
@@ -236,8 +236,8 @@ func TestInit(t *testing.T) {
 					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Cantabular client")
 					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Cantabular API Extension")
 					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
-					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "S3 private uploader")
-					So(hcMock.AddAndGetCheckCalls()[6].Name, ShouldResemble, "S3 public uploader")
+					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "S3 private client")
+					So(hcMock.AddAndGetCheckCalls()[6].Name, ShouldResemble, "S3 public client")
 				})
 
 				Convey("Then kafka consumer subscribes to the expected healthcheck checks", func() {
@@ -245,8 +245,8 @@ func TestInit(t *testing.T) {
 					So(subscribedTo[0], ShouldEqual, testChecks["Cantabular client"])
 					So(subscribedTo[1], ShouldEqual, testChecks["Cantabular API Extension"])
 					So(subscribedTo[2], ShouldEqual, testChecks["Dataset API client"])
-					So(subscribedTo[3], ShouldEqual, testChecks["S3 private uploader"])
-					So(subscribedTo[4], ShouldEqual, testChecks["S3 public uploader"])
+					So(subscribedTo[3], ShouldEqual, testChecks["S3 private client"])
+					So(subscribedTo[4], ShouldEqual, testChecks["S3 public client"])
 				})
 
 				Convey("Then the handler is registered to the kafka consumer", func() {

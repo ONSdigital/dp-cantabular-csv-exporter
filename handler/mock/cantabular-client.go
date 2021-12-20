@@ -11,30 +11,25 @@ import (
 	"sync"
 )
 
-var (
-	lockCantabularClientMockStaticDatasetQueryStreamCSV sync.RWMutex
-)
-
 // Ensure, that CantabularClientMock does implement handler.CantabularClient.
 // If this is not the case, regenerate this file with moq.
 var _ handler.CantabularClient = &CantabularClientMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
 // CantabularClientMock is a mock implementation of handler.CantabularClient.
 //
-//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
+// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-//         // make and configure a mocked handler.CantabularClient
-//         mockedCantabularClient := &CantabularClientMock{
-//             StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
-// 	               panic("mock out the StaticDatasetQueryStreamCSV method")
-//             },
-//         }
+// 		// make and configure a mocked handler.CantabularClient
+// 		mockedCantabularClient := &CantabularClientMock{
+// 			StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
+// 				panic("mock out the StaticDatasetQueryStreamCSV method")
+// 			},
+// 		}
 //
-//         // use mockedCantabularClient in code that requires handler.CantabularClient
-//         // and then make assertions.
+// 		// use mockedCantabularClient in code that requires handler.CantabularClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type CantabularClientMock struct {
 	// StaticDatasetQueryStreamCSVFunc mocks the StaticDatasetQueryStreamCSV method.
 	StaticDatasetQueryStreamCSVFunc func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error)
@@ -51,6 +46,7 @@ type CantabularClientMock struct {
 			Consume func(ctx context.Context, r io.Reader) error
 		}
 	}
+	lockStaticDatasetQueryStreamCSV sync.RWMutex
 }
 
 // StaticDatasetQueryStreamCSV calls StaticDatasetQueryStreamCSVFunc.
@@ -67,9 +63,9 @@ func (mock *CantabularClientMock) StaticDatasetQueryStreamCSV(ctx context.Contex
 		Req:     req,
 		Consume: consume,
 	}
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.Lock()
+	mock.lockStaticDatasetQueryStreamCSV.Lock()
 	mock.calls.StaticDatasetQueryStreamCSV = append(mock.calls.StaticDatasetQueryStreamCSV, callInfo)
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.Unlock()
+	mock.lockStaticDatasetQueryStreamCSV.Unlock()
 	return mock.StaticDatasetQueryStreamCSVFunc(ctx, req, consume)
 }
 
@@ -86,8 +82,8 @@ func (mock *CantabularClientMock) StaticDatasetQueryStreamCSVCalls() []struct {
 		Req     cantabular.StaticDatasetQueryRequest
 		Consume func(ctx context.Context, r io.Reader) error
 	}
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.RLock()
+	mock.lockStaticDatasetQueryStreamCSV.RLock()
 	calls = mock.calls.StaticDatasetQueryStreamCSV
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.RUnlock()
+	mock.lockStaticDatasetQueryStreamCSV.RUnlock()
 	return calls
 }

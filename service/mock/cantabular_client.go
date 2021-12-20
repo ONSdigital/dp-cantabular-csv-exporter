@@ -12,41 +12,34 @@ import (
 	"sync"
 )
 
-var (
-	lockCantabularClientMockChecker                     sync.RWMutex
-	lockCantabularClientMockCheckerAPIExt               sync.RWMutex
-	lockCantabularClientMockStaticDatasetQueryStreamCSV sync.RWMutex
-)
-
 // Ensure, that CantabularClientMock does implement service.CantabularClient.
 // If this is not the case, regenerate this file with moq.
 var _ service.CantabularClient = &CantabularClientMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
 // CantabularClientMock is a mock implementation of service.CantabularClient.
 //
-//     func TestSomethingThatUsesCantabularClient(t *testing.T) {
+// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-//         // make and configure a mocked service.CantabularClient
-//         mockedCantabularClient := &CantabularClientMock{
-//             CheckerFunc: func(in1 context.Context, in2 *healthcheck.CheckState) error {
-// 	               panic("mock out the Checker method")
-//             },
-//             CheckerAPIExtFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-// 	               panic("mock out the CheckerAPIExt method")
-//             },
-//             StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
-// 	               panic("mock out the StaticDatasetQueryStreamCSV method")
-//             },
-//         }
+// 		// make and configure a mocked service.CantabularClient
+// 		mockedCantabularClient := &CantabularClientMock{
+// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+// 				panic("mock out the Checker method")
+// 			},
+// 			CheckerAPIExtFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+// 				panic("mock out the CheckerAPIExt method")
+// 			},
+// 			StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
+// 				panic("mock out the StaticDatasetQueryStreamCSV method")
+// 			},
+// 		}
 //
-//         // use mockedCantabularClient in code that requires service.CantabularClient
-//         // and then make assertions.
+// 		// use mockedCantabularClient in code that requires service.CantabularClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type CantabularClientMock struct {
 	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(in1 context.Context, in2 *healthcheck.CheckState) error
+	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
 
 	// CheckerAPIExtFunc mocks the CheckerAPIExt method.
 	CheckerAPIExtFunc func(ctx context.Context, state *healthcheck.CheckState) error
@@ -58,10 +51,10 @@ type CantabularClientMock struct {
 	calls struct {
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
-			// In1 is the in1 argument value.
-			In1 context.Context
-			// In2 is the in2 argument value.
-			In2 *healthcheck.CheckState
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// CheckState is the checkState argument value.
+			CheckState *healthcheck.CheckState
 		}
 		// CheckerAPIExt holds details about calls to the CheckerAPIExt method.
 		CheckerAPIExt []struct {
@@ -80,40 +73,43 @@ type CantabularClientMock struct {
 			Consume func(ctx context.Context, r io.Reader) error
 		}
 	}
+	lockChecker                     sync.RWMutex
+	lockCheckerAPIExt               sync.RWMutex
+	lockStaticDatasetQueryStreamCSV sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
-func (mock *CantabularClientMock) Checker(in1 context.Context, in2 *healthcheck.CheckState) error {
+func (mock *CantabularClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
 	if mock.CheckerFunc == nil {
 		panic("CantabularClientMock.CheckerFunc: method is nil but CantabularClient.Checker was just called")
 	}
 	callInfo := struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}{
-		In1: in1,
-		In2: in2,
+		ContextMoqParam: contextMoqParam,
+		CheckState:      checkState,
 	}
-	lockCantabularClientMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockCantabularClientMockChecker.Unlock()
-	return mock.CheckerFunc(in1, in2)
+	mock.lockChecker.Unlock()
+	return mock.CheckerFunc(contextMoqParam, checkState)
 }
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
 //     len(mockedCantabularClient.CheckerCalls())
 func (mock *CantabularClientMock) CheckerCalls() []struct {
-	In1 context.Context
-	In2 *healthcheck.CheckState
+	ContextMoqParam context.Context
+	CheckState      *healthcheck.CheckState
 } {
 	var calls []struct {
-		In1 context.Context
-		In2 *healthcheck.CheckState
+		ContextMoqParam context.Context
+		CheckState      *healthcheck.CheckState
 	}
-	lockCantabularClientMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockCantabularClientMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -129,9 +125,9 @@ func (mock *CantabularClientMock) CheckerAPIExt(ctx context.Context, state *heal
 		Ctx:   ctx,
 		State: state,
 	}
-	lockCantabularClientMockCheckerAPIExt.Lock()
+	mock.lockCheckerAPIExt.Lock()
 	mock.calls.CheckerAPIExt = append(mock.calls.CheckerAPIExt, callInfo)
-	lockCantabularClientMockCheckerAPIExt.Unlock()
+	mock.lockCheckerAPIExt.Unlock()
 	return mock.CheckerAPIExtFunc(ctx, state)
 }
 
@@ -146,9 +142,9 @@ func (mock *CantabularClientMock) CheckerAPIExtCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	lockCantabularClientMockCheckerAPIExt.RLock()
+	mock.lockCheckerAPIExt.RLock()
 	calls = mock.calls.CheckerAPIExt
-	lockCantabularClientMockCheckerAPIExt.RUnlock()
+	mock.lockCheckerAPIExt.RUnlock()
 	return calls
 }
 
@@ -166,9 +162,9 @@ func (mock *CantabularClientMock) StaticDatasetQueryStreamCSV(ctx context.Contex
 		Req:     req,
 		Consume: consume,
 	}
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.Lock()
+	mock.lockStaticDatasetQueryStreamCSV.Lock()
 	mock.calls.StaticDatasetQueryStreamCSV = append(mock.calls.StaticDatasetQueryStreamCSV, callInfo)
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.Unlock()
+	mock.lockStaticDatasetQueryStreamCSV.Unlock()
 	return mock.StaticDatasetQueryStreamCSVFunc(ctx, req, consume)
 }
 
@@ -185,8 +181,8 @@ func (mock *CantabularClientMock) StaticDatasetQueryStreamCSVCalls() []struct {
 		Req     cantabular.StaticDatasetQueryRequest
 		Consume func(ctx context.Context, r io.Reader) error
 	}
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.RLock()
+	mock.lockStaticDatasetQueryStreamCSV.RLock()
 	calls = mock.calls.StaticDatasetQueryStreamCSV
-	lockCantabularClientMockStaticDatasetQueryStreamCSV.RUnlock()
+	mock.lockStaticDatasetQueryStreamCSV.RUnlock()
 	return calls
 }

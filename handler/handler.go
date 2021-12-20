@@ -25,15 +25,15 @@ type InstanceComplete struct {
 	cfg         config.Config
 	ctblr       CantabularClient
 	datasets    DatasetAPIClient
-	s3Private   S3Uploader
-	s3Public    S3Uploader
+	s3Private   S3Client
+	s3Public    S3Client
 	vaultClient VaultClient
 	producer    kafka.IProducer
 	generator   Generator
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, sPrivate, sPublic S3Uploader, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,

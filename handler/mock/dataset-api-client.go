@@ -10,34 +10,28 @@ import (
 	"sync"
 )
 
-var (
-	lockDatasetAPIClientMockGetInstance sync.RWMutex
-	lockDatasetAPIClientMockPutVersion  sync.RWMutex
-)
-
 // Ensure, that DatasetAPIClientMock does implement handler.DatasetAPIClient.
 // If this is not the case, regenerate this file with moq.
 var _ handler.DatasetAPIClient = &DatasetAPIClientMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
 // DatasetAPIClientMock is a mock implementation of handler.DatasetAPIClient.
 //
-//     func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
+// 	func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
 //
-//         // make and configure a mocked handler.DatasetAPIClient
-//         mockedDatasetAPIClient := &DatasetAPIClientMock{
-//             GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
-// 	               panic("mock out the GetInstance method")
-//             },
-//             PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
-// 	               panic("mock out the PutVersion method")
-//             },
-//         }
+// 		// make and configure a mocked handler.DatasetAPIClient
+// 		mockedDatasetAPIClient := &DatasetAPIClientMock{
+// 			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+// 				panic("mock out the GetInstance method")
+// 			},
+// 			PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
+// 				panic("mock out the PutVersion method")
+// 			},
+// 		}
 //
-//         // use mockedDatasetAPIClient in code that requires handler.DatasetAPIClient
-//         // and then make assertions.
+// 		// use mockedDatasetAPIClient in code that requires handler.DatasetAPIClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type DatasetAPIClientMock struct {
 	// GetInstanceFunc mocks the GetInstance method.
 	GetInstanceFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error)
@@ -82,6 +76,8 @@ type DatasetAPIClientMock struct {
 			V dataset.Version
 		}
 	}
+	lockGetInstance sync.RWMutex
+	lockPutVersion  sync.RWMutex
 }
 
 // GetInstance calls GetInstanceFunc.
@@ -104,9 +100,9 @@ func (mock *DatasetAPIClientMock) GetInstance(ctx context.Context, userAuthToken
 		InstanceID:       instanceID,
 		IfMatch:          ifMatch,
 	}
-	lockDatasetAPIClientMockGetInstance.Lock()
+	mock.lockGetInstance.Lock()
 	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
-	lockDatasetAPIClientMockGetInstance.Unlock()
+	mock.lockGetInstance.Unlock()
 	return mock.GetInstanceFunc(ctx, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch)
 }
 
@@ -129,9 +125,9 @@ func (mock *DatasetAPIClientMock) GetInstanceCalls() []struct {
 		InstanceID       string
 		IfMatch          string
 	}
-	lockDatasetAPIClientMockGetInstance.RLock()
+	mock.lockGetInstance.RLock()
 	calls = mock.calls.GetInstance
-	lockDatasetAPIClientMockGetInstance.RUnlock()
+	mock.lockGetInstance.RUnlock()
 	return calls
 }
 
@@ -159,9 +155,9 @@ func (mock *DatasetAPIClientMock) PutVersion(ctx context.Context, userAuthToken 
 		Version:          version,
 		V:                v,
 	}
-	lockDatasetAPIClientMockPutVersion.Lock()
+	mock.lockPutVersion.Lock()
 	mock.calls.PutVersion = append(mock.calls.PutVersion, callInfo)
-	lockDatasetAPIClientMockPutVersion.Unlock()
+	mock.lockPutVersion.Unlock()
 	return mock.PutVersionFunc(ctx, userAuthToken, serviceAuthToken, collectionID, datasetID, edition, version, v)
 }
 
@@ -188,8 +184,8 @@ func (mock *DatasetAPIClientMock) PutVersionCalls() []struct {
 		Version          string
 		V                dataset.Version
 	}
-	lockDatasetAPIClientMockPutVersion.RLock()
+	mock.lockPutVersion.RLock()
 	calls = mock.calls.PutVersion
-	lockDatasetAPIClientMockPutVersion.RUnlock()
+	mock.lockPutVersion.RUnlock()
 	return calls
 }

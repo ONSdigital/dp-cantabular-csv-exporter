@@ -142,6 +142,8 @@ Feature: Cantabular-Csv-Exporter-Unpublished
       }
       """
 
+    And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
+
     Scenario: Consuming a cantabular-export-start event with correct fields for an unpublished instance
 
     When the service starts
@@ -155,9 +157,8 @@ Feature: Cantabular-Csv-Exporter-Unpublished
         "Version":    "version-happy-01"
       }
       """
-    Then a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
 
-    And a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
+    Then a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |

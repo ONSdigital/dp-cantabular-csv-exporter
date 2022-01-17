@@ -9,12 +9,12 @@ require (
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.6.3
 	github.com/ONSdigital/dp-healthcheck v1.2.3
-	github.com/ONSdigital/dp-kafka/v3 v3.0.1
+	github.com/ONSdigital/dp-kafka/v3 v3.0.2
 	github.com/ONSdigital/dp-net v1.2.0
 	github.com/ONSdigital/dp-s3/v2 v2.0.0-beta
 	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
-	github.com/aws/aws-sdk-go v1.42.24
+	github.com/aws/aws-sdk-go v1.42.29
 	github.com/cucumber/godog v0.12.2
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0

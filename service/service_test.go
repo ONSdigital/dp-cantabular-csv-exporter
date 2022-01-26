@@ -276,6 +276,10 @@ func TestStart(t *testing.T) {
 			LogErrorsFunc: func(ctx context.Context) {},
 		}
 
+		producerMock := &kafkatest.IProducerMock{
+			LogErrorsFunc: func(ctx context.Context) {},
+		}
+
 		hcMock := &serviceMock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
@@ -288,6 +292,7 @@ func TestStart(t *testing.T) {
 			Server:      serverMock,
 			HealthCheck: hcMock,
 			Consumer:    consumerMock,
+			Producer:    producerMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {
@@ -297,7 +302,8 @@ func TestStart(t *testing.T) {
 				return nil
 			}
 			serverWg.Add(1)
-			svc.Start(ctx, make(chan error, 1))
+			err := svc.Start(ctx, make(chan error, 1))
+			So(err, ShouldBeNil)
 
 			Convey("Then healthcheck is started and HTTP server starts listening", func() {
 				So(len(hcMock.StartCalls()), ShouldEqual, 1)
@@ -310,7 +316,8 @@ func TestStart(t *testing.T) {
 			cfg.StopConsumingOnUnhealthy = false
 			consumerMock.StartFunc = func() error { return nil }
 			serverMock.ListenAndServeFunc = func() error { return nil }
-			svc.Start(ctx, make(chan error, 1))
+			err := svc.Start(ctx, make(chan error, 1))
+			So(err, ShouldBeNil)
 
 			Convey("Then the kafka consumer is manually started", func() {
 				So(consumerMock.StartCalls(), ShouldHaveLength, 1)
@@ -325,7 +332,8 @@ func TestStart(t *testing.T) {
 			}
 			errChan := make(chan error, 1)
 			serverWg.Add(1)
-			svc.Start(ctx, errChan)
+			err := svc.Start(ctx, errChan)
+			So(err, ShouldBeNil)
 
 			Convey("Then HTTP server errors are reported to the provided errors channel", func() {
 				rxErr := <-errChan
@@ -344,7 +352,7 @@ func TestClose(t *testing.T) {
 
 		// kafka consumer mock
 		consumerMock := &kafkatest.IConsumerGroupMock{
-			StopAndWaitFunc: func() {},
+			StopAndWaitFunc: func() error { return nil },
 			CloseFunc:       func(ctx context.Context) error { return nil },
 		}
 
@@ -380,7 +388,7 @@ func TestClose(t *testing.T) {
 		})
 
 		Convey("If services fail to stop, the Close operation tries to close all dependencies and returns an error", func() {
-			consumerMock.StopAndWaitFunc = func() {}
+			consumerMock.StopAndWaitFunc = func() error { return nil }
 			consumerMock.CloseFunc = func(ctx context.Context) error {
 				return errKafkaConsumer
 			}

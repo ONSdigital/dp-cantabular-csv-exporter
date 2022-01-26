@@ -24,16 +24,16 @@ import (
 
 const (
 	ComponentTestGroup    = "component-test" // kafka group name for the component test consumer
-	DrainTopicTimeout     = 1 * time.Second  // maximum time to wait for a topic to be drained
+	DrainTopicTimeout     = 5 * time.Second  // maximum time to wait for a topic to be drained
 	DrainTopicMaxMessages = 1000             // maximum number of messages that will be drained from a topic
 	MinioCheckRetries     = 3                // maximum number of retires to validate that a file is present in minio
-	WaitEventTimeout      = 5 * time.Second  // maximum time that the component test consumer will wait for a kafka event
+	WaitEventTimeout      = 15 * time.Second // maximum time that the component test consumer will wait for a kafka event
 )
 
 var (
-	BuildTime string = "1625046891"
-	GitCommit string = "7434fe334d9f51b7239f978094ea29d10ac33b16"
-	Version   string = ""
+	BuildTime = "1625046891"
+	GitCommit = "7434fe334d9f51b7239f978094ea29d10ac33b16"
+	Version   = ""
 )
 
 type Component struct {
@@ -133,10 +133,13 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	// start consumer group
-	c.consumer.Start()
+	if c.consumer.Start(); err != nil {
+		return fmt.Errorf("error starting kafka consumer: %w", err)
+	}
 
 	// start kafka logging go-routines
 	c.consumer.LogErrors(ctx)
+	c.producer.LogErrors(ctx)
 
 	service.GetGenerator = func() service.Generator {
 		return &generator{}
@@ -153,7 +156,7 @@ func (c *Component) initService(ctx context.Context) error {
 	// wait for producer to be initialised and consumer to be in consuming state
 	<-c.producer.Channels().Initialised
 	log.Info(ctx, "component-test kafka producer initialised")
-	<-c.consumer.Channels().State.Consuming
+	c.consumer.StateWait(kafka.Consuming)
 	log.Info(ctx, "component-test kafka consumer is in consuming state")
 
 	return nil
@@ -161,21 +164,28 @@ func (c *Component) initService(ctx context.Context) error {
 
 // startService starts the service under test and blocks until an error or an os interrupt is received.
 // Then it closes the service (graceful shutdown)
-func (c *Component) startService(ctx context.Context) {
-	defer c.wg.Done()
-	c.svc.Start(ctx, c.errorChan)
+func (c *Component) startService(ctx context.Context) error {
+	if err := c.svc.Start(c.ctx, c.errorChan); err != nil {
+		return fmt.Errorf("unexpected error while starting service: %w", err)
+	}
 
-	select {
-	case err := <-c.errorChan:
-		err = fmt.Errorf("service error received: %w", err)
-		c.svc.Close(ctx)
-		panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
-	case sig := <-c.signals:
-		log.Info(ctx, "os signal received", log.Data{"signal": sig})
-	}
-	if err := c.svc.Close(ctx); err != nil {
-		panic(fmt.Errorf("unexpected error during service graceful shutdown: %w", err))
-	}
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		select {
+		case err := <-c.errorChan:
+			err = fmt.Errorf("service error received: %w", err)
+			c.svc.Close(ctx)
+			panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
+		case sig := <-c.signals:
+			log.Info(ctx, "os signal received", log.Data{"signal": sig})
+		}
+		if err := c.svc.Close(ctx); err != nil {
+			panic(fmt.Errorf("unexpected error during service graceful shutdown: %w", err))
+		}
+	}()
+
+	return nil
 }
 
 // drainTopic drains the provided topic and group of any residual messages between scenarios.
@@ -191,19 +201,10 @@ func (c *Component) startService(ctx context.Context) {
 func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *sync.WaitGroup) error {
 	msgs := []kafka.Message{}
 
-	defer func() {
-		log.Info(ctx, "drained topic", log.Data{
-			"len":      len(msgs),
-			"messages": msgs,
-			"topic":    topic,
-			"group":    group,
-		})
-	}()
-
 	kafkaOffset := kafka.OffsetOldest
 	batchSize := DrainTopicMaxMessages
 	batchWaitTime := DrainTopicTimeout
-	consumer, err := kafka.NewConsumerGroup(
+	drainer, err := kafka.NewConsumerGroup(
 		ctx,
 		&kafka.ConsumerGroupConfig{
 			BrokerAddrs:   c.cfg.KafkaConfig.Addr,
@@ -221,31 +222,53 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 
 	// register batch handler with 'drained channel'
 	drained := make(chan struct{})
-	consumer.RegisterBatchHandler(
+	if err := drainer.RegisterBatchHandler(
 		ctx,
 		func(ctx context.Context, batch []kafka.Message) error {
 			defer close(drained)
 			msgs = append(msgs, batch...)
 			return nil
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("error creating kafka drainer: %w", err)
+	}
 
-	// start consumer group
-	consumer.Start()
+	// start drainer consumer group
+	if err := drainer.Start(); err != nil {
+		log.Error(c.ctx, "error starting kafka drainer", err)
+	}
 
 	// start kafka logging go-routines
-	consumer.LogErrors(ctx)
+	drainer.LogErrors(ctx)
 
 	// waitUntilDrained is a func that will wait until the batch is consumed or the timeout expires
 	// (with 100 ms of extra time to allow any in-flight drain)
 	waitUntilDrained := func() {
+		drainer.StateWait(kafka.Consuming)
+		log.Info(ctx, "drainer is consuming", log.Data{"topic": topic, "group": group})
+
 		select {
 		case <-time.After(DrainTopicTimeout + 100*time.Millisecond):
+			log.Info(ctx, "drain timeout has expired (no messages drained)")
 		case <-drained:
+			log.Info(ctx, "message(s) have been drained")
 		}
 
-		consumer.Close(ctx)
-		<-consumer.Channels().Closed
+		defer func() {
+			log.Info(ctx, "drained topic", log.Data{
+				"len":      len(msgs),
+				"messages": msgs,
+				"topic":    topic,
+				"group":    group,
+			})
+		}()
+
+		if err := drainer.Close(ctx); err != nil {
+			log.Warn(ctx, "error closing drain consumer", log.Data{"err": err})
+		}
+
+		<-drainer.Channels().Closed
+		log.Info(ctx, "drainer is closed")
 	}
 
 	// sync wait if wg is not provided
@@ -272,7 +295,9 @@ func (c *Component) Close() {
 	c.wg.Wait()
 
 	// stop listening to consumer, waiting for any in-flight message to be committed
-	c.consumer.StopAndWait()
+	if err := c.consumer.StopAndWait(); err != nil {
+		log.Error(c.ctx, "error stopping kafka consumer", err)
+	}
 
 	// close producer
 	if err := c.producer.Close(c.ctx); err != nil {

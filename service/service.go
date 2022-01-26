@@ -92,15 +92,18 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 }
 
 // Start the service
-func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
+func (svc *Service) Start(ctx context.Context, svcErrors chan error) error {
 	log.Info(ctx, "starting service")
 
 	// Kafka error logging go-routine
 	svc.Consumer.LogErrors(ctx)
+	svc.Producer.LogErrors(ctx)
 
 	// If start/stop on health updates is disabled, start consuming as soon as possible
 	if !svc.Cfg.StopConsumingOnUnhealthy {
-		svc.Consumer.Start()
+		if err := svc.Consumer.Start(); err != nil {
+			return fmt.Errorf("consumer failed to start: %w", err)
+		}
 	}
 
 	// Always start healthcheck.
@@ -114,6 +117,8 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svcErrors <- fmt.Errorf("failure in http listen and serve: %w", err)
 		}
 	}()
+
+	return nil
 }
 
 // Close gracefully shuts the service down in the required order, with timeout
@@ -136,9 +141,12 @@ func (svc *Service) Close(ctx context.Context) error {
 		// This will automatically stop the event consumer loops and no more messages will be processed.
 		// The kafka consumer will be closed after the service shuts down.
 		if svc.Consumer != nil {
-			log.Info(ctx, "stoping kafka consumer listener")
-			svc.Consumer.StopAndWait()
-			log.Info(ctx, "stopped kafka consumer listener")
+			if err := svc.Consumer.StopAndWait(); err != nil {
+				log.Error(ctx, "failed to stop kafka consumer", err)
+				hasShutdownError = true
+			} else {
+				log.Info(ctx, "stopped kafka consumer")
+			}
 		}
 
 		// stop any incoming requests before closing any outbound connections
@@ -146,8 +154,19 @@ func (svc *Service) Close(ctx context.Context) error {
 			if err := svc.Server.Shutdown(ctx); err != nil {
 				log.Error(ctx, "failed to shutdown http server", err)
 				hasShutdownError = true
+			} else {
+				log.Info(ctx, "stopped http server")
 			}
-			log.Info(ctx, "stopped http server")
+		}
+
+		// If kafka producer exists, close it.
+		if svc.Producer != nil {
+			if err := svc.Producer.Close(ctx); err != nil {
+				log.Error(ctx, "error closing kafka producer", err)
+				hasShutdownError = true
+			} else {
+				log.Info(ctx, "closed kafka producer")
+			}
 		}
 
 		// If kafka consumer exists, close it.
@@ -155,8 +174,9 @@ func (svc *Service) Close(ctx context.Context) error {
 			if err := svc.Consumer.Close(ctx); err != nil {
 				log.Error(ctx, "error closing kafka consumer", err)
 				hasShutdownError = true
+			} else {
+				log.Info(ctx, "closed kafka consumer")
 			}
-			log.Info(ctx, "closed kafka consumer")
 		}
 	}()
 

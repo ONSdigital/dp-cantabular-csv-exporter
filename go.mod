@@ -9,7 +9,7 @@ require (
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.6.3
 	github.com/ONSdigital/dp-healthcheck v1.2.3
-	github.com/ONSdigital/dp-kafka/v3 v3.0.2
+	github.com/ONSdigital/dp-kafka/v3 v3.1.1
 	github.com/ONSdigital/dp-net v1.2.0
 	github.com/ONSdigital/dp-s3/v2 v2.0.0-beta
 	github.com/ONSdigital/dp-vault v1.2.0

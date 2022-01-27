@@ -73,7 +73,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		svc.Producer,
 		svc.generator,
 	)
-	svc.Consumer.RegisterHandler(ctx, h.Handle)
+	if err := svc.Consumer.RegisterHandler(ctx, h.Handle); err != nil {
+		return fmt.Errorf("could not register kafka handler: %w", err)
+	}
 
 	// Get HealthCheck
 	if svc.HealthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {

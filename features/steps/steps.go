@@ -105,7 +105,7 @@ func (c *Component) theFollowingVersionIsUpdated(datasetID, edition, version str
 	return nil
 }
 
-// theFollowingQueryResposneIsAvailable generates a mocked response for Cantabular Server
+// theFollowingQueryResponseIsAvailable generates a mocked response for Cantabular Server
 // POST /graphql?query with the provided query
 func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.DocString) error {
 	const urlQuery = `{
@@ -227,7 +227,7 @@ func (c *Component) thisExportStartEventIsQueued(input *godog.DocString) error {
 	return nil
 }
 
-// theFollowingPrivateFileCanBeSeenInMinio checks that the provided fileName is available in the public bucket.
+// theFollowingPublicFileCanBeSeenInMinio checks that the provided fileName is available in the public bucket.
 // If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingPublicFileCanBeSeenInMinio(fileName string) error {
 	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PublicUploadBucketName)

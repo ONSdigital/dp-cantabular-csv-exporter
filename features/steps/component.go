@@ -133,7 +133,7 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	// start consumer group
-	if c.consumer.Start(); err != nil {
+	if err := c.consumer.Start(); err != nil {
 		return fmt.Errorf("error starting kafka consumer: %w", err)
 	}
 
@@ -162,8 +162,6 @@ func (c *Component) initService(ctx context.Context) error {
 	return nil
 }
 
-// startService starts the service under test and blocks until an error or an os interrupt is received.
-// Then it closes the service (graceful shutdown)
 func (c *Component) startService(ctx context.Context) error {
 	if err := c.svc.Start(ctx, c.errorChan); err != nil {
 		return fmt.Errorf("unexpected error while starting service: %w", err)

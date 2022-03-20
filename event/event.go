@@ -6,6 +6,7 @@ type ExportStart struct {
 	DatasetID  string `avro:"dataset_id"`
 	Edition    string `avro:"edition"`
 	Version    string `avro:"version"`
+	Filter_ID  string `avro:"filter_id"`
 }
 
 // CSVCreated provides an avro structure for a CSV Created event

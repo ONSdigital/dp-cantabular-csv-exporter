@@ -4,6 +4,12 @@ import (
 	"github.com/ONSdigital/dp-kafka/v3/avro"
 )
 
+/*
+   Filter ID could be null, but opted for empty string
+   representing part of publishing journey.
+   the avro unmarshal lib does not support pointers to
+   strings
+*/
 var exportStart = `{
   "type": "record",
   "name": "cantabular-export-start",
@@ -11,7 +17,8 @@ var exportStart = `{
     {"name": "instance_id", "type": "string", "default": ""},
     {"name": "dataset_id",  "type": "string", "default": ""},
     {"name": "edition",     "type": "string", "default": ""},
-    {"name": "version",     "type": "string", "default": ""}
+    {"name": "version",     "type": "string", "default": ""},
+    {"name": "filter_id",   "type":"string",  "default": ""}
   ]
 }`
 

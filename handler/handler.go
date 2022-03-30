@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -25,6 +26,7 @@ type InstanceComplete struct {
 	cfg         config.Config
 	ctblr       CantabularClient
 	datasets    DatasetAPIClient
+	filters     FilterAPIClient
 	s3Private   S3Client
 	s3Public    S3Client
 	vaultClient VaultClient
@@ -33,10 +35,11 @@ type InstanceComplete struct {
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, f FilterAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,
+		filters:     f,
 		datasets:    d,
 		s3Private:   sPrivate,
 		s3Public:    sPublic,
@@ -48,6 +51,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
@@ -85,6 +89,16 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		Dataset:   instance.IsBasedOn.ID, // This value corresponds to the CantabularBlob that was used in import process
 		Variables: instance.CSVHeader[1:],
 	}
+
+	if e.FilterID != "" {
+		dimensionNames, populationType, err := h.getFilterInfo(ctx, e.FilterID, logData)
+		if err != nil {
+			return err
+		}
+		req.Dataset = populationType
+		req.Variables = dimensionNames
+	}
+
 	logData["request"] = req
 
 	// Stream data from Cantabular to S3 bucket in CSV format
@@ -116,6 +130,30 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
+}
+
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, error) {
+	dimensions, _, err := h.filters.GetDimensions(ctx, "", h.cfg.ServiceAuthToken, "", filterID, nil)
+	if err != nil {
+		return nil, "", &Error{
+			err:     fmt.Errorf("failed to get dimensions: %w", err),
+			logData: logData,
+		}
+	}
+
+	dimensionNames := make([]string, 0)
+	for _, d := range dimensions.Items {
+		dimensionNames = append(dimensionNames, d.Name)
+	}
+
+	model, _, _ := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
+	if err != nil {
+		return nil, "", &Error{
+			err:     fmt.Errorf("failed to get filter: %w", err),
+			logData: logData,
+		}
+	}
+	return dimensionNames, model.PopulationType, nil
 }
 
 // ValidateInstance validates the instance returned from dp-dataset-api
@@ -355,10 +393,16 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
 func generateS3Filename(e *event.ExportStart) string {
+	if e.FilterID != "" {
+		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
 func generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
+	if e.FilterID != "" {
+		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+	}
 	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
 }

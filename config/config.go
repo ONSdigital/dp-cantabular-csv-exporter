@@ -20,6 +20,7 @@ type Config struct {
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	CantabularExtURL             string        `envconfig:"CANTABULAR_EXT_API_URL"`
 	DatasetAPIURL                string        `envconfig:"DATASET_API_URL"`
+	FilterAPIURL                 string        `envconfig:"FILTER_API_URL"`
 	DownloadServiceURL           string        `envconfig:"DOWNLOAD_SERVICE_URL"`
 	CantabularHealthcheckEnabled bool          `envconfig:"CANTABULAR_HEALTHCHECK_ENABLED"`
 	AWSRegion                    string        `envconfig:"AWS_REGION"`
@@ -75,6 +76,7 @@ func Get() (*Config, error) {
 		CantabularURL:                "http://localhost:8491",
 		CantabularExtURL:             "http://localhost:8492",
 		DatasetAPIURL:                "http://localhost:22000",
+		FilterAPIURL:                 "http://localhost:22100",
 		DownloadServiceURL:           "http://localhost:23600",
 		CantabularHealthcheckEnabled: false,
 		AWSRegion:                    "eu-west-1",

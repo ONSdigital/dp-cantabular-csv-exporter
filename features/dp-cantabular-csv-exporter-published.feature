@@ -99,6 +99,7 @@ Feature: Cantabular-Csv-Exporter-Published
       }
       """
 
+    And filter API is healthy
     And dp-dataset-api is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy
@@ -143,6 +144,64 @@ Feature: Cantabular-Csv-Exporter-Published
       """
 
     And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
+    And for the following filter "filter-happy-01" these dimensions are available:
+    """
+    {
+      "items": [
+        {
+          "name": "City",
+          "options": [
+            "Cardiff",
+            "London",
+            "Swansea"
+          ],
+          "dimension_url": "http://dimension.url/city",
+          "is_area_type": true
+        },
+        {
+          "name": "Number of siblings (3 mappings)",
+          "options": [
+            "0-3",
+            "4-7",
+            "7+"
+          ],
+          "dimension_url": "http://dimension.url/siblings",
+          "is_area_type": false
+        }
+      ],
+      "count": 2,
+      "offset": 0,
+      "limit": 20,
+      "total_count": 2
+    }
+    """
+
+    And the following job state is returned for the filter "filter-happy-01":
+    """
+    {
+      "filter_id": "filter-happy-01",
+      "links": {
+        "version": {
+          "href": "http://mockhost:9999/datasets/cantabular-example-1/editions/2021/version/1",
+          "id": "1"
+        },
+        "self": {
+          "href": ":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1"
+        }
+      },
+      "events": null,
+      "instance_id": "c733977d-a2ca-4596-9cb1-08a6e724858b",
+      "dimension_list_url":":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1/dimensions",
+      "dataset": {
+        "id": "cantabular-example-1",
+        "edition": "2021",
+        "version": 1
+      },
+      "population_type": "Example"
+    }
+    """
+
+
 
     Scenario: Consuming a cantabular-export-start event with correct fields for a published instance
 
@@ -154,7 +213,8 @@ Feature: Cantabular-Csv-Exporter-Published
         "InstanceID": "instance-happy-01",
         "DatasetID":  "dataset-happy-01",
         "Edition":    "edition-happy-01",
-        "Version":    "version-happy-01"
+        "Version":    "version-happy-01",
+        "FilterID":   ""
       }
       """
 
@@ -163,3 +223,25 @@ Feature: Cantabular-Csv-Exporter-Published
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
       | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |
+
+    Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter id present
+
+    When the service starts
+
+    And this cantabular-export-start event is queued, to be consumed:
+      """
+      {
+        "InstanceID": "instance-happy-01",
+        "DatasetID":  "dataset-happy-01",
+        "Edition":    "edition-happy-01",
+        "Version":    "version-happy-01",
+        "FilterID":   "filter-happy-01"
+      }
+      """
+
+    Then a public filtered file, that should contain "datasets/dataset-happy-01-edition-happy-01-version-happy-01-filtered-20" on the filename can be seen in minio
+
+    Then one event with the following fields are in the produced kafka topic cantabular-csv-created:
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
+      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |
+

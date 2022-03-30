@@ -99,6 +99,7 @@ Feature: Cantabular-Csv-Exporter-Unpublished
       }
       """
 
+    And filter API is healthy
     And dp-dataset-api is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy

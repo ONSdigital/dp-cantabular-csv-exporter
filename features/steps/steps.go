@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
@@ -25,14 +26,19 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the service starts`, c.theServiceStarts)
 	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
 	ctx.Step(`^dp-dataset-api is unhealthy`, c.datasetAPIIsUnhealthy)
+	ctx.Step(`^filter API is healthy`, c.filterAPIIsHealthy)
+	ctx.Step(`^filter API is unhealthy`, c.filterAPIIsUnhealthy)
 	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
 	ctx.Step(`^cantabular api extension is healthy`, c.cantabularApiExtensionIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^a dataset version with dataset-id "([^"]*)", edition "([^"]*)" and version "([^"]*)" is updated by an API call to dp-dataset-api`, c.theFollowingVersionIsUpdated)
+	ctx.Step(`^for the following filter "([^"]*)" these dimensions are available:$`, c.theFollowingFilterDimensionsExist)
+	ctx.Step(`^the following job state is returned for the filter "([^"]*)":$`, c.theFollowingJobStateIsReturned)
 	ctx.Step(`^this cantabular-export-start event is queued, to be consumed:$`, c.thisExportStartEventIsQueued)
 	ctx.Step(`^one event with the following fields are in the produced kafka topic cantabular-csv-created:$`, c.theseCsvCreatedEventsAreProduced)
 	ctx.Step(`^no cantabular-csv-created events are produced`, c.noCsvCreatedEventsAreProduced)
 	ctx.Step(`^a public file with filename "([^"]*)" can be seen in minio`, c.theFollowingPublicFileCanBeSeenInMinio)
+	ctx.Step(`^a public filtered file, that should contain "([^"]*)" on the filename can be seen in minio`, c.theFollowingPublicFilteredFileCanBeSeenInMinio)
 	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
 }
 
@@ -53,8 +59,28 @@ func (c *Component) datasetAPIIsHealthy() error {
 	return nil
 }
 
-// datasetAPIIsUnhealthy generates a mocked unhealthy response for dataset API healthecheck
+// datasetAPIIsUnhealthy generates a mocked unhealthy response for dataset API healthcheck
 func (c *Component) datasetAPIIsUnhealthy() error {
+	const res = `{"status": "CRITICAL"}`
+	c.DatasetAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusInternalServerError).
+		BodyString(res)
+	return nil
+}
+
+// filterAPIIsHealthy generates a mocked healthy response for the filter API
+func (c *Component) filterAPIIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.FilterAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+// filterAPIIsUnhealthy generates a mocked unhealthy response for the filter API
+func (c *Component) filterAPIIsUnhealthy() error {
 	const res = `{"status": "CRITICAL"}`
 	c.DatasetAPI.NewHandler().
 		Get("/health").
@@ -101,6 +127,30 @@ func (c *Component) theFollowingVersionIsUpdated(datasetID, edition, version str
 	c.DatasetAPI.NewHandler().
 		Put("/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version).
 		Reply(http.StatusOK)
+
+	return nil
+}
+
+// theFollowingFilterDimensionsExist mocks filter api response for
+// GET /filters/{filter_id}/dimensions
+func (c *Component) theFollowingFilterDimensionsExist(filterID string, instance *godog.DocString) error {
+	uri := fmt.Sprintf("/filters/%s/dimensions", filterID)
+	c.FilterAPI.NewHandler().
+		Get(uri).
+		Reply(http.StatusOK).
+		BodyString(instance.Content)
+
+	return nil
+}
+
+// theFollowingJobStateIsReturned mocks filter api response for
+// GET /filters/{filter_id}
+func (c *Component) theFollowingJobStateIsReturned(filterID string, instance *godog.DocString) error {
+	uri := fmt.Sprintf("/filters/%s", filterID)
+	c.FilterAPI.NewHandler().
+		Get(uri).
+		Reply(http.StatusOK).
+		BodyString(instance.Content)
 
 	return nil
 }
@@ -233,6 +283,12 @@ func (c *Component) theFollowingPublicFileCanBeSeenInMinio(fileName string) erro
 	return c.theFollowingFileCanBeSeenInMinio(fileName, c.cfg.PublicUploadBucketName)
 }
 
+// theFollowingPublicFilteredFileCanBeSeenInMinio checks that the provided fileName is available in the public bucket.
+// If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
+func (c *Component) theFollowingPublicFilteredFileCanBeSeenInMinio(fileName string) error {
+	return c.theFollowingFilteredFileCanBeSeenInMinio(fileName, c.cfg.PublicUploadBucketName)
+}
+
 // theFollowingPrivateFileCanBeSeenInMinio checks that the provided fileName is available in the private bucket.
 // If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingPrivateFileCanBeSeenInMinio(fileName string) error {
@@ -283,6 +339,41 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 	log.Info(c.ctx, "got file contents", log.Data{
 		"contents": string(f.Bytes()),
 	})
+
+	return nil
+}
+
+func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName string, bucketName string) error {
+	var exists bool
+
+	listObjectOutput, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(bucketName),
+	})
+
+	if err != nil {
+		return fmt.Errorf(
+			"error obtaining list of files from minio. Last error: %w",
+			err,
+		)
+	}
+
+	log.Info(c.ctx, "filename to match", log.Data{
+		"filename": fileName,
+	})
+
+	for _, content := range listObjectOutput.Contents {
+		log.Info(c.ctx, "file in minio", log.Data{
+			"filename": fileName,
+		})
+		if strings.Contains(*content.Key, fileName) {
+			exists = true
+		}
+	}
+
+	if !exists {
+		return fmt.Errorf(
+			"file with '%s' does not exist in minio. Last error: %w", fileName, err)
+	}
 
 	return nil
 }

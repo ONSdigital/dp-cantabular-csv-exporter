@@ -7,6 +7,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/generator"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -90,6 +91,11 @@ var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 // GetDatasetAPIClient gets and initialises the DatasetAPI Client
 var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
+}
+
+// GetDatasetAPIClient gets and initialises the FilterAPI Client
+var GetFilterAPIClient = func(cfg *config.Config) FilterAPIClient {
+	return filter.New(cfg.FilterAPIURL)
 }
 
 // GetS3Clients creates the private and public S3 Clients using the same AWS session

@@ -14,10 +14,10 @@ import (
 	componenttest "github.com/ONSdigital/dp-component-test"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/maxcnunes/httpfake"
 )
@@ -39,9 +39,11 @@ var (
 type Component struct {
 	componenttest.ErrorFeature
 	DatasetAPI       *httpfake.HTTPFake
+	FilterAPI        *httpfake.HTTPFake
 	CantabularSrv    *httpfake.HTTPFake
 	CantabularAPIExt *httpfake.HTTPFake
 	S3Downloader     *s3manager.Downloader
+	s3Client         *s3.S3
 	producer         kafka.IProducer
 	consumer         kafka.IConsumerGroup
 	errorChan        chan error
@@ -58,6 +60,7 @@ func NewComponent() *Component {
 	return &Component{
 		errorChan:        make(chan error),
 		DatasetAPI:       httpfake.New(),
+		FilterAPI:        httpfake.New(),
 		CantabularSrv:    httpfake.New(),
 		CantabularAPIExt: httpfake.New(),
 		wg:               &sync.WaitGroup{},
@@ -80,6 +83,7 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
+	cfg.FilterAPIURL = c.FilterAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.CantabularExtURL = c.CantabularAPIExt.ResolveURL("")
 
@@ -99,6 +103,7 @@ func (c *Component) initService(ctx context.Context) error {
 		return fmt.Errorf("error creating aws session: %w", err)
 	}
 	c.S3Downloader = s3manager.NewDownloader(s)
+	c.s3Client = s3.New(s)
 
 	// producer for triggering test events
 	if c.producer, err = kafka.NewProducer(
@@ -336,6 +341,7 @@ func (c *Component) Reset() error {
 	}
 
 	c.DatasetAPI.Reset()
+	c.FilterAPI.Reset()
 	c.CantabularSrv.Reset()
 	c.CantabularAPIExt.Reset()
 

@@ -1,5 +1,6 @@
 dp-cantabular-csv-exporter
 ================
+
 Consumes a Kafka message (cantabular-export-start) to begin the process of retrieving the counts from Cantabular.
 
 ### Getting started
@@ -65,7 +66,7 @@ An example event can be created using the helper script, `make produce`.
 
 **Notes:**
 
-    1. <a name="notes_1">For more info, see the [kafka TLS examples documentation](https://github.com/ONSdigital/dp-kafka/tree/main/examples#tls)</a>
+	1. <a name="notes_1">For more info, see the [kafka TLS examples documentation](https://github.com/ONSdigital/dp-kafka/tree/main/examples#tls)</a>
 
 
 ### Healthcheck
@@ -85,4 +86,3 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details.
 Copyright © 2021, Office for National Statistics (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details
-

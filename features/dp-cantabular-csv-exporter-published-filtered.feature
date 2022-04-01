@@ -1,4 +1,4 @@
-Feature: Cantabular-Csv-Exporter-Published
+Feature: Cantabular-Csv-Exporter-Published-Filtered
 
   # This file validates that CSV files generated for an instance in published state are stored in the public S3 bucket
 
@@ -104,7 +104,7 @@ Feature: Cantabular-Csv-Exporter-Published
     And cantabular server is healthy
     And cantabular api extension is healthy
 
-    And the following instance with id "instance-happy-01" is available from dp-dataset-api:
+    And the following instance with id "instance-happy-02" is available from dp-dataset-api:
       """
       {
         "import_tasks": {
@@ -143,24 +143,84 @@ Feature: Cantabular-Csv-Exporter-Published
       }
       """
 
-    And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
+    And a dataset version with dataset-id "dataset-happy-02", edition "edition-happy-02" and version "version-happy-02" is updated by an API call to dp-dataset-api
+    And for the following filter "filter-happy-02" these dimensions are available:
+    """
+    {
+      "items": [
+        {
+          "name": "City",
+          "options": [
+            "Cardiff",
+            "London",
+            "Swansea"
+          ],
+          "dimension_url": "http://dimension.url/city",
+          "is_area_type": true
+        },
+        {
+          "name": "Number of siblings (3 mappings)",
+          "options": [
+            "0-3",
+            "4-7",
+            "7+"
+          ],
+          "dimension_url": "http://dimension.url/siblings",
+          "is_area_type": false
+        }
+      ],
+      "count": 2,
+      "offset": 0,
+      "limit": 20,
+      "total_count": 2
+    }
+    """
 
-    Scenario: Consuming a cantabular-export-start event with correct fields for a published instance
+    And the following job state is returned for the filter "filter-happy-02":
+    """
+    {
+      "filter_id": "filter-happy-02",
+      "links": {
+        "version": {
+          "href": "http://mockhost:9999/datasets/cantabular-example-1/editions/2021/version/1",
+          "id": "1"
+        },
+        "self": {
+          "href": ":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1"
+        }
+      },
+      "events": null,
+      "instance_id": "c733977d-a2ca-4596-9cb1-08a6e724858b",
+      "dimension_list_url":":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1/dimensions",
+      "dataset": {
+        "id": "cantabular-example-1",
+        "edition": "2021",
+        "version": 1
+      },
+      "population_type": "Example"
+    }
+    """
+
+
+
+
+  Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter id present
 
     When the service starts
 
     And this cantabular-export-start event is queued, to be consumed:
       """
       {
-        "InstanceID": "instance-happy-01",
-        "DatasetID":  "dataset-happy-01",
-        "Edition":    "edition-happy-01",
-        "Version":    "version-happy-01"
+        "InstanceID": "instance-happy-02",
+        "DatasetID":  "dataset-happy-02",
+        "Edition":    "edition-happy-02",
+        "Version":    "version-happy-02",
+        "FilterID":   "filter-happy-02"
       }
       """
 
-    Then a public file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
+    Then a public filtered file, that should contain "datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
 
-    And one event with the following fields are in the produced kafka topic cantabular-csv-created:
+    Then one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
-      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       |
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       |

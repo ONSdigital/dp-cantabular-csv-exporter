@@ -270,7 +270,6 @@ func (c *Component) thisExportStartEventIsQueued(input *godog.DocString) error {
 	log.Info(c.ctx, "event to send for testing: ", log.Data{
 		"event": testEvent,
 	})
-
 	if err := c.producer.Send(schema.ExportStart, testEvent); err != nil {
 		return fmt.Errorf("failed to send event for testing: %w", err)
 	}
@@ -344,35 +343,61 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 }
 
 func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName string, bucketName string) error {
+	// probe bucket with backoff to give time for event to be processed
+	retries := MinioCheckRetries
+	timeout := time.Second
+
 	var exists bool
-
-	listObjectOutput, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
-		Bucket: aws.String(bucketName),
-	})
-
-	if err != nil {
-		return fmt.Errorf(
-			"error obtaining list of files from minio. Last error: %w",
-			err,
-		)
-	}
 
 	log.Info(c.ctx, "filename to match", log.Data{
 		"filename": fileName,
 	})
 
-	for _, content := range listObjectOutput.Contents {
-		log.Info(c.ctx, "file in minio", log.Data{
-			"filename": fileName,
+	for {
+		listObjectOutput, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
+			Bucket: aws.String(bucketName),
 		})
-		if strings.Contains(*content.Key, fileName) {
-			exists = true
+
+		if err != nil {
+			return fmt.Errorf(
+				"error obtaining list of files from minio. Last error: %w",
+				err,
+			)
 		}
+
+		log.Info(c.ctx, "test state", log.Data{
+			"exists":  exists,
+			"retries": retries,
+			"timeout": timeout,
+		})
+
+		for _, content := range listObjectOutput.Contents {
+			log.Info(c.ctx, "file in minio", log.Data{
+				"filename": *content.Key,
+				"exists":   exists,
+				"retries":  retries,
+				"timeout":  timeout,
+			})
+			if strings.Contains(*content.Key, fileName) {
+				exists = true
+				break
+			}
+		}
+
+		if exists {
+			break
+		}
+		if retries <= 0 {
+			break
+		}
+		retries--
+		time.Sleep(timeout)
+		timeout *= 2
 	}
 
 	if !exists {
 		return fmt.Errorf(
-			"file with '%s' does not exist in minio. Last error: %w", fileName, err)
+			"file with '%s' does not exist in minio", fileName)
 	}
 
 	return nil

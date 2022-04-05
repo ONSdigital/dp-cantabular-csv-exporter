@@ -357,7 +357,6 @@ func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName string, bu
 		listObjectOutput, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
 			Bucket: aws.String(bucketName),
 		})
-
 		if err != nil {
 			return fmt.Errorf(
 				"error obtaining list of files from minio. Last error: %w",

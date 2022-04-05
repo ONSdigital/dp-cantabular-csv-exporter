@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -17,6 +16,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -51,7 +51,6 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
-
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
@@ -93,7 +92,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	if e.FilterID != "" {
 		dimensionNames, populationType, err := h.getFilterInfo(ctx, e.FilterID, logData)
 		if err != nil {
-			return err
+			errors.Wrap(err, "failed to get filter info")
 		}
 		req.Dataset = populationType
 		req.Variables = dimensionNames
@@ -133,26 +132,21 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 }
 
 func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, error) {
-	dimensions, _, err := h.filters.GetDimensions(ctx, "", h.cfg.ServiceAuthToken, "", filterID, nil)
-	if err != nil {
-		return nil, "", &Error{
-			err:     fmt.Errorf("failed to get dimensions: %w", err),
-			logData: logData,
-		}
-	}
-
-	dimensionNames := make([]string, 0)
-	for _, d := range dimensions.Items {
-		dimensionNames = append(dimensionNames, d.Name)
-	}
-
-	model, _, _ := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
+	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
 		return nil, "", &Error{
 			err:     fmt.Errorf("failed to get filter: %w", err),
 			logData: logData,
 		}
 	}
+
+	dimensions := model.Dimensions
+
+	dimensionNames := make([]string, 0)
+	for _, d := range dimensions {
+		dimensionNames = append(dimensionNames, d.Name)
+	}
+
 	return dimensionNames, model.PopulationType, nil
 }
 

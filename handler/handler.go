@@ -135,7 +135,7 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, l
 	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
 		return nil, "", &Error{
-			err:     fmt.Errorf("failed to get filter: %w", err),
+			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
 	}

@@ -74,7 +74,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		if err != nil {
 			errors.Wrap(err, "failed to get filter info")
 		}
-		isPublished = *published
+		isPublished = published
 		req.Dataset = populationType
 		req.Variables = dimensionNames
 	} else {
@@ -83,7 +83,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 			errors.Wrap(err, "failed to get instance info")
 		}
 
-		isPublished = *published
+		isPublished = published
 		req.Dataset = instance.IsBasedOn.ID // This value corresponds to the CantabularBlob that was used in import process
 		req.Variables = instance.CSVHeader[1:]
 	}
@@ -121,10 +121,10 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, *bool, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, bool, error) {
 	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
-		return nil, "", nil, &Error{
+		return nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -139,13 +139,13 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, l
 
 	isPublished := model.IsPublished
 
-	return dimensionNames, model.PopulationType, &isPublished, nil
+	return dimensionNames, model.PopulationType, isPublished, nil
 }
 
-func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (*dataset.Instance, *bool, error) {
+func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (*dataset.Instance, bool, error) {
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, headers.IfMatchAnyETag)
 	if err != nil {
-		return nil, nil, &Error{
+		return nil, false, &Error{
 			err:     fmt.Errorf("failed to get instance: %w", err),
 			logData: logData,
 		}
@@ -158,10 +158,10 @@ func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID strin
 	// validate the instance and determine wether it is published or not
 	isPublished, err := h.ValidateInstance(instance)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to validate instance: %w", err)
+		return nil, false, fmt.Errorf("failed to validate instance: %w", err)
 	}
 
-	return &instance, &isPublished, err
+	return &instance, isPublished, err
 
 }
 

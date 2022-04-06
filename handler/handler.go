@@ -51,6 +51,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+	var isPublished bool
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
@@ -66,36 +67,25 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData := log.Data{"event": e}
 	log.Info(ctx, "event received", logData)
 
-	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
-	if err != nil {
-		return &Error{
-			err:     fmt.Errorf("failed to get instance: %w", err),
-			logData: logData,
-		}
-	}
-
-	log.Info(ctx, "instance obtained from dataset API", log.Data{
-		"instance_id": instance.ID,
-	})
-
-	// validate the instance and determine wether it is published or not
-	isPublished, err := h.ValidateInstance(instance)
-	if err != nil {
-		return fmt.Errorf("failed to validate instance: %w", err)
-	}
-
-	req := cantabular.StaticDatasetQueryRequest{
-		Dataset:   instance.IsBasedOn.ID, // This value corresponds to the CantabularBlob that was used in import process
-		Variables: instance.CSVHeader[1:],
-	}
+	req := cantabular.StaticDatasetQueryRequest{}
 
 	if e.FilterID != "" {
-		dimensionNames, populationType, err := h.getFilterInfo(ctx, e.FilterID, logData)
+		dimensionNames, populationType, published, err := h.getFilterInfo(ctx, e.FilterID, logData)
 		if err != nil {
 			errors.Wrap(err, "failed to get filter info")
 		}
+		isPublished = *published
 		req.Dataset = populationType
 		req.Variables = dimensionNames
+	} else {
+		instance, published, err := h.getInstanceInfo(ctx, e.InstanceID, logData)
+		if err != nil {
+			errors.Wrap(err, "failed to get instance info")
+		}
+
+		isPublished = *published
+		req.Dataset = instance.IsBasedOn.ID // This value corresponds to the CantabularBlob that was used in import process
+		req.Variables = instance.CSVHeader[1:]
 	}
 
 	logData["request"] = req
@@ -131,10 +121,10 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, *bool, error) {
 	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
-		return nil, "", &Error{
+		return nil, "", nil, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -147,7 +137,32 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, l
 		dimensionNames = append(dimensionNames, d.Name)
 	}
 
-	return dimensionNames, model.PopulationType, nil
+	isPublished := model.IsPublished
+
+	return dimensionNames, model.PopulationType, &isPublished, nil
+}
+
+func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (*dataset.Instance, *bool, error) {
+	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, headers.IfMatchAnyETag)
+	if err != nil {
+		return nil, nil, &Error{
+			err:     fmt.Errorf("failed to get instance: %w", err),
+			logData: logData,
+		}
+	}
+
+	log.Info(ctx, "instance obtained from dataset API", log.Data{
+		"instance_id": instance.ID,
+	})
+
+	// validate the instance and determine wether it is published or not
+	isPublished, err := h.ValidateInstance(instance)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to validate instance: %w", err)
+	}
+
+	return &instance, &isPublished, err
+
 }
 
 // ValidateInstance validates the instance returned from dp-dataset-api

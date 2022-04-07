@@ -69,23 +69,19 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	req := cantabular.StaticDatasetQueryRequest{}
 
+	var err error
+
 	if e.FilterID != "" {
-		dimensionNames, populationType, published, err := h.getFilterInfo(ctx, e.FilterID, logData)
+		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterID, logData)
 		if err != nil {
-			errors.Wrap(err, "failed to get filter info")
-		}
-		isPublished = published
-		req.Dataset = populationType
-		req.Variables = dimensionNames
-	} else {
-		instance, published, err := h.getInstanceInfo(ctx, e.InstanceID, logData)
-		if err != nil {
-			errors.Wrap(err, "failed to get instance info")
+			return errors.Wrap(err, "failed to get filter info")
 		}
 
-		isPublished = published
-		req.Dataset = instance.IsBasedOn.ID // This value corresponds to the CantabularBlob that was used in import process
-		req.Variables = instance.CSVHeader[1:]
+	} else {
+		req.Dataset, req.Variables, isPublished, err = h.getInstanceInfo(ctx, e.InstanceID, logData)
+		if err != nil {
+			return errors.Wrap(err, "failed to get instance info")
+		}
 	}
 
 	logData["request"] = req
@@ -142,10 +138,10 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, l
 	return dimensionNames, model.PopulationType, isPublished, nil
 }
 
-func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (*dataset.Instance, bool, error) {
+func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, headers.IfMatchAnyETag)
 	if err != nil {
-		return nil, false, &Error{
+		return "", nil, false, &Error{
 			err:     fmt.Errorf("failed to get instance: %w", err),
 			logData: logData,
 		}
@@ -158,10 +154,10 @@ func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID strin
 	// validate the instance and determine wether it is published or not
 	isPublished, err := h.ValidateInstance(instance)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to validate instance: %w", err)
+		return "", nil, false, fmt.Errorf("failed to validate instance: %w", err)
 	}
 
-	return &instance, isPublished, err
+	return instance.IsBasedOn.ID, instance.CSVHeader[1:], isPublished, err
 
 }
 

@@ -197,6 +197,7 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
         "edition": "2021",
         "version": 1
       },
+      "published": true,
       "population_type": "Example"
     }
     """

@@ -158,7 +158,6 @@ func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID strin
 	}
 
 	return instance.IsBasedOn.ID, instance.CSVHeader[1:], isPublished, err
-
 }
 
 // ValidateInstance validates the instance returned from dp-dataset-api

@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -16,6 +16,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -25,6 +26,7 @@ type InstanceComplete struct {
 	cfg         config.Config
 	ctblr       CantabularClient
 	datasets    DatasetAPIClient
+	filters     FilterAPIClient
 	s3Private   S3Client
 	s3Public    S3Client
 	vaultClient VaultClient
@@ -33,10 +35,11 @@ type InstanceComplete struct {
 }
 
 // NewInstanceComplete creates a new InstanceCompleteHandler
-func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
+func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, f FilterAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
 		cfg:         cfg,
 		ctblr:       c,
+		filters:     f,
 		datasets:    d,
 		s3Private:   sPrivate,
 		s3Public:    sPublic,
@@ -48,6 +51,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+	var isPublished bool
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
@@ -63,28 +67,23 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData := log.Data{"event": e}
 	log.Info(ctx, "event received", logData)
 
-	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, headers.IfMatchAnyETag)
-	if err != nil {
-		return &Error{
-			err:     fmt.Errorf("failed to get instance: %w", err),
-			logData: logData,
+	req := cantabular.StaticDatasetQueryRequest{}
+
+	var err error
+
+	if e.FilterID != "" {
+		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterID, logData)
+		if err != nil {
+			return errors.Wrap(err, "failed to get filter info")
+		}
+
+	} else {
+		req.Dataset, req.Variables, isPublished, err = h.getInstanceInfo(ctx, e.InstanceID, logData)
+		if err != nil {
+			return errors.Wrap(err, "failed to get instance info")
 		}
 	}
 
-	log.Info(ctx, "instance obtained from dataset API", log.Data{
-		"instance_id": instance.ID,
-	})
-
-	// validate the instance and determine wether it is published or not
-	isPublished, err := h.ValidateInstance(instance)
-	if err != nil {
-		return fmt.Errorf("failed to validate instance: %w", err)
-	}
-
-	req := cantabular.StaticDatasetQueryRequest{
-		Dataset:   instance.IsBasedOn.ID, // This value corresponds to the CantabularBlob that was used in import process
-		Variables: instance.CSVHeader[1:],
-	}
 	logData["request"] = req
 
 	// Stream data from Cantabular to S3 bucket in CSV format
@@ -116,6 +115,49 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 	return nil
+}
+
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, bool, error) {
+	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
+	if err != nil {
+		return nil, "", false, &Error{
+			err:     errors.Wrap(err, "failed to get filter"),
+			logData: logData,
+		}
+	}
+
+	dimensions := model.Dimensions
+
+	dimensionNames := make([]string, 0)
+	for _, d := range dimensions {
+		dimensionNames = append(dimensionNames, d.Name)
+	}
+
+	isPublished := model.IsPublished
+
+	return dimensionNames, model.PopulationType, isPublished, nil
+}
+
+func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {
+	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, headers.IfMatchAnyETag)
+	if err != nil {
+		return "", nil, false, &Error{
+			err:     fmt.Errorf("failed to get instance: %w", err),
+			logData: logData,
+		}
+	}
+
+	log.Info(ctx, "instance obtained from dataset API", log.Data{
+		"instance_id": instance.ID,
+	})
+
+	// validate the instance and determine wether it is published or not
+	isPublished, err := h.ValidateInstance(instance)
+	if err != nil {
+		return "", nil, false, fmt.Errorf("failed to validate instance: %w", err)
+	}
+
+	return instance.IsBasedOn.ID, instance.CSVHeader[1:], isPublished, err
 }
 
 // ValidateInstance validates the instance returned from dp-dataset-api
@@ -355,10 +397,16 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
 func generateS3Filename(e *event.ExportStart) string {
+	if e.FilterID != "" {
+		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
 func generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
+	if e.FilterID != "" {
+		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+	}
 	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
 }

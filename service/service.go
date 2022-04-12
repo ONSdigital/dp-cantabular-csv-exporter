@@ -23,6 +23,7 @@ type Service struct {
 	Consumer         kafka.IConsumerGroup
 	Producer         kafka.IProducer
 	DatasetAPIClient DatasetAPIClient
+	FilterAPIClient  FilterAPIClient
 	CantabularClient CantabularClient
 	S3PrivateClient  S3Client
 	S3PublicClient   S3Client
@@ -61,12 +62,14 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	svc.CantabularClient = GetCantabularClient(cfg)
 	svc.DatasetAPIClient = GetDatasetAPIClient(cfg)
+	svc.FilterAPIClient = GetFilterAPIClient(cfg)
 	svc.generator = GetGenerator()
 
 	h := handler.NewInstanceComplete(
 		*svc.Cfg,
 		svc.CantabularClient,
 		svc.DatasetAPIClient,
+		svc.FilterAPIClient,
 		svc.S3PrivateClient,
 		svc.S3PublicClient,
 		svc.VaultClient,
@@ -237,6 +240,11 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for dataset API client: %w", err)
 	}
 
+	checkFilter, err := svc.HealthCheck.AddAndGetCheck("Filter API client", svc.FilterAPIClient.Checker)
+	if err != nil {
+		return fmt.Errorf("error adding check for filter API client: %w", err)
+	}
+
 	checkS3Private, err := svc.HealthCheck.AddAndGetCheck("S3 private client", svc.S3PrivateClient.Checker)
 	if err != nil {
 		return fmt.Errorf("error adding check for s3 private client: %w", err)
@@ -248,7 +256,7 @@ func (svc *Service) registerCheckers() error {
 	}
 
 	if svc.Cfg.StopConsumingOnUnhealthy {
-		svc.HealthCheck.Subscribe(svc.Consumer, checkCantabular, checkCantabularAPIExt, checkDataset, checkS3Private, checkS3Public)
+		svc.HealthCheck.Subscribe(svc.Consumer, checkCantabular, checkCantabularAPIExt, checkDataset, checkFilter, checkS3Private, checkS3Public)
 	}
 
 	if !svc.Cfg.EncryptionDisabled {

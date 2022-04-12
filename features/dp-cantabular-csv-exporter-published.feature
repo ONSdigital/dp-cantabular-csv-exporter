@@ -99,10 +99,11 @@ Feature: Cantabular-Csv-Exporter-Published
       }
       """
 
+    And filter API is healthy
     And dp-dataset-api is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy
-    
+
     And the following instance with id "instance-happy-01" is available from dp-dataset-api:
       """
       {
@@ -147,7 +148,7 @@ Feature: Cantabular-Csv-Exporter-Published
     Scenario: Consuming a cantabular-export-start event with correct fields for a published instance
 
     When the service starts
-    
+
     And this cantabular-export-start event is queued, to be consumed:
       """
       {

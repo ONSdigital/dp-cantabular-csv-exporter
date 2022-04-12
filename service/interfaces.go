@@ -6,6 +6,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
@@ -19,6 +20,7 @@ import (
 //go:generate moq -out mock/health_check.go -pkg mock . HealthChecker
 //go:generate moq -out mock/cantabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/filter_api_client.go -pkg mock . FilterAPIClient
 //go:generate moq -out mock/s3_client.go -pkg mock . S3Client
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
 
@@ -53,6 +55,12 @@ type CantabularClient interface {
 type DatasetAPIClient interface {
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 	PutVersion(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID, edition, version string, v dataset.Version) error
+	Checker(context.Context, *healthcheck.CheckState) error
+}
+
+type FilterAPIClient interface {
+	GetDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, filterID string, q *filter.QueryParams) (dims filter.Dimensions, eTag string, err error)
+	GetJobState(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterID string) (m filter.Model, eTag string, err error)
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 

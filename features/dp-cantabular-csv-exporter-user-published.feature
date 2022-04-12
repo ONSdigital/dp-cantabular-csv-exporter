@@ -99,6 +99,7 @@ Feature: Cantabular-Csv-Exporter-Published
       }
       """
 
+    And filter API is healthy
     And dp-dataset-api is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy
@@ -151,11 +152,10 @@ Feature: Cantabular-Csv-Exporter-Published
     And this cantabular-export-start event is queued, to be consumed:
       """
       {
-	"InstanceID": "instance-happy-01",
-	"DatasetID":  "dataset-happy-01",
-	"Edition":    "edition-happy-01",
-	"Version":    "version-happy-filter",
-	"FilterID":    "filter-id-happy-01"
+        "InstanceID": "instance-happy-01",
+        "DatasetID":  "dataset-happy-01",
+        "Edition":    "edition-happy-01",
+        "Version":    "version-happy-filter"
       }
       """
 

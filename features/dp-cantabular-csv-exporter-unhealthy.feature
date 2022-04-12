@@ -4,6 +4,7 @@ Feature: Cantabular-Csv-Exporter-Unhealthy
 
   Background:
     Given dp-dataset-api is unhealthy
+    And filter API is healthy
     And cantabular server is healthy
     And cantabular api extension is healthy
 
@@ -17,7 +18,7 @@ Feature: Cantabular-Csv-Exporter-Unhealthy
         "InstanceID": "instance-happy-01",
         "DatasetID":  "dataset-happy-01",
         "Edition":    "edition-happy-01",
-	      "Version":    "version-happy-01"
+        "Version":    "version-happy-01"
       }
       """  
 

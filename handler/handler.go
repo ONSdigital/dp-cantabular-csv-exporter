@@ -118,7 +118,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 }
 
 func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, bool, error) {
-	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
+	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
 		return nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),

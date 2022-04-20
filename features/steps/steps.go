@@ -33,7 +33,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^a dataset version with dataset-id "([^"]*)", edition "([^"]*)" and version "([^"]*)" is updated by an API call to dp-dataset-api`, c.theFollowingVersionIsUpdated)
 	ctx.Step(`^for the following filter "([^"]*)" these dimensions are available:$`, c.theFollowingFilterDimensionsExist)
-	ctx.Step(`^the following job state is returned for the filter "([^"]*)":$`, c.theFollowingJobStateIsReturned)
+	ctx.Step(`^the following filter is returned for the filter output "([^"]*)":$`, c.theFollowingJobStateIsReturned)
 	ctx.Step(`^this cantabular-export-start event is queued, to be consumed:$`, c.thisExportStartEventIsQueued)
 	ctx.Step(`^one event with the following fields are in the produced kafka topic cantabular-csv-created:$`, c.theseCsvCreatedEventsAreProduced)
 	ctx.Step(`^no cantabular-csv-created events are produced`, c.noCsvCreatedEventsAreProduced)
@@ -146,7 +146,7 @@ func (c *Component) theFollowingFilterDimensionsExist(filterID string, instance 
 // theFollowingJobStateIsReturned mocks filter api response for
 // GET /filters/{filter_id}
 func (c *Component) theFollowingJobStateIsReturned(filterID string, instance *godog.DocString) error {
-	uri := fmt.Sprintf("/filters/%s", filterID)
+	uri := fmt.Sprintf("/filter-outputs/%s", filterID)
 	c.FilterAPI.NewHandler().
 		Get(uri).
 		Reply(http.StatusOK).

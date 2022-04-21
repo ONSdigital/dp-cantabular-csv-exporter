@@ -71,8 +71,8 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	var err error
 
-	if e.FilterID != "" {
-		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterID, logData)
+	if e.FilterOutputID != "" {
+		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
@@ -118,7 +118,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 }
 
 func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterID string, logData log.Data) ([]string, string, bool, error) {
-	model, _, err := h.filters.GetJobState(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
+	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterID)
 	if err != nil {
 		return nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
@@ -397,7 +397,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
 func generateS3Filename(e *event.ExportStart) string {
-	if e.FilterID != "" {
+	if e.FilterOutputID != "" {
 		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
@@ -405,7 +405,7 @@ func generateS3Filename(e *event.ExportStart) string {
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
 func generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
-	if e.FilterID != "" {
+	if e.FilterOutputID != "" {
 		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)

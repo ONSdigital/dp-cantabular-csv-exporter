@@ -144,7 +144,7 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
       """
 
     And a dataset version with dataset-id "dataset-happy-02", edition "edition-happy-02" and version "version-happy-02" is updated by an API call to dp-dataset-api
-    And for the following filter "filter-happy-02" these dimensions are available:
+    And for the following filter "filter-output-happy-02" these dimensions are available:
     """
     {
       "items": [
@@ -176,10 +176,10 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     }
     """
 
-    And the following job state is returned for the filter "filter-happy-02":
+    And the following filter is returned for the filter output "filter-output-happy-02":
     """
     {
-      "filter_id": "filter-happy-02",
+      "filter_id": "filter-output-happy-02",
       "links": {
         "version": {
           "href": "http://mockhost:9999/datasets/cantabular-example-1/editions/2021/version/1",
@@ -205,18 +205,18 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
 
 
 
-  Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter id present
+  Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter output id present
 
     When the service starts
 
     And this cantabular-export-start event is queued, to be consumed:
       """
       {
-        "InstanceID": "instance-happy-02",
-        "DatasetID":  "dataset-happy-02",
-        "Edition":    "edition-happy-02",
-        "Version":    "version-happy-02",
-        "FilterID":   "filter-happy-02"
+        "InstanceID":     "instance-happy-02",
+        "DatasetID":      "dataset-happy-02",
+        "Edition":        "edition-happy-02",
+        "Version":        "version-happy-02",
+        "FilterOutputID": "filter-output-happy-02"
       }
       """
 

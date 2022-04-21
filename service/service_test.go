@@ -101,8 +101,8 @@ func TestInit(t *testing.T) {
 				return filter.Dimensions{}, "", nil
 			},
 
-			GetJobStateFunc: func(ctx context.Context, uaToken string, saToken string, dsToken string, cID string, fID string) (filter.Model, string, error) {
-				return filter.Model{}, "", nil
+			GetOutputFunc: func(ctx context.Context, uaToken string, saToken string, dsToken string, cID string, fID string) (filter.Model, error) {
+				return filter.Model{}, nil
 			},
 		}
 		service.GetFilterAPIClient = func(cfg *config.Config) service.FilterAPIClient {

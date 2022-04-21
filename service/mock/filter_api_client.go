@@ -27,8 +27,8 @@ var _ service.FilterAPIClient = &FilterAPIClientMock{}
 // 			GetDimensionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterID string, q *filter.QueryParams) (filter.Dimensions, string, error) {
 // 				panic("mock out the GetDimensions method")
 // 			},
-// 			GetJobStateFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterID string) (filter.Model, string, error) {
-// 				panic("mock out the GetJobState method")
+// 			GetOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error) {
+// 				panic("mock out the GetOutput method")
 // 			},
 // 		}
 //
@@ -43,8 +43,8 @@ type FilterAPIClientMock struct {
 	// GetDimensionsFunc mocks the GetDimensions method.
 	GetDimensionsFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterID string, q *filter.QueryParams) (filter.Dimensions, string, error)
 
-	// GetJobStateFunc mocks the GetJobState method.
-	GetJobStateFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterID string) (filter.Model, string, error)
+	// GetOutputFunc mocks the GetOutput method.
+	GetOutputFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -70,8 +70,8 @@ type FilterAPIClientMock struct {
 			// Q is the q argument value.
 			Q *filter.QueryParams
 		}
-		// GetJobState holds details about calls to the GetJobState method.
-		GetJobState []struct {
+		// GetOutput holds details about calls to the GetOutput method.
+		GetOutput []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// UserAuthToken is the userAuthToken argument value.
@@ -82,13 +82,13 @@ type FilterAPIClientMock struct {
 			DownloadServiceToken string
 			// CollectionID is the collectionID argument value.
 			CollectionID string
-			// FilterID is the filterID argument value.
-			FilterID string
+			// FilterOutputID is the filterOutputID argument value.
+			FilterOutputID string
 		}
 	}
 	lockChecker       sync.RWMutex
 	lockGetDimensions sync.RWMutex
-	lockGetJobState   sync.RWMutex
+	lockGetOutput     sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
@@ -177,10 +177,10 @@ func (mock *FilterAPIClientMock) GetDimensionsCalls() []struct {
 	return calls
 }
 
-// GetJobState calls GetJobStateFunc.
-func (mock *FilterAPIClientMock) GetJobState(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterID string) (filter.Model, string, error) {
-	if mock.GetJobStateFunc == nil {
-		panic("FilterAPIClientMock.GetJobStateFunc: method is nil but FilterAPIClient.GetJobState was just called")
+// GetOutput calls GetOutputFunc.
+func (mock *FilterAPIClientMock) GetOutput(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error) {
+	if mock.GetOutputFunc == nil {
+		panic("FilterAPIClientMock.GetOutputFunc: method is nil but FilterAPIClient.GetOutput was just called")
 	}
 	callInfo := struct {
 		Ctx                  context.Context
@@ -188,31 +188,31 @@ func (mock *FilterAPIClientMock) GetJobState(ctx context.Context, userAuthToken 
 		ServiceAuthToken     string
 		DownloadServiceToken string
 		CollectionID         string
-		FilterID             string
+		FilterOutputID       string
 	}{
 		Ctx:                  ctx,
 		UserAuthToken:        userAuthToken,
 		ServiceAuthToken:     serviceAuthToken,
 		DownloadServiceToken: downloadServiceToken,
 		CollectionID:         collectionID,
-		FilterID:             filterID,
+		FilterOutputID:       filterOutputID,
 	}
-	mock.lockGetJobState.Lock()
-	mock.calls.GetJobState = append(mock.calls.GetJobState, callInfo)
-	mock.lockGetJobState.Unlock()
-	return mock.GetJobStateFunc(ctx, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterID)
+	mock.lockGetOutput.Lock()
+	mock.calls.GetOutput = append(mock.calls.GetOutput, callInfo)
+	mock.lockGetOutput.Unlock()
+	return mock.GetOutputFunc(ctx, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterOutputID)
 }
 
-// GetJobStateCalls gets all the calls that were made to GetJobState.
+// GetOutputCalls gets all the calls that were made to GetOutput.
 // Check the length with:
-//     len(mockedFilterAPIClient.GetJobStateCalls())
-func (mock *FilterAPIClientMock) GetJobStateCalls() []struct {
+//     len(mockedFilterAPIClient.GetOutputCalls())
+func (mock *FilterAPIClientMock) GetOutputCalls() []struct {
 	Ctx                  context.Context
 	UserAuthToken        string
 	ServiceAuthToken     string
 	DownloadServiceToken string
 	CollectionID         string
-	FilterID             string
+	FilterOutputID       string
 } {
 	var calls []struct {
 		Ctx                  context.Context
@@ -220,10 +220,10 @@ func (mock *FilterAPIClientMock) GetJobStateCalls() []struct {
 		ServiceAuthToken     string
 		DownloadServiceToken string
 		CollectionID         string
-		FilterID             string
+		FilterOutputID       string
 	}
-	mock.lockGetJobState.RLock()
-	calls = mock.calls.GetJobState
-	mock.lockGetJobState.RUnlock()
+	mock.lockGetOutput.RLock()
+	calls = mock.calls.GetOutput
+	mock.lockGetOutput.RUnlock()
 	return calls
 }

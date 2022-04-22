@@ -57,9 +57,9 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	if err := s.Unmarshal(msg.GetData(), e); err != nil {
 		return &Error{
-			err: fmt.Errorf("failed to unmarshal event: %w", err),
+			err: errors.Wrap(err, "failed to unmarshal event"),
 			logData: map[string]interface{}{
-				"msg_data": msg.GetData(),
+				"msg_data": string(msg.GetData()),
 			},
 		}
 	}

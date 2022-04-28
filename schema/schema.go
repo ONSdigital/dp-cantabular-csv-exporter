@@ -18,7 +18,7 @@ var exportStart = `{
     {"name": "dataset_id",  		"type": "string", "default": ""},
     {"name": "edition",     		"type": "string", "default": ""},
     {"name": "version",     		"type": "string", "default": ""},
-    {"name": "filter_output_id",   "type":"string",  "default": ""}
+    {"name": "filter_output_id",    "type": "string", "default": ""}
   ]
 }`
 
@@ -31,11 +31,11 @@ var csvCreated = `{
   "type": "record",
   "name": "cantabular-csv-created",
   "fields": [
-    {"name": "instance_id", "type": "string", "default": ""},
-    {"name": "dataset_id", "type": "string", "default": ""},
-    {"name": "edition", "type": "string", "default": ""},
-    {"name": "version", "type": "string", "default": ""},
-    {"name": "row_count", "type": "int", "default": 0}
+    {"name": "instance_id", 	"type": "string", 	"default": ""},
+    {"name": "dataset_id", 		"type": "string", 	"default": ""},
+    {"name": "edition", 		"type": "string", 	"default": ""},
+    {"name": "version", 		"type": "string", 	"default": ""},
+    {"name": "row_count", 		"type": "int", 		"default": 0}
   ]
 }`
 

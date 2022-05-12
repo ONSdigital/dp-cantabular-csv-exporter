@@ -87,7 +87,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData["request"] = req
 
 	// Stream data from Cantabular to S3 bucket in CSV format
-	s3Url, rowCount, err := h.UploadCSVFile(ctx, e, isPublished, req)
+	s3Url, rowCount, filename, err := h.UploadCSVFile(ctx, e, isPublished, req)
 	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -95,7 +95,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		}
 	}
 
-	numBytes, err := h.GetS3ContentLength(ctx, e, isPublished)
+	numBytes, err := h.GetS3ContentLength(ctx, e, isPublished, filename)
 	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get S3 content length: %w", err),
@@ -130,7 +130,7 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 
 	dimensionNames := make([]string, 0)
 	for _, d := range dimensions {
-		dimensionNames = append(dimensionNames, d.Name)
+		dimensionNames = append(dimensionNames, d.ID)
 	}
 
 	isPublished := model.IsPublished
@@ -189,9 +189,9 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 // If the data is published, the S3 file will be stored in the public bucket
 // If the data is private, the S3 file will be stored in the private bucket (encrypted or un-encrypted depending on EncryptionDisabled flag)
 // Returns S3 file URL, file size [bytes], number of rows, and any error that happens.
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, isPublished bool, req cantabular.StaticDatasetQueryRequest) (string, int32, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, isPublished bool, req cantabular.StaticDatasetQueryRequest) (string, int32, string, error) {
 	if e.InstanceID == "" {
-		return "", 0, errors.New("empty instance id not allowed")
+		return "", 0, "", errors.New("empty instance id not allowed")
 	}
 	var s3Location string
 	var consume cantabular.Consumer
@@ -267,7 +267,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 		} else {
 			psk, err := h.generator.NewPSK()
 			if err != nil {
-				return "", 0, NewError(
+				return "", 0, "", NewError(
 					fmt.Errorf("failed to generate a PSK for encryption: %w", err),
 					logData,
 				)
@@ -278,7 +278,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
 			if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
-				return "", 0, NewError(
+				return "", 0, "", NewError(
 					fmt.Errorf("failed to write key to vault: %w", err),
 					logData,
 				)
@@ -315,18 +315,17 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 
 	rowCount, err := h.ctblr.StaticDatasetQueryStreamCSV(ctx, req, consume)
 	if err != nil {
-		return "", 0, &Error{
+		return "", 0, "", &Error{
 			err:     fmt.Errorf("failed to stream csv data: %w", err),
 			logData: logData,
 		}
 	}
 
-	return s3Location, rowCount, nil
+	return s3Location, rowCount, filename, nil
 }
 
 // GetS3ContentLength obtains an S3 file size (in number of bytes) by calling Head Object
-func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.ExportStart, isPublished bool) (int, error) {
-	filename := generateS3Filename(e)
+func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.ExportStart, isPublished bool, filename string) (int, error) {
 	if isPublished {
 		headOutput, err := h.s3Public.Head(filename)
 		if err != nil {
@@ -389,7 +388,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 		Edition:      e.Edition,
 		Version:      e.Version,
 		RowCount:     rowCount,
-		DimensionsID: e.DimensionsID,
+		DimensionIDs: e.DimensionIDs,
 	}); err != nil {
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}

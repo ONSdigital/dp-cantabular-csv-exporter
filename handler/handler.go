@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
@@ -67,16 +68,15 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData := log.Data{"event": e}
 	log.Info(ctx, "event received", logData)
 
-	req := cantabular.StaticDatasetQueryRequest{}
-
 	var err error
+	req := cantabular.StaticDatasetQueryRequest{}
+	isFilterJob := e.FilterOutputID != ""
 
-	if e.FilterOutputID != "" {
+	if isFilterJob {
 		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
-
 	} else {
 		req.Dataset, req.Variables, isPublished, err = h.getInstanceInfo(ctx, e.InstanceID, logData)
 		if err != nil {
@@ -103,17 +103,22 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		}
 	}
 
-	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url); err != nil {
-		return fmt.Errorf("failed to update instance: %w", err)
+	if isFilterJob {
+		if err := h.UpdateFilterOutput(ctx, e, numBytes, isPublished, s3Url); err != nil {
+			return errors.Wrap(err, "failed to update filter output")
+		}
+	} else {
+		if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url); err != nil {
+			return errors.Wrap(err, "failed to update instance")
+		}
 	}
 
-	log.Event(ctx, "producing  event", log.INFO, log.Data{})
+	log.Info(ctx, "producing  event")
 
-	// Generate output kafka message
 	if err := h.ProduceExportCompleteEvent(e, rowCount); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
+
 	return nil
 }
 
@@ -373,7 +378,15 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 	}
 
 	err := h.datasets.PutVersion(
-		ctx, "", h.cfg.ServiceAuthToken, "", e.DatasetID, e.Edition, e.Version, versionUpdate)
+		ctx,
+		"",
+		h.cfg.ServiceAuthToken,
+		"",
+		e.DatasetID,
+		e.Edition,
+		e.Version,
+		versionUpdate,
+	)
 	if err != nil {
 		return fmt.Errorf("error while attempting update version downloads: %w", err)
 	}
@@ -392,6 +405,34 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 	}); err != nil {
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}
+	return nil
+}
+
+func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string) error {
+	log.Info(ctx, "Updating filter output with download link")
+
+	download := filter.Download{
+		URL:     fmt.Sprintf("%s/downloads/filter-outputs/%s.csv", h.cfg.DownloadServiceURL, e.FilterOutputID),
+		Size:    fmt.Sprintf("%d", size),
+		Skipped: false,
+	}
+
+	if isPublished {
+		download.Public = s3Url
+	} else {
+		download.Private = s3Url
+	}
+
+	m := filter.Model{
+		Downloads: map[string]filter.Download{
+			"CSV": download,
+		},
+	}
+
+	if err := h.filters.UpdateFilterOutput(ctx, "", h.cfg.ServiceAuthToken, "", e.FilterOutputID, &m); err != nil {
+		return errors.Wrap(err, "failed to update filter output")
+	}
+
 	return nil
 }
 

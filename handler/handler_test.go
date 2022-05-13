@@ -12,6 +12,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
@@ -32,6 +33,7 @@ const (
 	testDatasetID          = "test-dataset-id"
 	testEdition            = "test-edition"
 	testVersion            = "test-version"
+	testFilterOutputID     = "test-filter-output-id"
 	testS3Location         = "s3://myBucket/my-file.csv"
 	testDownloadServiceURL = "http://test-download-service:8200"
 	testNumBytes           = 123
@@ -46,6 +48,14 @@ var (
 		Version:    testVersion,
 	}
 
+	testExportStartFilterEvent = &event.ExportStart{
+		InstanceID:     testInstanceID,
+		DatasetID:      testDatasetID,
+		Edition:        testEdition,
+		Version:        testVersion,
+		FilterOutputID: testFilterOutputID,
+	}
+
 	testCsvBody = bufio.NewReader(bytes.NewReader([]byte("a,b,c,d,e,f,g,h,i,j,k,l")))
 	testPsk     = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	testReq     = cantabular.StaticDatasetQueryRequest{
@@ -57,6 +67,7 @@ var (
 	errVault      = errors.New("test Vault error")
 	errPsk        = errors.New("test PSK error")
 	errDataset    = errors.New("test DatasetAPI error")
+	errFilter     = errors.New("test FilterAPI error")
 )
 
 func testCfg() config.Config {
@@ -516,6 +527,50 @@ func TestGetS3ContentLength(t *testing.T) {
 	})
 }
 
+func TestUpdateFilterOutput(t *testing.T) {
+	testSize := testCsvBody.Size()
+
+	Convey("Given an event handler with a successful dataset API mock", t, func() {
+		filterAPIMock := filterAPIClientHappy()
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &filterAPIMock, nil, nil, nil, nil, nil)
+
+		Convey("When UpdateFilterOutput is called for a valid event", func() {
+			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "")
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
+				expectedURL := fmt.Sprintf("%s/downloads/filter-outputs/%s.csv", testDownloadServiceURL, testFilterOutputID)
+				So(filterAPIMock.UpdateFilterOutputCalls(), ShouldHaveLength, 1)
+				So(filterAPIMock.UpdateFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testFilterOutputID)
+				So(filterAPIMock.UpdateFilterOutputCalls()[0].M, ShouldResemble, &filter.Model{
+					Downloads: map[string]filter.Download{
+						"CSV": {
+							URL:  expectedURL,
+							Size: fmt.Sprintf("%d", testSize),
+						},
+					},
+				})
+			})
+		})
+	})
+
+	Convey("Given an event handler with a failing dataset API mock", t, func() {
+		filterAPIMock := filterAPIClientUnhappy()
+		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &filterAPIMock, nil, nil, nil, nil, nil)
+
+		Convey("When UpdateFilterOutput is called", func() {
+			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "")
+
+			Convey("Then an error is returned", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
+	})
+}
+
 func TestUpdateInstance(t *testing.T) {
 	testSize := testCsvBody.Size()
 
@@ -753,6 +808,22 @@ func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 		},
 		PutVersionFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string, edition string, version string, v dataset.Version) error {
 			return errDataset
+		},
+	}
+}
+
+func filterAPIClientHappy() mock.FilterAPIClientMock {
+	return mock.FilterAPIClientMock{
+		UpdateFilterOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterOutputID string, m *filter.Model) error {
+			return nil
+		},
+	}
+}
+
+func filterAPIClientUnhappy() mock.FilterAPIClientMock {
+	return mock.FilterAPIClientMock{
+		UpdateFilterOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterOutputID string, m *filter.Model) error {
+			return errFilter
 		},
 	}
 }

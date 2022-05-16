@@ -19,7 +19,7 @@ var exportStart = `{
     {"name": "edition",     		"type": "string", "default": ""},
     {"name": "version",     		"type": "string", "default": ""},
     {"name": "filter_output_id","type":"string",  "default": ""},
-    {"name": "dimension_ids",   "type":"string",  "default": ""}
+    {"name": "dimension_ids",   "type": { "type": "array", "items": "string"} }
   ]
 }`
 
@@ -37,7 +37,7 @@ var csvCreated = `{
     {"name": "edition",       "type": "string", "default": ""},
     {"name": "version",       "type": "string", "default": ""},
     {"name": "row_count",     "type": "int",    "default": 0 },
-    {"name": "dimension_ids", "type": "string", "default": ""}
+    {"name": "dimensions", "type": { "type": "array", "items": "string"}, "default": [] }
   ]
 }`
 

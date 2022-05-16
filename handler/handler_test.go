@@ -611,6 +611,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 				Edition:    testEdition,
 				Version:    testVersion,
 				RowCount:   testRowCount,
+				Dimensions: []string{},
 			}
 
 			Convey("Then the expected message is produced", func() {
@@ -640,6 +641,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 				Edition:    testEdition,
 				Version:    testVersion,
 				RowCount:   testRowCount,
+				Dimensions: []string{},
 			}
 
 			Convey("Then the expected message is produced", func() {

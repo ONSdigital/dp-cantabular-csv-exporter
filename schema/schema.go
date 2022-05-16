@@ -19,7 +19,7 @@ var exportStart = `{
     {"name": "edition",     		"type": "string", "default": ""},
     {"name": "version",     		"type": "string", "default": ""},
     {"name": "filter_output_id","type":"string",  "default": ""},
-    {"name": "dimension_ids",   "type": { "type": "array", "items": "string"} }
+    {"name": "dimensions",   "type": { "type": "array", "items": "string"},"default": [] }
   ]
 }`
 

@@ -104,7 +104,7 @@ Feature: Cantabular-Csv-Exporter-Unpublished
     And cantabular server is healthy
     And cantabular api extension is healthy
 
-    And the following instance with id "instance-happy-01" is available from dp-dataset-api:
+    And the following instance with id "instance-happy-02" is available from dp-dataset-api:
       """
       {
         "import_tasks": {
@@ -143,7 +143,7 @@ Feature: Cantabular-Csv-Exporter-Unpublished
       }
       """
 
-    And a dataset version with dataset-id "dataset-happy-01", edition "edition-happy-01" and version "version-happy-01" is updated by an API call to dp-dataset-api
+    And a dataset version with dataset-id "dataset-happy-02", edition "edition-happy-02" and version "version-happy-02" is updated by an API call to dp-dataset-api
 
     Scenario: Consuming a cantabular-export-start event with correct fields for an unpublished instance
 
@@ -152,15 +152,15 @@ Feature: Cantabular-Csv-Exporter-Unpublished
     And this cantabular-export-start event is queued, to be consumed:
       """
       {
-        "InstanceID": "instance-happy-01",
-        "DatasetID":  "dataset-happy-01",
-        "Edition":    "edition-happy-01",
-        "Version":    "version-happy-01"
+        "InstanceID": "instance-happy-02",
+        "DatasetID":  "dataset-happy-02",
+        "Edition":    "edition-happy-02",
+        "Version":    "version-happy-02"
       }
       """
 
-    Then a private file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-01.csv" can be seen in minio
+    Then a private file with filename "datasets/dataset-happy-02-edition-happy-02-version-happy-02.csv" can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount | Dimensions |
-      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-01 | 22       | []         |
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | []         |

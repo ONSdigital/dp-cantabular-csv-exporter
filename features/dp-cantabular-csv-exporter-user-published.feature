@@ -162,5 +162,5 @@ Feature: Cantabular-Csv-Exporter-Published
     Then a public file with filename "datasets/dataset-happy-01-edition-happy-01-version-happy-filter.csv" can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
-      | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
-      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-filter | 22       |
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | Dimensions |
+      | instance-happy-01 | dataset-happy-01 | edition-happy-01 | version-happy-filter | 22   | []         |

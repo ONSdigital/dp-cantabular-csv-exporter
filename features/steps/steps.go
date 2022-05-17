@@ -186,10 +186,25 @@ func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.
 	return nil
 }
 
+//we are passing the string array as [xxxx,yyyy,zzz]
+//this is required to support array being used in kafka messages
+func arrayParser(raw string) (interface{}, error) {
+	//remove the starting and trailing brackets
+	str := strings.Trim(raw, "[]")
+	if str == "" {
+		return []string{}, nil
+	}
+
+	strArray := strings.Split(str, ",")
+	return strArray, nil
+}
+
 // theseCsvCreatedEventsAreProduced consumes kafka messages that are expected to be produced by the service under test
 // and validates that they match the expected values in the test
 func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error {
-	expected, err := assistdog.NewDefault().CreateSlice(new(event.CSVCreated), events)
+	assist := assistdog.NewDefault()
+	assist.RegisterParser([]string{}, arrayParser)
+	expected, err := assist.CreateSlice(new(event.CSVCreated), events)
 	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}

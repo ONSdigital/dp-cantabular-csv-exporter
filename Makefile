@@ -3,6 +3,8 @@ BINPATH ?= build
 BUILD_TIME=$(shell date +%s)
 GIT_COMMIT=$(shell git rev-parse HEAD)
 VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
+MY_UID=$(shell id -u)
+MY_GID=$(shell id -g)
 
 LDFLAGS = -ldflags "-X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT) -X main.Version=$(VERSION)"
 
@@ -50,7 +52,7 @@ convey:
 
 .PHONY: test-component
 test-component:
-	cd features/compose; docker-compose up --abort-on-container-exit
+	cd features/compose; MY_UID=$(MY_UID) MY_GID=$(MY_GID) docker-compose up --abort-on-container-exit
 	echo "please ignore error codes 0, like so: ERROR[xxxx] 0, as error code 0 means that there was no error"
 
 .PHONY: lint

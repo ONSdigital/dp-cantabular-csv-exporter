@@ -85,9 +85,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
 
-	//if err := svc.registerCheckers(); err != nil {
-	//	return fmt.Errorf("error initialising checkers: %w", err)
-	//}
+	if err := svc.registerCheckers(); err != nil {
+		return fmt.Errorf("error initialising checkers: %w", err)
+	}
 
 	r := mux.NewRouter()
 	r.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)

@@ -5,6 +5,7 @@ services:
         build:
             context: ../../../dp-cantabular-csv-exporter
             dockerfile: Dockerfile.local
+        user: "${MY_UID}:${MY_GID}"
         command:
             - go 
             - test 

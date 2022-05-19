@@ -543,7 +543,7 @@ func TestUpdateFilterOutput(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 
-			Convey("Then the expected UpdateInstance call is executed with the expected paramters", func() {
+			Convey("And the expected UpdateInstance call is executed with the expected paramters", func() {
 				expectedURL := fmt.Sprintf("%s/downloads/filter-outputs/%s.csv", testDownloadServiceURL, testFilterOutputID)
 				So(filterAPIMock.UpdateFilterOutputCalls(), ShouldHaveLength, 1)
 				So(filterAPIMock.UpdateFilterOutputCalls()[0].FilterOutputID, ShouldEqual, testFilterOutputID)

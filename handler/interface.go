@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -51,4 +52,5 @@ type VaultClient interface {
 // e.g. UUIDs, PSKs.
 type Generator interface {
 	NewPSK() ([]byte, error)
+	Timestamp() time.Time
 }

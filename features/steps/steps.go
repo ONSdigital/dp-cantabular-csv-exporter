@@ -40,6 +40,8 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a public file with filename "([^"]*)" can be seen in minio`, c.theFollowingPublicFileCanBeSeenInMinio)
 	ctx.Step(`^a public filtered file, that should contain "([^"]*)" on the filename can be seen in minio`, c.theFollowingPublicFilteredFileCanBeSeenInMinio)
 	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
+	ctx.Step(`^the following filter output with id "([^"]*)" will be updated:$`, c.theFollowingFilterOutputWillBeUpdated)
+
 }
 
 // theServiceStarts starts the service under test in a new go-routine
@@ -133,24 +135,34 @@ func (c *Component) theFollowingVersionIsUpdated(datasetID, edition, version str
 
 // theFollowingFilterDimensionsExist mocks filter api response for
 // GET /filters/{filter_id}/dimensions
-func (c *Component) theFollowingFilterDimensionsExist(filterID string, instance *godog.DocString) error {
+func (c *Component) theFollowingFilterDimensionsExist(filterID string, body *godog.DocString) error {
 	uri := fmt.Sprintf("/filters/%s/dimensions", filterID)
 	c.FilterAPI.NewHandler().
 		Get(uri).
 		Reply(http.StatusOK).
-		BodyString(instance.Content)
+		BodyString(body.Content)
 
 	return nil
 }
 
 // theFollowingJobStateIsReturned mocks filter api response for
 // GET /filters/{filter_id}
-func (c *Component) theFollowingJobStateIsReturned(filterID string, instance *godog.DocString) error {
-	uri := fmt.Sprintf("/filter-outputs/%s", filterID)
+func (c *Component) theFollowingJobStateIsReturned(filterOutputID string, body *godog.DocString) error {
+	uri := fmt.Sprintf("/filter-outputs/%s", filterOutputID)
 	c.FilterAPI.NewHandler().
 		Get(uri).
 		Reply(http.StatusOK).
-		BodyString(instance.Content)
+		BodyString(body.Content)
+
+	return nil
+}
+
+func (c *Component) theFollowingFilterOutputWillBeUpdated(filterOutputID string, body *godog.DocString) error {
+	uri := fmt.Sprintf("/filter-outputs/%s", filterOutputID)
+	c.FilterAPI.NewHandler().
+		Put(uri).
+		AssertCustom(newPutFilterOutputAssertor([]byte(body.Content))).
+		Reply(http.StatusOK)
 
 	return nil
 }

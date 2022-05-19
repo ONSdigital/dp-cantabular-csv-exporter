@@ -113,7 +113,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		}
 	}
 
-	log.Info(ctx, "producing  event")
+	log.Info(ctx, "producing event")
 
 	if err := h.ProduceExportCompleteEvent(e, rowCount); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
@@ -201,7 +201,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 	var s3Location string
 	var consume cantabular.Consumer
 
-	filename := generateS3Filename(e)
+	filename := h.generateS3Filename(e)
 	logData := log.Data{
 		"filename":     filename,
 		"is_published": isPublished,
@@ -278,7 +278,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				)
 			}
 
-			vaultPath := generateVaultPathForFile(h.cfg.VaultPath, e)
+			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, e)
 			vaultKey := "key"
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
@@ -437,17 +437,17 @@ func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.Expo
 }
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
-func generateS3Filename(e *event.ExportStart) string {
+func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) string {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
+func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
 }

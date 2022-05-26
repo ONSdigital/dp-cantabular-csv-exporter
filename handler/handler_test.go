@@ -656,7 +656,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, "", testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 
@@ -686,7 +686,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, "", testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 

@@ -118,7 +118,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	//just pass the file name
 	f := strings.Replace(filename, "datasets/", "", 1)
-	if err := h.ProduceExportCompleteEvent(e, rowCount, f); err != nil {
+	if err := h.ProduceExportCompleteEvent(e, e.FilterOutputID, rowCount, f); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 
@@ -397,7 +397,7 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32, fileName string) error {
+func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, filterOutputId string, rowCount int32, fileName string) error {
 	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
 		InstanceID:     e.InstanceID,
 		DatasetID:      e.DatasetID,

@@ -399,13 +399,14 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
 func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32, fileName string) error {
 	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
-		InstanceID: e.InstanceID,
-		DatasetID:  e.DatasetID,
-		Edition:    e.Edition,
-		Version:    e.Version,
-		RowCount:   rowCount,
-		FileName:   fileName,
-		Dimensions: e.Dimensions,
+		InstanceID:     e.InstanceID,
+		DatasetID:      e.DatasetID,
+		Edition:        e.Edition,
+		Version:        e.Version,
+		RowCount:       rowCount,
+		FileName:       fileName,
+		FilterOutputID: e.FilterOutputID,
+		Dimensions:     e.Dimensions,
 	}); err != nil {
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}

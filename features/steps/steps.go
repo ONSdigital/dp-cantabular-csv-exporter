@@ -95,7 +95,7 @@ func (c *Component) filterAPIIsUnhealthy() error {
 func (c *Component) cantabularServerIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularSrv.NewHandler().
-		Get("/v9/datasets").
+		Get("/v10/datasets").
 		Reply(http.StatusOK).
 		BodyString(res)
 	return nil

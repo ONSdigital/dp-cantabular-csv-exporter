@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
@@ -18,7 +20,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -74,7 +75,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	isFilterJob := e.FilterOutputID != ""
 
 	if isFilterJob {
-		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
+		req.Variables, req.Filters, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
@@ -125,10 +126,10 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, string, bool, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, []cantabular.Filter, string, bool, error) {
 	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterOutputID)
 	if err != nil {
-		return nil, "", false, &Error{
+		return nil, nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -137,13 +138,18 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	dimensions := model.Dimensions
 
 	dimensionIds := make([]string, 0)
+	filters := make([]cantabular.Filter, 0)
 	for _, d := range dimensions {
 		dimensionIds = append(dimensionIds, d.ID)
+		filters = append(filters, cantabular.Filter{
+			Codes:    d.Options,
+			Variable: d.Name,
+		})
 	}
 
 	isPublished := model.IsPublished
 
-	return dimensionIds, model.PopulationType, isPublished, nil
+	return dimensionIds, filters, model.PopulationType, isPublished, nil
 }
 
 func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {

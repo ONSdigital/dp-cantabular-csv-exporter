@@ -141,10 +141,12 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	filters := make([]cantabular.Filter, 0)
 	for _, d := range dimensions {
 		dimensionIds = append(dimensionIds, d.ID)
-		filters = append(filters, cantabular.Filter{
-			Codes:    d.Options,
-			Variable: d.Name,
-		})
+		if len(d.Options) > 0 {
+			filters = append(filters, cantabular.Filter{
+				Codes:    d.Options,
+				Variable: d.Name,
+			})
+		}
 	}
 
 	isPublished := model.IsPublished

@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -17,7 +20,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -73,7 +75,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	isFilterJob := e.FilterOutputID != ""
 
 	if isFilterJob {
-		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
+		req.Variables, req.Filters, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
@@ -115,17 +117,19 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	log.Info(ctx, "producing event")
 
-	if err := h.ProduceExportCompleteEvent(e, rowCount); err != nil {
+	//just pass the file name
+	f := strings.Replace(filename, "datasets/", "", 1)
+	if err := h.ProduceExportCompleteEvent(e, rowCount, f); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, string, bool, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, []cantabular.Filter, string, bool, error) {
 	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterOutputID)
 	if err != nil {
-		return nil, "", false, &Error{
+		return nil, nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -134,13 +138,20 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	dimensions := model.Dimensions
 
 	dimensionIds := make([]string, 0)
+	filters := make([]cantabular.Filter, 0)
 	for _, d := range dimensions {
 		dimensionIds = append(dimensionIds, d.ID)
+		if len(d.Options) > 0 {
+			filters = append(filters, cantabular.Filter{
+				Codes:    d.Options,
+				Variable: d.Name,
+			})
+		}
 	}
 
 	isPublished := model.IsPublished
 
-	return dimensionIds, model.PopulationType, isPublished, nil
+	return dimensionIds, filters, model.PopulationType, isPublished, nil
 }
 
 func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {
@@ -394,14 +405,16 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32) error {
+func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32, fileName string) error {
 	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
-		InstanceID: e.InstanceID,
-		DatasetID:  e.DatasetID,
-		Edition:    e.Edition,
-		Version:    e.Version,
-		RowCount:   rowCount,
-		Dimensions: e.Dimensions,
+		InstanceID:     e.InstanceID,
+		DatasetID:      e.DatasetID,
+		Edition:        e.Edition,
+		Version:        e.Version,
+		RowCount:       rowCount,
+		FileName:       fileName,
+		FilterOutputID: e.FilterOutputID,
+		Dimensions:     e.Dimensions,
 	}); err != nil {
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}

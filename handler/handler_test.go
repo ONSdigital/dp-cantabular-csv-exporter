@@ -10,6 +10,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/pkg/errors"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
@@ -20,10 +25,6 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/pkg/errors"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 const (
@@ -61,6 +62,7 @@ var (
 	testReq     = cantabular.StaticDatasetQueryRequest{
 		Dataset:   "Example",
 		Variables: []string{"city", "siblings"},
+		Filters:   []cantabular.Filter{{Variable: "city", Codes: []string{"0", "1"}}},
 	}
 	errCantabular = errors.New("test Cantabular error")
 	errS3         = errors.New("test S3Upload error")
@@ -656,7 +658,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 
@@ -686,7 +688,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount)
+				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 

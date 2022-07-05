@@ -233,5 +233,5 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     Then a public filtered file, that should contain "datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
-      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | Dimensions |
-      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | []         |
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions | 
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |

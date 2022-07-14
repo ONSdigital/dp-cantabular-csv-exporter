@@ -144,7 +144,7 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 		if len(d.Options) > 0 {
 			filters = append(filters, cantabular.Filter{
 				Codes:    d.Options,
-				Variable: d.Name,
+				Variable: d.ID,
 			})
 		}
 	}

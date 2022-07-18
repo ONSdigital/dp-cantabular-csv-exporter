@@ -2,6 +2,7 @@ package generator
 
 import (
 	"crypto/rand"
+	"time"
 )
 
 // Generator is responsible for randomly generating new strings and tokens
@@ -21,4 +22,9 @@ func (g *Generator) NewPSK() ([]byte, error) {
 	}
 
 	return key, nil
+}
+
+// Timestamp generates a timestamp of the current time
+func (g *Generator) Timestamp() time.Time {
+	return time.Now()
 }

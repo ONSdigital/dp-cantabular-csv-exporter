@@ -143,7 +143,20 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
       }
       """
 
-    And a dataset version with dataset-id "dataset-happy-02", edition "edition-happy-02" and version "version-happy-02" is updated by an API call to dp-dataset-api
+    And the following filter output with id "filter-output-happy-02" will be updated:
+    """
+    {
+      "downloads":{
+        "CSV":{
+          "href":"http://localhost:23600/downloads/filter-outputs/filter-output-happy-02.csv",
+          "size": "502",
+          "public": "http://minio:9000/public-bucket/datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv",
+          "skipped": false
+        }
+      }
+    }
+    """
+
     And for the following filter "filter-output-happy-02" these dimensions are available:
     """
     {
@@ -202,9 +215,6 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     }
     """
 
-
-
-
   Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter output id present
 
     When the service starts
@@ -222,6 +232,6 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
 
     Then a public filtered file, that should contain "datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
 
-    Then one event with the following fields are in the produced kafka topic cantabular-csv-created:
-      | InstanceID        | DatasetID        | Edition          | Version          | RowCount |
-      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       |
+    And one event with the following fields are in the produced kafka topic cantabular-csv-created:
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions | 
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |

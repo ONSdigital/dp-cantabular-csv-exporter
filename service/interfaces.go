@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -61,6 +62,7 @@ type DatasetAPIClient interface {
 type FilterAPIClient interface {
 	GetDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, filterID string, q *filter.QueryParams) (dims filter.Dimensions, eTag string, err error)
 	GetOutput(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterOutputID string) (m filter.Model, err error)
+	UpdateFilterOutput(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceToken, filterOutputID string, m *filter.Model) error
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
@@ -82,4 +84,5 @@ type VaultClient interface {
 // e.g. UUIDs, PSKs.
 type Generator interface {
 	NewPSK() ([]byte, error)
+	Timestamp() time.Time
 }

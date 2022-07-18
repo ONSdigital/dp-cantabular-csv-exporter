@@ -6,17 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -67,16 +70,15 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData := log.Data{"event": e}
 	log.Info(ctx, "event received", logData)
 
-	req := cantabular.StaticDatasetQueryRequest{}
-
 	var err error
+	req := cantabular.StaticDatasetQueryRequest{}
+	isFilterJob := e.FilterOutputID != ""
 
-	if e.FilterOutputID != "" {
-		req.Variables, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
+	if isFilterJob {
+		req.Variables, req.Filters, req.Dataset, isPublished, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
-
 	} else {
 		req.Dataset, req.Variables, isPublished, err = h.getInstanceInfo(ctx, e.InstanceID, logData)
 		if err != nil {
@@ -87,7 +89,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	logData["request"] = req
 
 	// Stream data from Cantabular to S3 bucket in CSV format
-	s3Url, rowCount, err := h.UploadCSVFile(ctx, e, isPublished, req)
+	s3Url, rowCount, filename, err := h.UploadCSVFile(ctx, e, isPublished, req)
 	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to upload .csv file to S3 bucket: %w", err),
@@ -95,7 +97,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		}
 	}
 
-	numBytes, err := h.GetS3ContentLength(ctx, e, isPublished)
+	numBytes, err := h.GetS3ContentLength(ctx, e, isPublished, filename)
 	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get S3 content length: %w", err),
@@ -103,24 +105,31 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 		}
 	}
 
-	// Update instance with link to file
-	if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url); err != nil {
-		return fmt.Errorf("failed to update instance: %w", err)
+	if isFilterJob {
+		if err := h.UpdateFilterOutput(ctx, e, numBytes, isPublished, s3Url); err != nil {
+			return errors.Wrap(err, "failed to update filter output")
+		}
+	} else {
+		if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url); err != nil {
+			return errors.Wrap(err, "failed to update instance")
+		}
 	}
 
-	log.Event(ctx, "producing  event", log.INFO, log.Data{})
+	log.Info(ctx, "producing event")
 
-	// Generate output kafka message
-	if err := h.ProduceExportCompleteEvent(e, rowCount); err != nil {
+	//just pass the file name
+	f := strings.Replace(filename, "datasets/", "", 1)
+	if err := h.ProduceExportCompleteEvent(e, rowCount, f); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
+
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, string, bool, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, []cantabular.Filter, string, bool, error) {
 	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterOutputID)
 	if err != nil {
-		return nil, "", false, &Error{
+		return nil, nil, "", false, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -128,14 +137,22 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 
 	dimensions := model.Dimensions
 
-	dimensionNames := make([]string, 0)
+	dimensionIds := make([]string, 0)
+	filters := make([]cantabular.Filter, 0)
+
 	for _, d := range dimensions {
-		dimensionNames = append(dimensionNames, d.Name)
+		dimensionIds = append(dimensionIds, d.ID)
+		if len(d.FilterByParent) != 0 {
+			filters = append(filters, cantabular.Filter{
+				Codes:    d.Options,
+				Variable: d.FilterByParent,
+			})
+		}
 	}
 
 	isPublished := model.IsPublished
 
-	return dimensionNames, model.PopulationType, isPublished, nil
+	return dimensionIds, filters, model.PopulationType, isPublished, nil
 }
 
 func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {
@@ -189,14 +206,14 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 // If the data is published, the S3 file will be stored in the public bucket
 // If the data is private, the S3 file will be stored in the private bucket (encrypted or un-encrypted depending on EncryptionDisabled flag)
 // Returns S3 file URL, file size [bytes], number of rows, and any error that happens.
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, isPublished bool, req cantabular.StaticDatasetQueryRequest) (string, int32, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, isPublished bool, req cantabular.StaticDatasetQueryRequest) (string, int32, string, error) {
 	if e.InstanceID == "" {
-		return "", 0, errors.New("empty instance id not allowed")
+		return "", 0, "", errors.New("empty instance id not allowed")
 	}
 	var s3Location string
 	var consume cantabular.Consumer
 
-	filename := generateS3Filename(e)
+	filename := h.generateS3Filename(e)
 	logData := log.Data{
 		"filename":     filename,
 		"is_published": isPublished,
@@ -267,18 +284,18 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 		} else {
 			psk, err := h.generator.NewPSK()
 			if err != nil {
-				return "", 0, NewError(
+				return "", 0, "", NewError(
 					fmt.Errorf("failed to generate a PSK for encryption: %w", err),
 					logData,
 				)
 			}
 
-			vaultPath := generateVaultPathForFile(h.cfg.VaultPath, e)
+			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, e)
 			vaultKey := "key"
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
 			if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
-				return "", 0, NewError(
+				return "", 0, "", NewError(
 					fmt.Errorf("failed to write key to vault: %w", err),
 					logData,
 				)
@@ -315,18 +332,17 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 
 	rowCount, err := h.ctblr.StaticDatasetQueryStreamCSV(ctx, req, consume)
 	if err != nil {
-		return "", 0, &Error{
+		return "", 0, "", &Error{
 			err:     fmt.Errorf("failed to stream csv data: %w", err),
 			logData: logData,
 		}
 	}
 
-	return s3Location, rowCount, nil
+	return s3Location, rowCount, filename, nil
 }
 
 // GetS3ContentLength obtains an S3 file size (in number of bytes) by calling Head Object
-func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.ExportStart, isPublished bool) (int, error) {
-	filename := generateS3Filename(e)
+func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.ExportStart, isPublished bool, filename string) (int, error) {
 	if isPublished {
 		headOutput, err := h.s3Public.Head(filename)
 		if err != nil {
@@ -373,7 +389,15 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 	}
 
 	err := h.datasets.PutVersion(
-		ctx, "", h.cfg.ServiceAuthToken, "", e.DatasetID, e.Edition, e.Version, versionUpdate)
+		ctx,
+		"",
+		h.cfg.ServiceAuthToken,
+		"",
+		e.DatasetID,
+		e.Edition,
+		e.Version,
+		versionUpdate,
+	)
 	if err != nil {
 		return fmt.Errorf("error while attempting update version downloads: %w", err)
 	}
@@ -382,32 +406,62 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32) error {
+func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32, fileName string) error {
 	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
-		InstanceID:   e.InstanceID,
-		DatasetID:    e.DatasetID,
-		Edition:      e.Edition,
-		Version:      e.Version,
-		RowCount:     rowCount,
-		DimensionsID: e.DimensionsID,
+		InstanceID:     e.InstanceID,
+		DatasetID:      e.DatasetID,
+		Edition:        e.Edition,
+		Version:        e.Version,
+		RowCount:       rowCount,
+		FileName:       fileName,
+		FilterOutputID: e.FilterOutputID,
+		Dimensions:     e.Dimensions,
 	}); err != nil {
 		return fmt.Errorf("error sending csv-created event: %w", err)
 	}
 	return nil
 }
 
+func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string) error {
+	log.Info(ctx, "Updating filter output with download link")
+
+	download := filter.Download{
+		URL:     fmt.Sprintf("%s/downloads/filter-outputs/%s.csv", h.cfg.DownloadServiceURL, e.FilterOutputID),
+		Size:    fmt.Sprintf("%d", size),
+		Skipped: false,
+	}
+
+	if isPublished {
+		download.Public = s3Url
+	} else {
+		download.Private = s3Url
+	}
+
+	m := filter.Model{
+		Downloads: map[string]filter.Download{
+			"CSV": download,
+		},
+	}
+
+	if err := h.filters.UpdateFilterOutput(ctx, "", h.cfg.ServiceAuthToken, "", e.FilterOutputID, &m); err != nil {
+		return errors.Wrap(err, "failed to update filter output")
+	}
+
+	return nil
+}
+
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
-func generateS3Filename(e *event.ExportStart) string {
+func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) string {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
+func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, time.Now().Format(time.RFC3339))
+		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
 }

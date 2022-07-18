@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
@@ -56,11 +57,11 @@ type Component struct {
 	ctx              context.Context
 }
 
-func NewComponent() *Component {
+func NewComponent(t *testing.T) *Component {
 	return &Component{
 		errorChan:        make(chan error),
 		DatasetAPI:       httpfake.New(),
-		FilterAPI:        httpfake.New(),
+		FilterAPI:        httpfake.New(httpfake.WithTesting(t)),
 		CantabularSrv:    httpfake.New(),
 		CantabularAPIExt: httpfake.New(),
 		wg:               &sync.WaitGroup{},

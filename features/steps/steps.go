@@ -40,6 +40,8 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a public file with filename "([^"]*)" can be seen in minio`, c.theFollowingPublicFileCanBeSeenInMinio)
 	ctx.Step(`^a public filtered file, that should contain "([^"]*)" on the filename can be seen in minio`, c.theFollowingPublicFilteredFileCanBeSeenInMinio)
 	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
+	ctx.Step(`^the following filter output with id "([^"]*)" will be updated:$`, c.theFollowingFilterOutputWillBeUpdated)
+
 }
 
 // theServiceStarts starts the service under test in a new go-routine
@@ -93,7 +95,7 @@ func (c *Component) filterAPIIsUnhealthy() error {
 func (c *Component) cantabularServerIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularSrv.NewHandler().
-		Get("/v9/datasets").
+		Get("/v10/datasets").
 		Reply(http.StatusOK).
 		BodyString(res)
 	return nil
@@ -133,24 +135,34 @@ func (c *Component) theFollowingVersionIsUpdated(datasetID, edition, version str
 
 // theFollowingFilterDimensionsExist mocks filter api response for
 // GET /filters/{filter_id}/dimensions
-func (c *Component) theFollowingFilterDimensionsExist(filterID string, instance *godog.DocString) error {
+func (c *Component) theFollowingFilterDimensionsExist(filterID string, body *godog.DocString) error {
 	uri := fmt.Sprintf("/filters/%s/dimensions", filterID)
 	c.FilterAPI.NewHandler().
 		Get(uri).
 		Reply(http.StatusOK).
-		BodyString(instance.Content)
+		BodyString(body.Content)
 
 	return nil
 }
 
 // theFollowingJobStateIsReturned mocks filter api response for
 // GET /filters/{filter_id}
-func (c *Component) theFollowingJobStateIsReturned(filterID string, instance *godog.DocString) error {
-	uri := fmt.Sprintf("/filter-outputs/%s", filterID)
+func (c *Component) theFollowingJobStateIsReturned(filterOutputID string, body *godog.DocString) error {
+	uri := fmt.Sprintf("/filter-outputs/%s", filterOutputID)
 	c.FilterAPI.NewHandler().
 		Get(uri).
 		Reply(http.StatusOK).
-		BodyString(instance.Content)
+		BodyString(body.Content)
+
+	return nil
+}
+
+func (c *Component) theFollowingFilterOutputWillBeUpdated(filterOutputID string, body *godog.DocString) error {
+	uri := fmt.Sprintf("/filter-outputs/%s", filterOutputID)
+	c.FilterAPI.NewHandler().
+		Put(uri).
+		AssertCustom(newPutFilterOutputAssertor([]byte(body.Content))).
+		Reply(http.StatusOK)
 
 	return nil
 }
@@ -186,10 +198,25 @@ func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.
 	return nil
 }
 
+//we are passing the string array as [xxxx,yyyy,zzz]
+//this is required to support array being used in kafka messages
+func arrayParser(raw string) (interface{}, error) {
+	//remove the starting and trailing brackets
+	str := strings.Trim(raw, "[]")
+	if str == "" {
+		return []string{}, nil
+	}
+
+	strArray := strings.Split(str, ",")
+	return strArray, nil
+}
+
 // theseCsvCreatedEventsAreProduced consumes kafka messages that are expected to be produced by the service under test
 // and validates that they match the expected values in the test
 func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error {
-	expected, err := assistdog.NewDefault().CreateSlice(new(event.CSVCreated), events)
+	assist := assistdog.NewDefault()
+	assist.RegisterParser([]string{}, arrayParser)
+	expected, err := assist.CreateSlice(new(event.CSVCreated), events)
 	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}

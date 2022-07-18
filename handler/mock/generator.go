@@ -6,6 +6,7 @@ package mock
 import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"sync"
+	"time"
 )
 
 // Ensure, that GeneratorMock does implement handler.Generator.
@@ -21,6 +22,9 @@ var _ handler.Generator = &GeneratorMock{}
 // 			NewPSKFunc: func() ([]byte, error) {
 // 				panic("mock out the NewPSK method")
 // 			},
+// 			TimestampFunc: func() time.Time {
+// 				panic("mock out the Timestamp method")
+// 			},
 // 		}
 //
 // 		// use mockedGenerator in code that requires handler.Generator
@@ -31,13 +35,20 @@ type GeneratorMock struct {
 	// NewPSKFunc mocks the NewPSK method.
 	NewPSKFunc func() ([]byte, error)
 
+	// TimestampFunc mocks the Timestamp method.
+	TimestampFunc func() time.Time
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// NewPSK holds details about calls to the NewPSK method.
 		NewPSK []struct {
 		}
+		// Timestamp holds details about calls to the Timestamp method.
+		Timestamp []struct {
+		}
 	}
-	lockNewPSK sync.RWMutex
+	lockNewPSK    sync.RWMutex
+	lockTimestamp sync.RWMutex
 }
 
 // NewPSK calls NewPSKFunc.
@@ -63,5 +74,31 @@ func (mock *GeneratorMock) NewPSKCalls() []struct {
 	mock.lockNewPSK.RLock()
 	calls = mock.calls.NewPSK
 	mock.lockNewPSK.RUnlock()
+	return calls
+}
+
+// Timestamp calls TimestampFunc.
+func (mock *GeneratorMock) Timestamp() time.Time {
+	if mock.TimestampFunc == nil {
+		panic("GeneratorMock.TimestampFunc: method is nil but Generator.Timestamp was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockTimestamp.Lock()
+	mock.calls.Timestamp = append(mock.calls.Timestamp, callInfo)
+	mock.lockTimestamp.Unlock()
+	return mock.TimestampFunc()
+}
+
+// TimestampCalls gets all the calls that were made to Timestamp.
+// Check the length with:
+//     len(mockedGenerator.TimestampCalls())
+func (mock *GeneratorMock) TimestampCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockTimestamp.RLock()
+	calls = mock.calls.Timestamp
+	mock.lockTimestamp.RUnlock()
 	return calls
 }

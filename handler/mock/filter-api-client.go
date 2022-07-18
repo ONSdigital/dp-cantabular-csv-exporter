@@ -6,28 +6,24 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
-	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"sync"
 )
 
-// Ensure, that FilterAPIClientMock does implement service.FilterAPIClient.
+// Ensure, that FilterAPIClientMock does implement handler.FilterAPIClient.
 // If this is not the case, regenerate this file with moq.
-var _ service.FilterAPIClient = &FilterAPIClientMock{}
+var _ handler.FilterAPIClient = &FilterAPIClientMock{}
 
-// FilterAPIClientMock is a mock implementation of service.FilterAPIClient.
+// FilterAPIClientMock is a mock implementation of handler.FilterAPIClient.
 //
 // 	func TestSomethingThatUsesFilterAPIClient(t *testing.T) {
 //
-// 		// make and configure a mocked service.FilterAPIClient
+// 		// make and configure a mocked handler.FilterAPIClient
 // 		mockedFilterAPIClient := &FilterAPIClientMock{
-// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
-// 				panic("mock out the Checker method")
-// 			},
 // 			GetDimensionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterID string, q *filter.QueryParams) (filter.Dimensions, string, error) {
 // 				panic("mock out the GetDimensions method")
 // 			},
-// 			GetOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error) {
+// 			GetOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutput string) (filter.Model, error) {
 // 				panic("mock out the GetOutput method")
 // 			},
 // 			UpdateFilterOutputFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, filterOutputID string, m *filter.Model) error {
@@ -35,32 +31,22 @@ var _ service.FilterAPIClient = &FilterAPIClientMock{}
 // 			},
 // 		}
 //
-// 		// use mockedFilterAPIClient in code that requires service.FilterAPIClient
+// 		// use mockedFilterAPIClient in code that requires handler.FilterAPIClient
 // 		// and then make assertions.
 //
 // 	}
 type FilterAPIClientMock struct {
-	// CheckerFunc mocks the Checker method.
-	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
-
 	// GetDimensionsFunc mocks the GetDimensions method.
 	GetDimensionsFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, filterID string, q *filter.QueryParams) (filter.Dimensions, string, error)
 
 	// GetOutputFunc mocks the GetOutput method.
-	GetOutputFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error)
+	GetOutputFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutput string) (filter.Model, error)
 
 	// UpdateFilterOutputFunc mocks the UpdateFilterOutput method.
 	UpdateFilterOutputFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, filterOutputID string, m *filter.Model) error
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Checker holds details about calls to the Checker method.
-		Checker []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-			// CheckState is the checkState argument value.
-			CheckState *healthcheck.CheckState
-		}
 		// GetDimensions holds details about calls to the GetDimensions method.
 		GetDimensions []struct {
 			// Ctx is the ctx argument value.
@@ -88,8 +74,8 @@ type FilterAPIClientMock struct {
 			DownloadServiceToken string
 			// CollectionID is the collectionID argument value.
 			CollectionID string
-			// FilterOutputID is the filterOutputID argument value.
-			FilterOutputID string
+			// FilterOutput is the filterOutput argument value.
+			FilterOutput string
 		}
 		// UpdateFilterOutput holds details about calls to the UpdateFilterOutput method.
 		UpdateFilterOutput []struct {
@@ -107,45 +93,9 @@ type FilterAPIClientMock struct {
 			M *filter.Model
 		}
 	}
-	lockChecker            sync.RWMutex
 	lockGetDimensions      sync.RWMutex
 	lockGetOutput          sync.RWMutex
 	lockUpdateFilterOutput sync.RWMutex
-}
-
-// Checker calls CheckerFunc.
-func (mock *FilterAPIClientMock) Checker(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
-	if mock.CheckerFunc == nil {
-		panic("FilterAPIClientMock.CheckerFunc: method is nil but FilterAPIClient.Checker was just called")
-	}
-	callInfo := struct {
-		ContextMoqParam context.Context
-		CheckState      *healthcheck.CheckState
-	}{
-		ContextMoqParam: contextMoqParam,
-		CheckState:      checkState,
-	}
-	mock.lockChecker.Lock()
-	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	mock.lockChecker.Unlock()
-	return mock.CheckerFunc(contextMoqParam, checkState)
-}
-
-// CheckerCalls gets all the calls that were made to Checker.
-// Check the length with:
-//     len(mockedFilterAPIClient.CheckerCalls())
-func (mock *FilterAPIClientMock) CheckerCalls() []struct {
-	ContextMoqParam context.Context
-	CheckState      *healthcheck.CheckState
-} {
-	var calls []struct {
-		ContextMoqParam context.Context
-		CheckState      *healthcheck.CheckState
-	}
-	mock.lockChecker.RLock()
-	calls = mock.calls.Checker
-	mock.lockChecker.RUnlock()
-	return calls
 }
 
 // GetDimensions calls GetDimensionsFunc.
@@ -200,7 +150,7 @@ func (mock *FilterAPIClientMock) GetDimensionsCalls() []struct {
 }
 
 // GetOutput calls GetOutputFunc.
-func (mock *FilterAPIClientMock) GetOutput(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutputID string) (filter.Model, error) {
+func (mock *FilterAPIClientMock) GetOutput(ctx context.Context, userAuthToken string, serviceAuthToken string, downloadServiceToken string, collectionID string, filterOutput string) (filter.Model, error) {
 	if mock.GetOutputFunc == nil {
 		panic("FilterAPIClientMock.GetOutputFunc: method is nil but FilterAPIClient.GetOutput was just called")
 	}
@@ -210,19 +160,19 @@ func (mock *FilterAPIClientMock) GetOutput(ctx context.Context, userAuthToken st
 		ServiceAuthToken     string
 		DownloadServiceToken string
 		CollectionID         string
-		FilterOutputID       string
+		FilterOutput         string
 	}{
 		Ctx:                  ctx,
 		UserAuthToken:        userAuthToken,
 		ServiceAuthToken:     serviceAuthToken,
 		DownloadServiceToken: downloadServiceToken,
 		CollectionID:         collectionID,
-		FilterOutputID:       filterOutputID,
+		FilterOutput:         filterOutput,
 	}
 	mock.lockGetOutput.Lock()
 	mock.calls.GetOutput = append(mock.calls.GetOutput, callInfo)
 	mock.lockGetOutput.Unlock()
-	return mock.GetOutputFunc(ctx, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterOutputID)
+	return mock.GetOutputFunc(ctx, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterOutput)
 }
 
 // GetOutputCalls gets all the calls that were made to GetOutput.
@@ -234,7 +184,7 @@ func (mock *FilterAPIClientMock) GetOutputCalls() []struct {
 	ServiceAuthToken     string
 	DownloadServiceToken string
 	CollectionID         string
-	FilterOutputID       string
+	FilterOutput         string
 } {
 	var calls []struct {
 		Ctx                  context.Context
@@ -242,7 +192,7 @@ func (mock *FilterAPIClientMock) GetOutputCalls() []struct {
 		ServiceAuthToken     string
 		DownloadServiceToken string
 		CollectionID         string
-		FilterOutputID       string
+		FilterOutput         string
 	}
 	mock.lockGetOutput.RLock()
 	calls = mock.calls.GetOutput

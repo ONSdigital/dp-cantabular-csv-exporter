@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
@@ -12,6 +13,7 @@ import (
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/filter-api-client.go -pkg mock . FilterAPIClient
 //go:generate moq -out mock/s3-client.go -pkg mock . S3Client
 //go:generate moq -out mock/vault.go -pkg mock . VaultClient
 //go:generate moq -out mock/generator.go -pkg mock . Generator
@@ -38,6 +40,7 @@ type DatasetAPIClient interface {
 type FilterAPIClient interface {
 	GetDimensions(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, filterID string, q *filter.QueryParams) (dims filter.Dimensions, eTag string, err error)
 	GetOutput(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceToken, collectionID, filterOutput string) (m filter.Model, err error)
+	UpdateFilterOutput(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceToken, filterOutputID string, m *filter.Model) error
 }
 
 // VaultClient contains the required methods for the Vault Client
@@ -49,4 +52,5 @@ type VaultClient interface {
 // e.g. UUIDs, PSKs.
 type Generator interface {
 	NewPSK() ([]byte, error)
+	Timestamp() time.Time
 }

@@ -16,13 +16,13 @@ replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 replace github.com/go-ldap/ldap/v3 v3.1.10 => github.com/go-ldap/ldap/v3 v3.4.3
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.160.0-beta
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.154.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.7.0
 	github.com/ONSdigital/dp-healthcheck v1.4.0-beta.1
 	github.com/ONSdigital/dp-kafka/v3 v3.3.2
 	github.com/ONSdigital/dp-net v1.4.1
-	github.com/ONSdigital/dp-s3/v2 v2.1.0-beta.1
+	github.com/ONSdigital/dp-s3/v2 v2.1.0-beta
 	github.com/ONSdigital/dp-vault v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.3.0-beta
 	github.com/aws/aws-sdk-go v1.44.56
@@ -38,7 +38,7 @@ require (
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0 // indirect
 	github.com/ONSdigital/dp-mongodb-in-memory v1.3.1 // indirect
-	github.com/ONSdigital/dp-net/v2 v2.5.0-beta.2 // indirect
+	github.com/ONSdigital/dp-net/v2 v2.5.0-beta // indirect
 	github.com/Shopify/sarama v1.34.1 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect

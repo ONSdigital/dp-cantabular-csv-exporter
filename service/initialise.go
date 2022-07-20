@@ -83,7 +83,7 @@ var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 			ExtApiHost:     cfg.CantabularExtURL,
 			GraphQLTimeout: cfg.DefaultRequestTimeout,
 		},
-		dphttp.NewClient(),
+		dphttp.ClientWithTimeout(nil, cfg.DefaultRequestTimeout),
 		nil,
 	)
 }

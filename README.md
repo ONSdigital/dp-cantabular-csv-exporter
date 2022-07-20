@@ -35,7 +35,7 @@ An example event can be created using the helper script, `make produce`.
 | GRACEFUL_SHUTDOWN_TIMEOUT           | 5s                                   | The graceful shutdown timeout in seconds (`time.Duration` format)
 | HEALTHCHECK_INTERVAL                | 30s                                  | Time between self-healthchecks (`time.Duration` format)
 | HEALTHCHECK_CRITICAL_TIMEOUT        | 90s                                  | Time to wait until an unhealthy dependent propagates its state to make this app unhealthy (`time.Duration` format)
-| DEFAULT_REQUEST_TIMEOUT             | 10s                                  | Default timeout for graphQL queries against Cantabular API extension
+| DEFAULT_REQUEST_TIMEOUT             | 10s                                  | Default timeout for graphQL queries against Cantabular API extension and HTTP requests for the Cantabular Client only
 | SERVICE_AUTH_TOKEN                  |                                      | The service token for this app
 | CANTABULAR_URL                      | http://localhost:8491                | The Cantabular server URL
 | CANTABULAR_EXT_API_URL              | http://localhost:8492                | The Cantabular API extension URL

@@ -142,12 +142,14 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	for _, d := range dimensions {
 		dimensionIds = append(dimensionIds, d.ID)
 		if len(d.Options) > 0 {
+			v := d.ID
 			if len(d.FilterByParent) != 0 {
-				filters = append(filters, cantabular.Filter{
-					Codes:    d.Options,
-					Variable: d.FilterByParent,
-				})
+				v = d.FilterByParent
 			}
+			filters = append(filters, cantabular.Filter{
+				Codes:    d.Options,
+				Variable: v,
+			})
 		}
 	}
 

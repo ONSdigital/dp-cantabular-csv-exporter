@@ -149,7 +149,7 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
       "downloads":{
         "CSV":{
           "href":"http://localhost:23600/downloads/filter-outputs/filter-output-happy-02.csv",
-          "size": "502",
+          "size": "626",
           "public": "http://minio:9000/public-bucket/datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv",
           "skipped": false
         }

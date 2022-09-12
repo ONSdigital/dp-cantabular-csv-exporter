@@ -150,7 +150,7 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
         "CSV":{
           "href":"http://localhost:23600/downloads/filter-outputs/filter-output-happy-02.csv",
           "size": "626",
-          "public": "http://minio:9000/public-bucket/datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv",
+          "public": "http://minio:9000/public-bucket/datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z-15f8e618-81f6-b1c9-eae9-e9496b05419.csv",
           "skipped": false
         }
       }
@@ -234,4 +234,4 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
       | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions | 
-      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z-15f8e618-81f6-b1c9-eae9-e9496b05419.csv | filter-output-happy-02 |[]          |

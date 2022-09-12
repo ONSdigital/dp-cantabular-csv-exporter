@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/filter"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 //go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
@@ -53,4 +54,5 @@ type VaultClient interface {
 type Generator interface {
 	NewPSK() ([]byte, error)
 	Timestamp() time.Time
+	UniqueID() (string, error)
 }

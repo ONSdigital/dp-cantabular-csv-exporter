@@ -216,7 +216,13 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 	var s3Location string
 	var consume cantabular.Consumer
 
-	filename := h.generateS3Filename(e)
+	filename, err := h.generateS3Filename(e)
+	if err != nil {
+		return "", 0, "", &Error{
+			err: fmt.Errorf("failed to generate S3 filename: %w", err),
+		}
+	}
+
 	logData := log.Data{
 		"filename":     filename,
 		"is_published": isPublished,
@@ -293,7 +299,14 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				)
 			}
 
-			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, e)
+			vaultPath, err := h.generateVaultPathForFile(h.cfg.VaultPath, e)
+			if err != nil {
+				return "", 0, "", NewError(
+					fmt.Errorf("failed to generate a vault path for file: %w", err),
+					logData,
+				)
+			}
+
 			vaultKey := "key"
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
@@ -454,17 +467,27 @@ func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.Expo
 }
 
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
-func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) string {
+func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) (string, error) {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
+		generateUUID, err := h.generator.UniqueID()
+		if err != nil {
+			return "", errors.Wrap(err, "failed to generate an UUID for the S3 filename")
+		}
+		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s-%s.csv", e.DatasetID, e.Edition, e.Version,
+			h.generator.Timestamp().Format(time.RFC3339), generateUUID), nil
 	}
-	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
+	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version), nil
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
+func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) (string, error) {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
+		generateUUID, err := h.generator.UniqueID()
+		if err != nil {
+			return "", errors.Wrap(err, "failed to generate an UUID for the S3 filename")
+		}
+		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version,
+			h.generator.Timestamp().Format(time.RFC3339), generateUUID), nil
 	}
-	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
+	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version), nil
 }

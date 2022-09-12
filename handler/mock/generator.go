@@ -25,6 +25,9 @@ var _ handler.Generator = &GeneratorMock{}
 // 			TimestampFunc: func() time.Time {
 // 				panic("mock out the Timestamp method")
 // 			},
+// 			UniqueIDFunc: func() (string, error) {
+// 				panic("mock out the UniqueID method")
+// 			},
 // 		}
 //
 // 		// use mockedGenerator in code that requires handler.Generator
@@ -38,6 +41,9 @@ type GeneratorMock struct {
 	// TimestampFunc mocks the Timestamp method.
 	TimestampFunc func() time.Time
 
+	// UniqueIDFunc mocks the UniqueID method.
+	UniqueIDFunc func() (string, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// NewPSK holds details about calls to the NewPSK method.
@@ -46,9 +52,13 @@ type GeneratorMock struct {
 		// Timestamp holds details about calls to the Timestamp method.
 		Timestamp []struct {
 		}
+		// UniqueID holds details about calls to the UniqueID method.
+		UniqueID []struct {
+		}
 	}
 	lockNewPSK    sync.RWMutex
 	lockTimestamp sync.RWMutex
+	lockUniqueID  sync.RWMutex
 }
 
 // NewPSK calls NewPSKFunc.
@@ -100,5 +110,31 @@ func (mock *GeneratorMock) TimestampCalls() []struct {
 	mock.lockTimestamp.RLock()
 	calls = mock.calls.Timestamp
 	mock.lockTimestamp.RUnlock()
+	return calls
+}
+
+// UniqueID calls UniqueIDFunc.
+func (mock *GeneratorMock) UniqueID() (string, error) {
+	if mock.UniqueIDFunc == nil {
+		panic("GeneratorMock.UniqueIDFunc: method is nil but Generator.UniqueID was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockUniqueID.Lock()
+	mock.calls.UniqueID = append(mock.calls.UniqueID, callInfo)
+	mock.lockUniqueID.Unlock()
+	return mock.UniqueIDFunc()
+}
+
+// UniqueIDCalls gets all the calls that were made to UniqueID.
+// Check the length with:
+//     len(mockedGenerator.UniqueIDCalls())
+func (mock *GeneratorMock) UniqueIDCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockUniqueID.RLock()
+	calls = mock.calls.UniqueID
+	mock.lockUniqueID.RUnlock()
 	return calls
 }

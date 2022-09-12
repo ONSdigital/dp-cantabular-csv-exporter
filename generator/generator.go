@@ -3,6 +3,9 @@ package generator
 import (
 	"crypto/rand"
 	"time"
+
+	"github.com/hashicorp/go-uuid"
+	"github.com/pkg/errors"
 )
 
 // Generator is responsible for randomly generating new strings and tokens
@@ -27,4 +30,12 @@ func (g *Generator) NewPSK() ([]byte, error) {
 // Timestamp generates a timestamp of the current time
 func (g *Generator) Timestamp() time.Time {
 	return time.Now()
+}
+
+func (g *Generator) UniqueID() (string, error) {
+	generateUUID, err := uuid.GenerateUUID()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate an UUID for the S3 filename")
+	}
+	return generateUUID, nil
 }

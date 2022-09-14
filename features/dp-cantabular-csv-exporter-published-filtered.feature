@@ -150,7 +150,7 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
         "CSV":{
           "href":"http://localhost:23600/downloads/filter-outputs/filter-output-happy-02.csv",
           "size": "626",
-          "public": "http://minio:9000/public-bucket/datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv",
+          "public": "http://minio:9000/public-bucket/datasets/filter-output-happy-02/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv",
           "skipped": false
         }
       }
@@ -230,8 +230,8 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
       }
       """
 
-    Then a public filtered file, that should contain "datasets/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
+    Then a public filtered file, that should contain "datasets/filter-output-happy-02/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
-      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions | 
-      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions |
+      | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | filter-output-happy-02/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |

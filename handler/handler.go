@@ -456,7 +456,7 @@ func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.Expo
 // generateS3Filename generates the S3 key (filename including `subpaths` after the bucket) for the provided instanceID
 func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) string {
 	if e.FilterOutputID != "" {
-		return fmt.Sprintf("datasets/%s-%s-%s-filtered-%s.csv", e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
+		return fmt.Sprintf("datasets/%s/%s-%s-%s-filtered-%s.csv", e.FilterOutputID, e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
 	}
 	return fmt.Sprintf("datasets/%s-%s-%s.csv", e.DatasetID, e.Edition, e.Version)
 }

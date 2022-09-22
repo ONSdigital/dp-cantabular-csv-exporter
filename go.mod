@@ -16,7 +16,7 @@ replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 replace github.com/go-ldap/ldap/v3 v3.1.10 => github.com/go-ldap/ldap/v3 v3.4.3
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.164.0
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.181.1
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.7.0
 	github.com/ONSdigital/dp-healthcheck v1.4.0-beta.1

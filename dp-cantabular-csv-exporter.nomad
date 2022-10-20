@@ -69,7 +69,7 @@ job "dp-cantabular-csv-exporter" {
       }
 
       vault {
-        policies = ["dp-cantabular-csv-exporter"]
+        policies = ["dp-cantabular-csv-exporter-publishing"]
       }
     }
   }

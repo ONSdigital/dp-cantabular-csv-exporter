@@ -26,7 +26,7 @@ job "dp-cantabular-csv-exporter" {
       mode     = "delay"
     }
 
-    task "dp-cantabular-csv-exporter" {
+    task "dp-cantabular-csv-exporter-publishing" {
       driver = "docker"
 
       artifact {
@@ -70,6 +70,69 @@ job "dp-cantabular-csv-exporter" {
 
       vault {
         policies = ["dp-cantabular-csv-exporter-publishing"]
+      }
+    }
+  }
+
+  group "web" {
+    count = "{{WEB_TASK_COUNT}}"
+
+    constraint {
+      attribute = "${node.class}"
+      value     = "web"
+    }
+
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
+    }
+
+    task "dp-cantabular-csv-exporter-web" {
+      driver = "docker"
+
+      artifact {
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-cantabular-csv-exporter/{{PROFILE}}/{{RELEASE}}.tar.gz"
+      }
+
+      config {
+        command = "${NOMAD_TASK_DIR}/start-task"
+
+        args = ["./dp-cantabular-csv-exporter"]
+
+        image = "{{ECR_URL}}:concourse-{{REVISION}}"
+      }
+
+      service {
+        name = "dp-cantabular-csv-exporter"
+        port = "http"
+        tags = ["web"]
+
+        check {
+          type     = "http"
+          path     = "/health"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+
+      resources {
+        cpu    = "{{WEB_RESOURCE_CPU}}"
+        memory = "{{WEB_RESOURCE_MEM}}"
+
+        network {
+          port "http" {}
+        }
+      }
+
+      template {
+        source      = "${NOMAD_TASK_DIR}/vars-template"
+        destination = "${NOMAD_TASK_DIR}/vars"
+      }
+
+      vault {
+        policies = ["dp-cantabular-csv-exporter-web"]
       }
     }
   }

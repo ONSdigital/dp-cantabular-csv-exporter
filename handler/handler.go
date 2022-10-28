@@ -183,7 +183,7 @@ func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID strin
 // ValidateInstance validates the instance returned from dp-dataset-api
 // Returns isPublished bool value and any validation error
 func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
-	if len(i.CSVHeader) < 2 {
+	if len(i.CSVHeader) < 1 {
 		return false, &Error{
 			err: errors.New("no dimensions in headers"),
 			logData: log.Data{

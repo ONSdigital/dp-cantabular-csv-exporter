@@ -137,6 +137,20 @@ func TestValidateInstance(t *testing.T) {
 				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
 			},
 		}
+		Convey("Then ValidateInstance determines that instance is not published, without error", func() {
+			isPublished, err := h.ValidateInstance(i)
+			So(err, ShouldBeNil)
+			So(isPublished, ShouldBeFalse)
+		})
+	})
+
+	Convey("Given an instance wit 0 CSV header", t, func() {
+		i := dataset.Instance{
+			Version: dataset.Version{
+				CSVHeader: []string{},
+				IsBasedOn: &dataset.IsBasedOn{ID: "myID"},
+			},
+		}
 		Convey("Then ValidateInstance returns the expected error", func() {
 			_, err := h.ValidateInstance(i)
 			So(err, ShouldNotBeNil)

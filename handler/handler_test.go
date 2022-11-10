@@ -36,9 +36,11 @@ const (
 	testVersion            = "test-version"
 	testFilterOutputID     = "test-filter-output-id"
 	testS3Location         = "s3://myBucket/my-file.csv"
+	testS3PublicURL        = "test-bucket"
 	testDownloadServiceURL = "http://test-download-service:8200"
 	testNumBytes           = 123
 	testRowCount           = 18
+	testFileName           = "datasets/test-version.csv"
 )
 
 var (
@@ -553,7 +555,7 @@ func TestUpdateFilterOutput(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &filterAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateFilterOutput is called for a valid event", func() {
-			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "")
+			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "", testFileName)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -580,7 +582,7 @@ func TestUpdateFilterOutput(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, &filterAPIMock, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateFilterOutput is called", func() {
-			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "")
+			err := eventHandler.UpdateFilterOutput(ctx, testExportStartFilterEvent, testSize, false, "", testFileName)
 
 			Convey("Then an error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -597,7 +599,7 @@ func TestUpdateInstance(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called for a private csv file", func() {
-			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "", testFileName)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -622,7 +624,7 @@ func TestUpdateInstance(t *testing.T) {
 		})
 
 		Convey("When UpdateInstance is called for a public csv file", func() {
-			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, true, "publicURL")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, true, "publicURL", testFileName)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -638,7 +640,7 @@ func TestUpdateInstance(t *testing.T) {
 				So(datasetAPIMock.PutVersionCalls()[0].V, ShouldResemble, dataset.Version{
 					Downloads: map[string]dataset.Download{
 						"CSV": {
-							Public: "publicURL",
+							Public: fmt.Sprintf("/datasets/%s.csv", testVersion),
 							URL:    expectedURL,
 							Size:   fmt.Sprintf("%d", testSize),
 						},
@@ -653,7 +655,7 @@ func TestUpdateInstance(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, &datasetAPIMock, nil, nil, nil, nil, nil, nil)
 
 		Convey("When UpdateInstance is called", func() {
-			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "")
+			err := eventHandler.UpdateInstance(ctx, testExportStartEvent, testSize, false, "", testFileName)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, fmt.Errorf("error while attempting update version downloads: %w", errDataset))

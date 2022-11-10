@@ -106,11 +106,11 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 	}
 
 	if isFilterJob {
-		if err := h.UpdateFilterOutput(ctx, e, numBytes, isPublished, s3Url); err != nil {
+		if err := h.UpdateFilterOutput(ctx, e, numBytes, isPublished, s3Url, filename); err != nil {
 			return errors.Wrap(err, "failed to update filter output")
 		}
 	} else {
-		if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url); err != nil {
+		if err := h.UpdateInstance(ctx, e, numBytes, isPublished, s3Url, filename); err != nil {
 			return errors.Wrap(err, "failed to update instance")
 		}
 	}
@@ -363,7 +363,7 @@ func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.Expo
 // UpdateInstance updates the instance downlad CSV link using dataset API PUT /instances/{id} endpoint
 // if the instance is published, then the s3Url will be set as public link and the instance state will be set to published
 // otherwise, a private url will be generated and the state will not be changed
-func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string) error {
+func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string, filename string) error {
 	csvDownload := dataset.Download{
 		Size: fmt.Sprintf("%d", size),
 		URL: fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv",
@@ -374,8 +374,14 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 		),
 	}
 
+	fmt.Println("THE FILENAME IS")
+	fmt.Println(filename)
+
 	if isPublished {
-		csvDownload.Public = s3Url
+		csvDownload.Public = fmt.Sprintf("%s/%s",
+			h.cfg.S3PublicURL,
+			filename,
+		)
 	} else {
 		csvDownload.Private = s3Url
 	}
@@ -425,7 +431,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 	return nil
 }
 
-func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string) error {
+func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string, filename string) error {
 	log.Info(ctx, "Updating filter output with download link")
 
 	download := filter.Download{
@@ -435,7 +441,10 @@ func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.Expo
 	}
 
 	if isPublished {
-		download.Public = s3Url
+		download.Public = fmt.Sprintf("%s/%s",
+			h.cfg.S3PublicURL,
+			filename,
+		)
 	} else {
 		download.Private = s3Url
 	}

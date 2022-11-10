@@ -35,6 +35,7 @@ type Config struct {
 	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
 	EncryptionDisabled           bool          `envconfig:"ENCRYPTION_DISABLED"`
 	StopConsumingOnUnhealthy     bool          `envconfig:"STOP_CONSUMING_ON_UNHEALTHY"`
+	S3PublicURL                  string        `envconfig:"S3_PUBLIC_URL"`
 	KafkaConfig                  KafkaConfig
 }
 
@@ -91,6 +92,7 @@ func Get() (*Config, error) {
 		ComponentTestUseLogFile:      false,
 		EncryptionDisabled:           false,
 		StopConsumingOnUnhealthy:     true,
+		S3PublicURL:                  "http://public-bucket",
 		KafkaConfig: KafkaConfig{
 			Addr:                      []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 			ConsumerMinBrokersHealthy: 1,

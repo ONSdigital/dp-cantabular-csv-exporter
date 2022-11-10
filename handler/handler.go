@@ -374,9 +374,6 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 		),
 	}
 
-	fmt.Println("THE FILENAME IS")
-	fmt.Println(filename)
-
 	if isPublished {
 		csvDownload.Public = fmt.Sprintf("%s/%s",
 			h.cfg.S3PublicURL,

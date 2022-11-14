@@ -293,7 +293,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				)
 			}
 
-			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, e)
+			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, filename)
 			vaultKey := "key"
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
@@ -468,9 +468,7 @@ func (h *InstanceComplete) generateS3Filename(e *event.ExportStart) string {
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, e *event.ExportStart) string {
-	if e.FilterOutputID != "" {
-		return fmt.Sprintf("%s/%s-%s-%s-filtered-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version, h.generator.Timestamp().Format(time.RFC3339))
-	}
-	return fmt.Sprintf("%s/%s-%s-%s.csv", vaultPathRoot, e.DatasetID, e.Edition, e.Version)
+func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, fileName string) string {
+	f := strings.Replace(fileName, "datasets/", "", 1)
+	return fmt.Sprintf("%s/%s", vaultPathRoot, f)
 }

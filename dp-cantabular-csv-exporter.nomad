@@ -81,6 +81,11 @@ job "dp-cantabular-csv-exporter" {
   group "web" {
     count = "{{WEB_TASK_COUNT}}"
 
+    spread {
+      attribute = "${node.unique.id}"
+      weight    = 100
+    }
+
     constraint {
       attribute = "${node.class}"
       value     = "web"

@@ -189,6 +189,7 @@ func TestValidateInstance(t *testing.T) {
 
 func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 	isPublished := false
+	isCustom := false
 	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
 	Convey("Given an event handler with a successful cantabular client and private S3Client", t, func() {
@@ -197,7 +198,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters and encryption disbled", func() {
-			loc, rowCount, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			loc, rowCount, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected location and rowCount is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -221,7 +222,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -247,7 +248,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, &sPrivate, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -267,7 +268,7 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with an empty export-start event", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, &event.ExportStart{}, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, &event.ExportStart{}, testReq, isPublished, isCustom)
 			So(err, ShouldNotBeNil)
 
 		})
@@ -281,6 +282,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		},
 	}
 	isPublished := false
+	isCustom := false
 	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 	expectedVaultPath := fmt.Sprintf("%s/%s-%s-%s.csv", testVaultPath, testDatasetID, testEdition, testVersion)
 	cfg := testCfg()
@@ -293,7 +295,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &sPrivate, nil, &v, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, rowCount, filename, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			loc, rowCount, filename, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected location, rowCount and file name is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -328,7 +330,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -351,7 +353,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -378,7 +380,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, &sPrivate, nil, &vaultClient, nil, generator)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -406,7 +408,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, nil, nil, nil, &sPrivate, nil, nil, nil, generator)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldNotBeNil)
@@ -418,6 +420,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 
 func TestUploadPublishedCSVFile(t *testing.T) {
 	isPublished := true
+	isCustom := false
 	expectedS3Key := fmt.Sprintf("datasets/%s-%s-%s.csv", testDatasetID, testEdition, testVersion)
 
 	Convey("Given an event handler with a successful cantabular client and public S3Client", t, func() {
@@ -426,7 +429,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, nil, &sPublic, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered with valid paramters", func() {
-			loc, rowCount, filename, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			loc, rowCount, filename, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected location, rowCount and file name is returned with no error ", func() {
 				So(err, ShouldBeNil)
@@ -451,7 +454,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(testCfg(), &c, nil, nil, nil, &publicS3Client, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(
@@ -477,7 +480,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 		eventHandler := handler.NewInstanceComplete(cfg, &c, nil, nil, nil, &publicS3Client, nil, nil, nil)
 
 		Convey("When UploadCSVFile is triggered", func() {
-			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, isPublished, testReq)
+			_, _, _, err := eventHandler.UploadCSVFile(ctx, testExportStartEvent, testReq, isPublished, isCustom)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, handler.NewError(

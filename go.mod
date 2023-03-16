@@ -19,16 +19,16 @@ replace github.com/go-ldap/ldap/v3 v3.1.10 => github.com/go-ldap/ldap/v3 v3.4.3
 replace github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.186.0
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.241.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.7.0
-	github.com/ONSdigital/dp-healthcheck v1.4.0-beta.1
+	github.com/ONSdigital/dp-healthcheck v1.5.0
 	github.com/ONSdigital/dp-kafka/v3 v3.6.0
 	github.com/ONSdigital/dp-net v1.5.0
 	github.com/ONSdigital/dp-s3/v2 v2.1.0-beta
 	github.com/ONSdigital/dp-vault v1.2.0
-	github.com/ONSdigital/log.go/v2 v2.3.0-beta
-	github.com/aws/aws-sdk-go v1.44.76
+	github.com/ONSdigital/log.go/v2 v2.3.0
+	github.com/aws/aws-sdk-go v1.44.204
 	github.com/cucumber/godog v0.12.5
 	github.com/google/go-cmp v0.5.8
 	github.com/gorilla/mux v1.8.0
@@ -41,7 +41,7 @@ require (
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0 // indirect
 	github.com/ONSdigital/dp-mongodb-in-memory v1.3.1 // indirect
-	github.com/ONSdigital/dp-net/v2 v2.5.0-beta // indirect
+	github.com/ONSdigital/dp-net/v2 v2.8.0 // indirect
 	github.com/Shopify/sarama v1.37.2 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/eapache/go-resiliency v1.3.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
+	github.com/fatih/color v1.14.1 // indirect
 	github.com/go-avro/avro v0.0.0-20171219232920-444163702c11 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
@@ -98,7 +98,7 @@ require (
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
@@ -124,10 +124,10 @@ require (
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
-	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7 // indirect
-	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
-	golang.org/x/text v0.3.8 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	google.golang.org/genproto v0.0.0-20220715211116-798f69b842b9 // indirect
 	google.golang.org/grpc v1.48.0 // indirect

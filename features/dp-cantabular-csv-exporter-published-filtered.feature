@@ -157,7 +157,53 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     }
     """
 
+    And the following filter output with id "filter-output-happy-03" will be updated:
+    """
+    {
+      "downloads":{
+        "CSV":{
+          "href":"http://localhost:23600/downloads/filter-outputs/filter-output-happy-03.csv",
+          "size": "626",
+          "public": "http://public-bucket/datasets/filter-output-happy-03/custom-filtered-2022-01-26T12:27:04Z.csv",
+          "skipped": false
+        }
+      }
+    }
+    """
+
     And for the following filter "filter-output-happy-02" these dimensions are available:
+    """
+    {
+      "items": [
+        {
+          "name": "City",
+          "options": [
+            "Cardiff",
+            "London",
+            "Swansea"
+          ],
+          "dimension_url": "http://dimension.url/city",
+          "is_area_type": true
+        },
+        {
+          "name": "Number of siblings (3 mappings)",
+          "options": [
+            "0-3",
+            "4-7",
+            "7+"
+          ],
+          "dimension_url": "http://dimension.url/siblings",
+          "is_area_type": false
+        }
+      ],
+      "count": 2,
+      "offset": 0,
+      "limit": 20,
+      "total_count": 2
+    }
+    """
+
+    And for the following filter "filter-output-happy-03" these dimensions are available:
     """
     {
       "items": [
@@ -215,6 +261,33 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     }
     """
 
+    And the following filter is returned for the filter output "filter-output-happy-03":
+    """
+    {
+      "filter_id": "filter-output-happy-03",
+      "links": {
+        "version": {
+          "href": "http://mockhost:9999/datasets/cantabular-example-1/editions/2021/version/1",
+          "id": "1"
+        },
+        "self": {
+          "href": ":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1"
+        }
+      },
+      "events": null,
+      "instance_id": "c733977d-a2ca-4596-9cb1-08a6e724858b",
+      "dimension_list_url":":27100/filters/94310d8d-72d6-492a-bc30-27584627edb1/dimensions",
+      "dataset": {
+        "id": "cantabular-example-1",
+        "edition": "2021",
+        "version": 1
+      },
+      "published": true,
+      "population_type": "Example",
+      "custom": true
+    }
+    """
+
   Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a filter output id present
 
     When the service starts
@@ -233,5 +306,26 @@ Feature: Cantabular-Csv-Exporter-Published-Filtered
     Then a public filtered file, that should contain "datasets/filter-output-happy-02/dataset-happy-02-edition-happy-02-version-happy-02-filtered-20" on the filename can be seen in minio
 
     And one event with the following fields are in the produced kafka topic cantabular-csv-created:
-      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                             | FilterOutputID         | Dimensions |
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                                                                    | FilterOutputID         | Dimensions |
       | instance-happy-02 | dataset-happy-02 | edition-happy-02 | version-happy-02 | 22       | filter-output-happy-02/dataset-happy-02-edition-happy-02-version-happy-02-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-02 |[]          |
+
+Scenario: Consuming a cantabular-export-start event with correct fields for a published instance with a custom filter output id present
+
+    When the service starts
+
+    And this cantabular-export-start event is queued, to be consumed:
+      """
+      {
+        "InstanceID":     "instance-happy-02",
+        "DatasetID":      "dataset-happy-03",
+        "Edition":        "edition-happy-03",
+        "Version":        "version-happy-03",
+        "FilterOutputID": "filter-output-happy-03"
+      }
+      """
+
+    Then a public filtered file, that should contain "datasets/filter-output-happy-03/custom-filtered-20" on the filename can be seen in minio
+
+    And one event with the following fields are in the produced kafka topic cantabular-csv-created:
+      | InstanceID        | DatasetID        | Edition          | Version          | RowCount | FileName                                                        | FilterOutputID         | Dimensions |
+      | instance-happy-02 | dataset-happy-03 | edition-happy-03 | version-happy-03 | 22       | filter-output-happy-03/custom-filtered-2022-01-26T12:27:04Z.csv | filter-output-happy-03 |[]          |

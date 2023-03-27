@@ -19,7 +19,7 @@ replace github.com/go-ldap/ldap/v3 v3.1.10 => github.com/go-ldap/ldap/v3 v3.4.3
 replace github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.241.0
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.248.1
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.7.0
 	github.com/ONSdigital/dp-healthcheck v1.5.0

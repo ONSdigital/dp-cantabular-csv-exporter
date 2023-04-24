@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -23,6 +24,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
 )
@@ -80,6 +82,10 @@ func testCfg() config.Config {
 		VaultPath:              testVaultPath,
 		EncryptionDisabled:     true,
 		DownloadServiceURL:     testDownloadServiceURL,
+		KafkaConfig: config.KafkaConfig{
+			Addr:            []string{"localhost:9092", "localhost:9093"},
+			CsvCreatedTopic: "csv-created-topic",
+		},
 	}
 }
 
@@ -669,8 +675,16 @@ func TestUpdateInstance(t *testing.T) {
 
 func TestProduceExportCompleteEvent(t *testing.T) {
 	Convey("Given an event handler with a successful Kafka Producer", t, func(c C) {
-		producer := kafkatest.NewMessageProducer(true)
-		eventHandler := handler.NewInstanceComplete(testCfg(), nil, nil, nil, nil, nil, nil, producer, nil)
+		testCfg := testCfg()
+		producer, _ := kafkatest.NewProducer(
+			ctx,
+			&kafka.ProducerConfig{
+				BrokerAddrs: testCfg.KafkaConfig.Addr,
+				Topic:       testCfg.KafkaConfig.CsvCreatedTopic,
+			},
+			nil,
+		)
+		eventHandler := handler.NewInstanceComplete(testCfg, nil, nil, nil, nil, nil, nil, producer.Mock, nil)
 
 		Convey("When ProduceExportCompleteEvent is called for a private csv file", func(c C) {
 			wg := sync.WaitGroup{}
@@ -691,11 +705,10 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			}
 
 			Convey("Then the expected message is produced", func() {
-				producedBytes := <-producer.Channels().Output
 				producedMessage := event.CSVCreated{}
-				err := schema.CSVCreated.Unmarshal(producedBytes, &producedMessage)
-				So(err, ShouldBeNil)
+				err := producer.WaitForMessageSent(schema.CSVCreated, &producedMessage, 5*time.Second)
 				So(producedMessage, ShouldResemble, expectedEvent)
+				So(err, ShouldBeNil)
 			})
 
 			// make sure the go-routine finishes its execution
@@ -721,11 +734,10 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			}
 
 			Convey("Then the expected message is produced", func() {
-				producedBytes := <-producer.Channels().Output
 				producedMessage := event.CSVCreated{}
-				err := schema.CSVCreated.Unmarshal(producedBytes, &producedMessage)
-				So(err, ShouldBeNil)
+				err := producer.WaitForMessageSent(schema.CSVCreated, &producedMessage, 5*time.Second)
 				So(producedMessage, ShouldResemble, expectedEvent)
+				So(err, ShouldBeNil)
 			})
 
 			// make sure the go-routine finishes its execution

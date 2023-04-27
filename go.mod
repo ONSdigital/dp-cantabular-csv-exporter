@@ -6,7 +6,7 @@ go 1.19
 exclude github.com/gorilla/sessions v1.2.1
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2-0.20230427161702-8a3a7373b63c
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.9.2
 	github.com/ONSdigital/dp-healthcheck v1.6.1

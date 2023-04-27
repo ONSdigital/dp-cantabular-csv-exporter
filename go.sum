@@ -40,6 +40,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1 h1:8iT85wgqtJynoPNbVpb5M+RamR5yjEVL1nlQW4deb6w=
 github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1/go.mod h1:N/8TXJmmDpa9YA9oQjgqaB172+WExUJwt3yI47bVXa0=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2-0.20230427161702-8a3a7373b63c h1:PYxniQFgtI70bciUBbf32j9C4Km8W12OcJGB/iV6RCU=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2-0.20230427161702-8a3a7373b63c/go.mod h1:N/8TXJmmDpa9YA9oQjgqaB172+WExUJwt3yI47bVXa0=
 github.com/ONSdigital/dp-assistdog v0.0.1 h1:5jzUWZ3EmweVjSx+5c40oLh/+WBJtD3VOErzURy+B8g=
 github.com/ONSdigital/dp-assistdog v0.0.1/go.mod h1:Agb8iTx42/V+eSffc/gD2oXEvOcerN3GER76FAcBr+I=
 github.com/ONSdigital/dp-component-test v0.9.2 h1:Ua+YOA+K9n1SY8CTCHnXmxLXivToz2o0GuXClYQp75Q=

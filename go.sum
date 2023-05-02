@@ -38,8 +38,8 @@ cloud.google.com/go/storage v1.14.0/go.mod h1:GrKmX003DSIwi9o29oFT7YDnHYwZoctc3f
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1 h1:8iT85wgqtJynoPNbVpb5M+RamR5yjEVL1nlQW4deb6w=
-github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1/go.mod h1:N/8TXJmmDpa9YA9oQjgqaB172+WExUJwt3yI47bVXa0=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2 h1:OJ92Pu9JDnAuOiFk2jIO88jQtSEDhoyK0iaLXU0nOhA=
+github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2/go.mod h1:N/8TXJmmDpa9YA9oQjgqaB172+WExUJwt3yI47bVXa0=
 github.com/ONSdigital/dp-assistdog v0.0.1 h1:5jzUWZ3EmweVjSx+5c40oLh/+WBJtD3VOErzURy+B8g=
 github.com/ONSdigital/dp-assistdog v0.0.1/go.mod h1:Agb8iTx42/V+eSffc/gD2oXEvOcerN3GER76FAcBr+I=
 github.com/ONSdigital/dp-component-test v0.9.2 h1:Ua+YOA+K9n1SY8CTCHnXmxLXivToz2o0GuXClYQp75Q=
@@ -54,8 +54,6 @@ github.com/ONSdigital/dp-net/v2 v2.9.1 h1:2hGa0ArL0m2pMT9cFxMPcSOgvJ0zstH3NxWeyk
 github.com/ONSdigital/dp-net/v2 v2.9.1/go.mod h1:iy1XmnqC7aKwHCpbTDhfAVrlYDGJGkZl36zeXyHq+Hw=
 github.com/ONSdigital/dp-s3/v2 v2.0.0-beta.5 h1:G5P4nZ4zY9XFIF+vi5bx5vY/RIm7ziuoL2b1N7dA9tw=
 github.com/ONSdigital/dp-s3/v2 v2.0.0-beta.5/go.mod h1:faCYgVCvN0mvZFaqALY1ZwboiYiVbIAsHn7COTomGyQ=
-github.com/ONSdigital/dp-s3/v2 v2.1.0-beta.2 h1:USffb8SoHoqm/vIB4oHFkBFIT3TaixBmr0EMWLseZnc=
-github.com/ONSdigital/dp-s3/v2 v2.1.0-beta.2/go.mod h1:7HtqpQeFgGAbVKXWGK4MACRnAK4mqm0lw8Q++8m4jX0=
 github.com/ONSdigital/dp-vault v1.3.0 h1:9K0EkPvpbK0RjQPZfjhzvna7MG+sww0YyqHpg2UI0nU=
 github.com/ONSdigital/dp-vault v1.3.0/go.mod h1:KInQHj1Iw/dUnDnzOuRxtavpzpsAEE0J4cJ9NP/cdqU=
 github.com/ONSdigital/log.go/v2 v2.4.1 h1:QAHQqtXgXx43OUTSebNAocVfN21RwrHzagN6zDAzwdo=

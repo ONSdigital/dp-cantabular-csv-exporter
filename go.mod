@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-cantabular-csv-exporter
 
-go 1.19
+go 1.20
 
 // to avoid 'sonatype-2021-4899' non-CVE Vulnerability
 exclude github.com/gorilla/sessions v1.2.1
@@ -10,7 +10,7 @@ require (
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.9.2
 	github.com/ONSdigital/dp-healthcheck v1.6.1
-	github.com/ONSdigital/dp-kafka/v3 v3.9.1
+	github.com/ONSdigital/dp-kafka/v3 v3.10.0
 	github.com/ONSdigital/dp-net/v2 v2.9.1
 	github.com/ONSdigital/dp-s3/v2 v2.0.0-beta.5
 	github.com/ONSdigital/dp-vault v1.3.0

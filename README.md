@@ -43,14 +43,17 @@ An example event can be created using the helper script, `make produce`.
 | DOWNLOAD_SERVICE_URL                | http://localhost:23600               | The Download Service URL, only used to generate download links
 | CANTABULAR_HEALTHCHECK_ENABLED      | false                                | Flag to enable/disable healthchecks against Cantabular server and API extension
 | AWS_REGION                          | eu-west-1                            | The AWS region to use
-| UPLOAD_BUCKET_NAME                  | public-bucket                        | The name of the S3 bucket to store published csv files
+| PUBLIC_UPLOAD_BUCKET_NAME           | public-bucket                        | The name of the S3 bucket to store published csv files
 | PRIVATE_UPLOAD_BUCKET_NAME          | private-bucket                       | The name of the S3 bucket to store un-published csv files
 | VAULT_ADDR                          | http://localhost:8200                | The address of vault
 | VAULT_TOKEN                         | -                                    | Use `make debug` to set a vault token
 | VAULT_PATH                          | secret/shared/psk                    | The vault path to store psks
 | ENCRYPTION_DISABLED                 | false                                | Flag to enable/disable encryption for un-published csv files
 | STOP_CONSUMING_ON_UNHEALTHY         | true                                 | Flag to enable/disable kafka-consumer consumption depending on health status. If true, the consumer will stop consuming on 'WARNING' and 'CRITICAL' and it will start consuming on 'OK'
+| S3_PUBLIC_URL                       | http://public-bucket                 | The name of the S3 public url
 | KAFKA_ADDR                          | localhost:9092                       | The kafka broker addresses (can be comma separated)
+| KAFKA_CONSUMER_MIN_BROKERS_HEALTHY  | 1                                    | The minimum number of healthy kafka consumer brokers
+| KAFKA_PRODUCER_MIN_BROKERS_HEALTHY  | 2                                    | The minimum number of healthy kafka producer brokers
 | KAFKA_VERSION                       | "1.0.2"                              | The kafka version that this service expects to connect to
 | KAFKA_OFFSET_OLDEST                 | true                                 | Start processing Kafka messages in order from the oldest in the queue
 | KAFKA_NUM_WORKERS                   | 1                                    | The maximum number of parallel kafka consumers

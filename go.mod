@@ -6,16 +6,16 @@ go 1.20
 exclude github.com/gorilla/sessions v1.2.1
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.2
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.254.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
 	github.com/ONSdigital/dp-component-test v0.9.2
 	github.com/ONSdigital/dp-healthcheck v1.6.1
 	github.com/ONSdigital/dp-kafka/v3 v3.10.0
 	github.com/ONSdigital/dp-net/v2 v2.9.1
 	github.com/ONSdigital/dp-s3/v2 v2.0.0-beta.5
-	github.com/ONSdigital/dp-vault v1.3.0
+	github.com/ONSdigital/dp-vault v1.3.1
 	github.com/ONSdigital/log.go/v2 v2.4.1
-	github.com/aws/aws-sdk-go v1.44.248
+	github.com/aws/aws-sdk-go v1.44.272
 	github.com/cucumber/godog v0.12.6
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/mux v1.8.0
@@ -94,10 +94,10 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect

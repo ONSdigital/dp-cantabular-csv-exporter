@@ -251,7 +251,7 @@ func (c *Component) theseCsvCreatedEventsAreProduced(events *godog.Table) error 
 	}
 
 	if diff := cmp.Diff(got, expected); diff != "" {
-		return fmt.Errorf("-got +expected)\n%s\n", diff)
+		return fmt.Errorf("-got +expected)\n%s", diff)
 	}
 
 	return nil

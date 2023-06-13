@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"io"
 	"log"
@@ -20,20 +19,21 @@ const componentLogFile = "component-output.txt"
 
 var componentFlag = flag.Bool("component", false, "perform component tests")
 
-type BeforeScenarioHook func(ctx context.Context, sc *godog.Scenario) (context.Context, error)
-
 type ComponentTest struct {
 	MongoFeature *componenttest.MongoFeature
 	t            *testing.T
 }
 
-func init() {
+func initializeLogging() {
 	dplogs.Namespace = "dp-cantabular-csv-exporter"
+}
+
+func initialize() {
+	initializeLogging()
 }
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	component := steps.NewComponent(f.t)
-
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		if err := component.Reset(); err != nil {
 			log.Panicf("unable to initialise scenario: %s", err)

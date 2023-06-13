@@ -37,6 +37,14 @@ type InstanceComplete struct {
 	generator   Generator
 }
 
+type FilterInfo struct {
+	DimensionIds   []string
+	Filters        []cantabular.Filter
+	PopulationType string
+	IsPublished    bool
+	IsCustom       bool
+}
+
 // NewInstanceComplete creates a new InstanceCompleteHandler
 func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClient, f FilterAPIClient, sPrivate, sPublic S3Client, v VaultClient, p kafka.IProducer, g Generator) *InstanceComplete {
 	return &InstanceComplete{
@@ -55,6 +63,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 // Handle takes a single event.
 func (h *InstanceComplete) Handle(ctx context.Context, _ int, msg kafka.Message) error {
 	var isPublished bool
+	var filterInfo FilterInfo
 	e := &event.ExportStart{}
 	s := schema.ExportStart
 
@@ -76,7 +85,13 @@ func (h *InstanceComplete) Handle(ctx context.Context, _ int, msg kafka.Message)
 	var isCustom bool
 
 	if isFilterJob {
-		req.Variables, req.Filters, req.Dataset, isPublished, isCustom, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
+		filterInfo, err = h.getFilterInfo(ctx, e.FilterOutputID, logData)
+		req.Variables = filterInfo.DimensionIds
+		req.Filters = filterInfo.Filters
+		req.Dataset = filterInfo.PopulationType
+		isPublished = filterInfo.IsPublished
+		isCustom = filterInfo.IsCustom
+
 		if err != nil {
 			return errors.Wrap(err, "failed to get filter info")
 		}
@@ -126,10 +141,10 @@ func (h *InstanceComplete) Handle(ctx context.Context, _ int, msg kafka.Message)
 	return nil
 }
 
-func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) ([]string, []cantabular.Filter, string, bool, bool, error) {
+func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID string, logData log.Data) (FilterInfo, error) {
 	model, err := h.filters.GetOutput(ctx, "", h.cfg.ServiceAuthToken, "", "", filterOutputID)
 	if err != nil {
-		return nil, nil, "", false, false, &Error{
+		return FilterInfo{}, &Error{
 			err:     errors.Wrap(err, "failed to get filter"),
 			logData: logData,
 		}
@@ -139,15 +154,16 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 
 	dimensionIds := make([]string, 0)
 	filters := make([]cantabular.Filter, 0)
-	for _, d := range dimensions {
-		dimensionIds = append(dimensionIds, d.ID)
-		if len(d.Options) > 0 {
-			v := d.ID
-			if d.FilterByParent != "" {
-				v = d.FilterByParent
+
+	for i := range dimensions {
+		dimensionIds = append(dimensionIds, dimensions[i].ID)
+		if len(dimensions[i].Options) > 0 {
+			v := dimensions[i].ID
+			if dimensions[i].FilterByParent != "" {
+				v = dimensions[i].FilterByParent
 			}
 			filters = append(filters, cantabular.Filter{
-				Codes:    d.Options,
+				Codes:    dimensions[i].Options,
 				Variable: v,
 			})
 		}
@@ -156,7 +172,15 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	isPublished := model.IsPublished
 	isCustom := model.Custom != nil && *model.Custom
 
-	return dimensionIds, filters, model.PopulationType, isPublished, isCustom, nil
+	filterInfo := FilterInfo{
+		DimensionIds:   dimensionIds,
+		Filters:        filters,
+		PopulationType: model.PopulationType,
+		IsPublished:    isPublished,
+		IsCustom:       isCustom,
+	}
+
+	return filterInfo, nil
 }
 
 func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {

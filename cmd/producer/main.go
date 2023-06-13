@@ -23,7 +23,7 @@ func main() {
 	// Get Config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Fatal(ctx, "error getting config", err)
+		log.Error(ctx, "error getting config", err)
 		os.Exit(1)
 	}
 
@@ -44,7 +44,7 @@ func main() {
 	}
 	kafkaProducer, err := kafka.NewProducer(ctx, pConfig)
 	if err != nil {
-		log.Fatal(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.KafkaConfig.ExportStartTopic})
+		log.Error(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.KafkaConfig.ExportStartTopic})
 		os.Exit(1)
 	}
 
@@ -59,7 +59,7 @@ func main() {
 
 		bytes, err := schema.ExportStart.Marshal(e)
 		if err != nil {
-			log.Fatal(ctx, "hello-called event error", err)
+			log.Error(ctx, "hello-called event error", err)
 			os.Exit(1)
 		}
 
@@ -68,7 +68,6 @@ func main() {
 		<-kafkaProducer.Channels().Initialised
 		kafkaProducer.Channels().Output <- bytes
 	}
-
 }
 
 // scanEvent creates a HelloCalled event according to the user input

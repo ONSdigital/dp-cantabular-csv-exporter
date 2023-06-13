@@ -53,7 +53,7 @@ func NewInstanceComplete(cfg config.Config, c CantabularClient, d DatasetAPIClie
 }
 
 // Handle takes a single event.
-func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+func (h *InstanceComplete) Handle(ctx context.Context, _ int, msg kafka.Message) error {
 	var isPublished bool
 	e := &event.ExportStart{}
 	s := schema.ExportStart
@@ -118,7 +118,6 @@ func (h *InstanceComplete) Handle(ctx context.Context, workerID int, msg kafka.M
 
 	log.Info(ctx, "producing event")
 
-	//just pass the file name
 	f := strings.Replace(filename, "datasets/", "", 1)
 	if err := h.ProduceExportCompleteEvent(e, rowCount, f); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
@@ -144,7 +143,7 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 		dimensionIds = append(dimensionIds, d.ID)
 		if len(d.Options) > 0 {
 			v := d.ID
-			if len(d.FilterByParent) != 0 {
+			if d.FilterByParent != "" {
 				v = d.FilterByParent
 			}
 			filters = append(filters, cantabular.Filter{
@@ -194,7 +193,7 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 		}
 	}
 
-	if i.IsBasedOn == nil || len(i.IsBasedOn.ID) == 0 {
+	if i.IsBasedOn == nil || i.IsBasedOn.ID == "" {
 		return false, &Error{
 			err: errors.New("missing instance isBasedOn.ID"),
 			logData: log.Data{
@@ -347,7 +346,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 }
 
 // GetS3ContentLength obtains an S3 file size (in number of bytes) by calling Head Object
-func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.ExportStart, isPublished bool, filename string) (int, error) {
+func (h *InstanceComplete) GetS3ContentLength(_ context.Context, _ *event.ExportStart, isPublished bool, filename string) (int, error) {
 	if isPublished {
 		headOutput, err := h.s3Public.Head(filename)
 		if err != nil {
@@ -365,7 +364,7 @@ func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, e *event.Expo
 // UpdateInstance updates the instance downlad CSV link using dataset API PUT /instances/{id} endpoint
 // if the instance is published, then the s3Url will be set as public link and the instance state will be set to published
 // otherwise, a private url will be generated and the state will not be changed
-func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string, filename string) error {
+func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url, filename string) error {
 	csvDownload := dataset.Download{
 		Size: fmt.Sprintf("%d", size),
 		URL: fmt.Sprintf("%s/downloads/datasets/%s/editions/%s/versions/%s.csv",
@@ -430,7 +429,7 @@ func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowC
 	return nil
 }
 
-func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url string, filename string) error {
+func (h *InstanceComplete) UpdateFilterOutput(ctx context.Context, e *event.ExportStart, size int, isPublished bool, s3Url, filename string) error {
 	log.Info(ctx, "Updating filter output with download link")
 
 	download := filter.Download{
@@ -476,7 +475,7 @@ func (h *InstanceComplete) generateS3Filename(e *event.ExportStart, isCustom boo
 }
 
 // generateVaultPathForFile generates the vault path for the provided root and filename
-func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot string, fileName string) string {
+func (h *InstanceComplete) generateVaultPathForFile(vaultPathRoot, fileName string) string {
 	f := strings.Replace(fileName, "datasets/", "", 1)
 	return fmt.Sprintf("%s/%s", vaultPathRoot, f)
 }

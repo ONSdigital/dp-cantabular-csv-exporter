@@ -42,7 +42,6 @@ var (
 
 func TestInit(t *testing.T) {
 	Convey("Having a set of mocked dependencies", t, func() {
-
 		cfg, err := config.Get()
 		So(err, ShouldBeNil)
 
@@ -87,13 +86,13 @@ func TestInit(t *testing.T) {
 			return cantabularMock
 		}
 
-		datasetApiMock := &serviceMock.DatasetAPIClientMock{
+		datasetAPIMock := &serviceMock.DatasetAPIClientMock{
 			CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 				return nil
 			},
 		}
 		service.GetDatasetAPIClient = func(cfg *config.Config) service.DatasetAPIClient {
-			return datasetApiMock
+			return datasetAPIMock
 		}
 
 		filterAPIMock := &serviceMock.FilterAPIClientMock{
@@ -195,7 +194,7 @@ func TestInit(t *testing.T) {
 				So(svc.Consumer, ShouldResemble, consumerMock)
 				So(svc.CantabularClient, ShouldResemble, cantabularMock)
 				So(svc.Producer, ShouldResemble, producerMock)
-				So(svc.DatasetAPIClient, ShouldResemble, datasetApiMock)
+				So(svc.DatasetAPIClient, ShouldResemble, datasetAPIMock)
 				So(svc.FilterAPIClient, ShouldResemble, filterAPIMock)
 				So(svc.S3PrivateClient, ShouldResemble, s3PrivateClientMock)
 				So(svc.S3PublicClient, ShouldResemble, s3PublicClientMock)
@@ -243,7 +242,7 @@ func TestInit(t *testing.T) {
 				So(svc.Consumer, ShouldResemble, consumerMock)
 				So(svc.CantabularClient, ShouldResemble, cantabularMock)
 				So(svc.Producer, ShouldResemble, producerMock)
-				So(svc.DatasetAPIClient, ShouldResemble, datasetApiMock)
+				So(svc.DatasetAPIClient, ShouldResemble, datasetAPIMock)
 				So(svc.S3PrivateClient, ShouldResemble, s3PrivateClientMock)
 				So(svc.S3PublicClient, ShouldResemble, s3PublicClientMock)
 

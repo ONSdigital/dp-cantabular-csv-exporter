@@ -276,7 +276,6 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 		Convey("When UploadCSVFile is triggered with an empty export-start event", func() {
 			_, _, _, err := eventHandler.UploadCSVFile(ctx, &event.ExportStart{}, testReq, isPublished, isCustom)
 			So(err, ShouldNotBeNil)
-
 		})
 	})
 }
@@ -307,7 +306,7 @@ func TestUploadPrivateEncryptedCSVFile(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(loc, ShouldEqual, testS3Location)
 				So(rowCount, ShouldEqual, testRowCount)
-				So(filename, ShouldEqual, "datasets/test-dataset-id-test-edition-test-version.csv") //No filter id, thus time stamp not added
+				So(filename, ShouldEqual, "datasets/test-dataset-id-test-edition-test-version.csv") // No filter id, thus time stamp not added
 			})
 
 			Convey("Then the expected key is stored in vault", func() {
@@ -441,7 +440,7 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(loc, ShouldEqual, testS3Location)
 				So(rowCount, ShouldEqual, testRowCount)
-				So(filename, ShouldEqual, "datasets/test-dataset-id-test-edition-test-version.csv") //No filter id, thus time stamp not added
+				So(filename, ShouldEqual, "datasets/test-dataset-id-test-edition-test-version.csv") // No filter id, thus time stamp not added
 			})
 
 			Convey("Then the expected UploadWithContext call is executed", func() {

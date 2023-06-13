@@ -29,7 +29,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^filter API is healthy`, c.filterAPIIsHealthy)
 	ctx.Step(`^filter API is unhealthy`, c.filterAPIIsUnhealthy)
 	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
-	ctx.Step(`^cantabular api extension is healthy`, c.cantabularApiExtensionIsHealthy)
+	ctx.Step(`^cantabular api extension is healthy`, c.cantabularAPIExtensionIsHealthy)
 	ctx.Step(`^the following instance with id "([^"]*)" is available from dp-dataset-api:$`, c.theFollowingInstanceIsAvailable)
 	ctx.Step(`^a dataset version with dataset-id "([^"]*)", edition "([^"]*)" and version "([^"]*)" is updated by an API call to dp-dataset-api`, c.theFollowingVersionIsUpdated)
 	ctx.Step(`^for the following filter "([^"]*)" these dimensions are available:$`, c.theFollowingFilterDimensionsExist)
@@ -41,7 +41,6 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a public filtered file, that should contain "([^"]*)" on the filename can be seen in minio`, c.theFollowingPublicFilteredFileCanBeSeenInMinio)
 	ctx.Step(`^a private file with filename "([^"]*)" can be seen in minio`, c.theFollowingPrivateFileCanBeSeenInMinio)
 	ctx.Step(`^the following filter output with id "([^"]*)" will be updated:$`, c.theFollowingFilterOutputWillBeUpdated)
-
 }
 
 // theServiceStarts starts the service under test in a new go-routine
@@ -102,7 +101,7 @@ func (c *Component) cantabularServerIsHealthy() error {
 }
 
 // cantabularApiExtensionIsHealthy generates a mocked healthy response for cantabular api extension
-func (c *Component) cantabularApiExtensionIsHealthy() error {
+func (c *Component) cantabularAPIExtensionIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularAPIExt.NewHandler().
 		Get("/graphql?query={}").
@@ -169,7 +168,7 @@ func (c *Component) theFollowingFilterOutputWillBeUpdated(filterOutputID string,
 
 // theFollowingQueryResponseIsAvailable generates a mocked response for Cantabular Server
 // POST /graphql?query with the provided query
-func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.DocString) error {
+func (c *Component) theFollowingQueryResponseIsAvailable(_ string, cb *godog.DocString) error {
 	const urlQuery = `{
 		dataset(name: "Example") {
 		 table(variables: ["city", "siblings"]) {
@@ -198,10 +197,10 @@ func (c *Component) theFollowingQueryResponseIsAvailable(name string, cb *godog.
 	return nil
 }
 
-//we are passing the string array as [xxxx,yyyy,zzz]
-//this is required to support array being used in kafka messages
+// we are passing the string array as [xxxx,yyyy,zzz]
+// this is required to support array being used in kafka messages
 func arrayParser(raw string) (interface{}, error) {
-	//remove the starting and trailing brackets
+	// remove the starting and trailing brackets
 	str := strings.Trim(raw, "[]")
 	if str == "" {
 		return []string{}, nil
@@ -369,7 +368,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 	return nil
 }
 
-func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName string, bucketName string) error {
+func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName, bucketName string) error {
 	// probe bucket with backoff to give time for event to be processed
 	retries := MinioCheckRetries
 	timeout := time.Second

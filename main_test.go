@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io"
 	"log"
@@ -18,6 +19,8 @@ import (
 const componentLogFile = "component-output.txt"
 
 var componentFlag = flag.Bool("component", false, "perform component tests")
+
+type BeforeScenarioHook func(ctx context.Context, sc *godog.Scenario) (context.Context, error)
 
 type ComponentTest struct {
 	MongoFeature *componenttest.MongoFeature
@@ -44,7 +47,7 @@ func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	component.RegisterSteps(ctx)
 }
 
-func (f *ComponentTest) InitializeTestSuite(ctx *godog.TestSuiteContext) {
+func (f *ComponentTest) InitializeTestSuite(*godog.TestSuiteContext) {
 
 }
 

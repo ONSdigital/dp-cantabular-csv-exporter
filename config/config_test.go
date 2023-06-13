@@ -12,9 +12,7 @@ func TestConfig(t *testing.T) {
 	Convey("Given an environment with no environment variables set", t, func() {
 		os.Clearenv()
 		cfg, err := Get()
-
 		Convey("When the config values are retrieved", func() {
-
 			Convey("Then there should be no error returned", func() {
 				So(err, ShouldBeNil)
 			})

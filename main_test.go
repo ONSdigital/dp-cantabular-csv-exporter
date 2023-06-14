@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"testing"
 
@@ -24,31 +25,26 @@ type ComponentTest struct {
 	t            *testing.T
 }
 
-func initializeLogging() {
-	dplogs.Namespace = "dp-cantabular-csv-exporter"
-}
-
-func initialize() {
-	initializeLogging()
-}
-
-func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
+func (f *ComponentTest) InitializeScenario(godogCtx *godog.ScenarioContext) {
 	component := steps.NewComponent(f.t)
-	ctx.BeforeScenario(func(*godog.Scenario) {
+
+	godogCtx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 		if err := component.Reset(); err != nil {
-			log.Panicf("unable to initialise scenario: %s", err)
+			return ctx, fmt.Errorf("unable to initialise scenario: %s", err)
 		}
+		return ctx, nil
 	})
 
-	ctx.AfterScenario(func(*godog.Scenario, error) {
+	godogCtx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 		component.Close()
+		return ctx, nil
 	})
 
-	component.RegisterSteps(ctx)
+	component.RegisterSteps(godogCtx)
 }
 
-func (f *ComponentTest) InitializeTestSuite(*godog.TestSuiteContext) {
-
+func (f *ComponentTest) InitializeTestSuite(_ *godog.TestSuiteContext) {
+	dplogs.Namespace = "dp-cantabular-csv-exporter"
 }
 
 func TestComponent(t *testing.T) {

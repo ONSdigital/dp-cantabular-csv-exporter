@@ -36,9 +36,9 @@ type Config struct {
 	EncryptionDisabled           bool          `envconfig:"ENCRYPTION_DISABLED"`
 	StopConsumingOnUnhealthy     bool          `envconfig:"STOP_CONSUMING_ON_UNHEALTHY"`
 	S3PublicURL                  string        `envconfig:"S3_PUBLIC_URL"`
-	OTExporterOTLPEndpoint     string        `envconfig:"OTEL_EXPORTER_OTLP_ENDPOINT"`
-	OTServiceName              string        `envconfig:"OTEL_SERVICE_NAME"`
-	OTBatchTimeout             time.Duration `envconfig:"OTEL_BATCH_TIMEOUT"`
+	OTExporterOTLPEndpoint       string        `envconfig:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	OTServiceName                string        `envconfig:"OTEL_SERVICE_NAME"`
+	OTBatchTimeout               time.Duration `envconfig:"OTEL_BATCH_TIMEOUT"`
 	KafkaConfig                  KafkaConfig
 }
 
@@ -96,9 +96,9 @@ func Get() (*Config, error) {
 		EncryptionDisabled:           false,
 		StopConsumingOnUnhealthy:     true,
 		S3PublicURL:                  "http://public-bucket",
-		OTExporterOTLPEndpoint:     "localhost:4317",
-		OTServiceName:              "dp-cantabular-csv-exporter",
-		OTBatchTimeout:             5 * time.Second,
+		OTExporterOTLPEndpoint:       "localhost:4317",
+		OTServiceName:                "dp-cantabular-csv-exporter",
+		OTBatchTimeout:               5 * time.Second,
 		KafkaConfig: KafkaConfig{
 			Addr:                      []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 			ConsumerMinBrokersHealthy: 1,

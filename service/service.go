@@ -12,7 +12,8 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/mux"	
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 )
 
 // Service contains all the configs, server and clients to run the event handler service
@@ -90,6 +91,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	}
 
 	r := mux.NewRouter()
+	r.Use(otelmux.Middleware(cfg.OTServiceName))
 	r.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
 	svc.Server = GetHTTPServer(cfg.BindAddr, r)
 

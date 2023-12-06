@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ONSdigital/dp-otel-go"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
+	"github.com/ONSdigital/dp-otel-go"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -59,7 +59,7 @@ func run(ctx context.Context) (err error) {
 	}
 	log.Info(ctx, "config on startup", log.Data{"config": cfg, "build_time": BuildTime, "git-commit": GitCommit})
 
-	//Set up OpenTelemetry
+	// Set up OpenTelemetry
 	otelConfig := dpotelgo.Config{
 		OtelServiceName:          cfg.OTServiceName,
 		OtelExporterOtlpEndpoint: cfg.OTExporterOTLPEndpoint,

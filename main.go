@@ -69,7 +69,6 @@ func run(ctx context.Context) (err error) {
 
 	if err != nil {
 		log.Error(ctx, "error setting up OpenTelemetry - hint: ensure OTEL_EXPORTER_OTLP_ENDPOINT is set", err)
-		return
 	}
 	// Handle shutdown properly so nothing leaks.
 	defer func() {

@@ -24,8 +24,8 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/handler/mock"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
-	kafka "github.com/ONSdigital/dp-kafka/v3"
-	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
+	"github.com/ONSdigital/dp-kafka/v4/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -690,7 +690,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
+				err := eventHandler.ProduceExportCompleteEvent(ctx, testExportStartEvent, testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 
@@ -719,7 +719,7 @@ func TestProduceExportCompleteEvent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := eventHandler.ProduceExportCompleteEvent(testExportStartEvent, testRowCount, "")
+				err := eventHandler.ProduceExportCompleteEvent(ctx, testExportStartEvent, testRowCount, "")
 				c.So(err, ShouldBeNil)
 			}()
 

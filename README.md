@@ -68,6 +68,7 @@ An example event can be created using the helper script, `make produce`.
 | KAFKA_SEC_SKIP_VERIFY               | false                                | ignores server certificate issues if `true` [[1]](#notes_1)
 | OTEL_EXPORTER_OTLP_ENDPOINT         | localhost:4317                       | Endpoint for OpenTelemetry service
 | OTEL_SERVICE_NAME                   | dp-cantabular-csv-exporter           | Label of service for OpenTelemetry service
+| OTEL_BATCH_TIMEOUT                  | 5s                                   | Timeout for OpenTelemetry
 
 **Notes:**
 

@@ -46,6 +46,8 @@ github.com/ONSdigital/dp-component-test v0.9.2 h1:Ua+YOA+K9n1SY8CTCHnXmxLXivToz2
 github.com/ONSdigital/dp-component-test v0.9.2/go.mod h1:u/XsI2ldXAHy5lTRaao/WTVlN/r8dQEIiHPmz0B+9FE=
 github.com/ONSdigital/dp-healthcheck v1.6.1 h1:YDAnxE2fI3G2hhGC42mKI/fRhAhIYmFZGQwQ/8M65M0=
 github.com/ONSdigital/dp-healthcheck v1.6.1/go.mod h1:FURB2RUJHw3lssamKtsGsrbu31ar9yhMSDYzG9vgSIo=
+github.com/ONSdigital/dp-kafka/v4 v4.0.0 h1:qskIqgiV+JQOeSgaCa52b9Jdx+ymHBijYZb/NVTYHAo=
+github.com/ONSdigital/dp-kafka/v4 v4.0.0/go.mod h1:s6qWDRUgGagnPJl5+fzzxQqr2ji+z8eBxU6MKxr7Rl0=
 github.com/ONSdigital/dp-mongodb-in-memory v1.6.0 h1:kJN/oY+Gu7XZ+ZRx9WseA8nWhy+728iGebn9sF8v9VY=
 github.com/ONSdigital/dp-mongodb-in-memory v1.6.0/go.mod h1:rSsF/w/frWb/wmaj9eMwE8mJGdxvYgpRCcp2A+RK8wE=
 github.com/ONSdigital/dp-net/v2 v2.9.1 h1:2hGa0ArL0m2pMT9cFxMPcSOgvJ0zstH3NxWeykU9Elg=

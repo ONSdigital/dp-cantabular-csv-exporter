@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/ONSdigital/dp-kafka/v3/avro"
+	"github.com/ONSdigital/dp-kafka/v4/avro"
 )
 
 // Filter ID could be null, but opted for empty string representing part of publishing journey.the avro unmarshal lib does not support pointers to strings

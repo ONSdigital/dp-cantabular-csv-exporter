@@ -10,7 +10,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
-	kafka "github.com/ONSdigital/dp-kafka/v3"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -66,7 +66,7 @@ func main() {
 		// Send bytes to Output channel, after calling Initialise just in case it is not initialised.
 		// Wait for producer to be initialised
 		<-kafkaProducer.Channels().Initialised
-		kafkaProducer.Channels().Output <- bytes
+		kafkaProducer.Channels().Output <- kafka.BytesMessage{Value: bytes, Context: ctx}
 	}
 }
 

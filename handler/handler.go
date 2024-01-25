@@ -18,7 +18,7 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/event"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
-	kafka "github.com/ONSdigital/dp-kafka/v3"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -134,7 +134,7 @@ func (h *InstanceComplete) Handle(ctx context.Context, _ int, msg kafka.Message)
 	log.Info(ctx, "producing event")
 
 	f := strings.Replace(filename, "datasets/", "", 1)
-	if err := h.ProduceExportCompleteEvent(e, rowCount, f); err != nil {
+	if err := h.ProduceExportCompleteEvent(ctx, e, rowCount, f); err != nil {
 		return fmt.Errorf("failed to produce export complete kafka message: %w", err)
 	}
 
@@ -437,8 +437,8 @@ func (h *InstanceComplete) UpdateInstance(ctx context.Context, e *event.ExportSt
 }
 
 // ProduceExportCompleteEvent sends the final kafka message signifying the export complete
-func (h *InstanceComplete) ProduceExportCompleteEvent(e *event.ExportStart, rowCount int32, fileName string) error {
-	if err := h.producer.Send(schema.CSVCreated, &event.CSVCreated{
+func (h *InstanceComplete) ProduceExportCompleteEvent(ctx context.Context, e *event.ExportStart, rowCount int32, fileName string) error {
+	if err := h.producer.Send(ctx, schema.CSVCreated, &event.CSVCreated{
 		InstanceID:     e.InstanceID,
 		DatasetID:      e.DatasetID,
 		Edition:        e.Edition,

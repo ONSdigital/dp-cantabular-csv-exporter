@@ -1,6 +1,7 @@
 package steps
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -296,7 +297,7 @@ func (c *Component) thisExportStartEventIsQueued(input *godog.DocString) error {
 	log.Info(c.ctx, "event to send for testing: ", log.Data{
 		"event": testEvent,
 	})
-	if err := c.producer.Send(schema.ExportStart, testEvent); err != nil {
+	if err := c.producer.Send(context.Background(), schema.ExportStart, testEvent); err != nil {
 		return fmt.Errorf("failed to send event for testing: %w", err)
 	}
 	return nil

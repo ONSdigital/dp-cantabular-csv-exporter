@@ -5,7 +5,11 @@ go 1.20
 // to avoid 'sonatype-2021-4899' non-CVE Vulnerability
 exclude github.com/gorilla/sessions v1.2.1
 
+// [CVE-2024-24786] CWE-835: Loop with Unreachable Exit Condition ('Infinite Loop')
 replace google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
+
+// [CVE-2024-6104] CWE-532: Information Exposure Through Log Files
+replace github.com/hashicorp/go-retryablehttp => github.com/hashicorp/go-retryablehttp v0.7.7
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.254.0

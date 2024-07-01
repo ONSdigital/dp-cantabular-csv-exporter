@@ -13,6 +13,7 @@ job "dp-cantabular-csv-exporter" {
 
   group "publishing" {
     count = "{{PUBLISHING_TASK_COUNT}}"
+    
     spread {
       attribute = "${node.unique.id}"
       weight    = 100

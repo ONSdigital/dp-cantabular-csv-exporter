@@ -1,4 +1,4 @@
-FROM onsdigital/dp-concourse-tools-ubuntu-20:ubuntu20.4-rc.1
+FROM 115533637771.dkr.ecr.eu-west-2.amazonaws.com/onsdigital/dp-concourse-tools-ubuntu-20:ubuntu20.4-rc.1
 
 WORKDIR /app/
 

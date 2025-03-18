@@ -183,7 +183,7 @@ func (h *InstanceComplete) getFilterInfo(ctx context.Context, filterOutputID str
 	return filterInfo, nil
 }
 
-func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (string, []string, bool, error) {
+func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID string, logData log.Data) (datasetID string, variables []string, isPublished bool, err error) {
 	instance, _, err := h.datasets.GetInstance(ctx, "", h.cfg.ServiceAuthToken, "", instanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return "", nil, false, &Error{
@@ -196,8 +196,8 @@ func (h *InstanceComplete) getInstanceInfo(ctx context.Context, instanceID strin
 		"instance_id": instance.ID,
 	})
 
-	// validate the instance and determine wether it is published or not
-	isPublished, err := h.ValidateInstance(instance)
+	// validate the instance and determine whether it is published or not
+	isPublished, err = h.ValidateInstance(instance)
 	if err != nil {
 		return "", nil, false, fmt.Errorf("failed to validate instance: %w", err)
 	}
@@ -234,14 +234,14 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 // If the data is published, the S3 file will be stored in the public bucket
 // If the data is private, the S3 file will be stored in the private bucket (encrypted or un-encrypted depending on EncryptionDisabled flag)
 // Returns S3 file URL, file size [bytes], number of rows, and any error that happens.
-func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, req cantabular.StaticDatasetQueryRequest, isPublished, isCustom bool) (string, int32, string, error) {
+func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, req cantabular.StaticDatasetQueryRequest, isPublished, isCustom bool) (s3Location string, rowCount int32, filename string, err error) {
 	if e.InstanceID == "" {
-		return "", 0, "", errors.New("empty instance id not allowed")
+		err = errors.New("empty instance id not allowed")
+		return "", 0, "", err
 	}
-	var s3Location string
-	var consume cantabular.Consumer
 
-	filename := h.generateS3Filename(e, isCustom)
+	var consume cantabular.Consumer
+	filename = h.generateS3Filename(e, isCustom)
 	logData := log.Data{
 		"filename":     filename,
 		"is_published": isPublished,
@@ -258,20 +258,20 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 			}
 			log.Info(ctx, "uploading published file to S3", logData)
 
-			result, err := h.s3Public.UploadWithContext(ctx, &s3manager.UploadInput{
+			result, uploadErr := h.s3Public.UploadWithContext(ctx, &s3manager.UploadInput{
 				Body:   file,
 				Bucket: &bucketName,
 				Key:    &filename,
 			})
-			if err != nil {
-				return fmt.Errorf("failed to upload published file to S3: %w", err)
+			if uploadErr != nil {
+				return fmt.Errorf("failed to upload published file to S3: %w", uploadErr)
 			}
 
-			s3Location, err = url.PathUnescape(result.Location)
-			if err != nil {
+			s3Location, uploadErr = url.PathUnescape(result.Location)
+			if uploadErr != nil {
 				logData["location"] = result.Location
 				return NewError(
-					fmt.Errorf("failed to unescape S3 path location: %w", err),
+					fmt.Errorf("failed to unescape S3 path location: %w", uploadErr),
 					logData,
 				)
 			}
@@ -290,43 +290,45 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				}
 				log.Info(ctx, "uploading un-encrypted private file to S3", logData)
 
-				result, err := h.s3Private.UploadWithContext(ctx, &s3manager.UploadInput{
+				result, uploadErr := h.s3Private.UploadWithContext(ctx, &s3manager.UploadInput{
 					Body:   file,
 					Bucket: &bucketName,
 					Key:    &filename,
 				})
-				if err != nil {
-					return fmt.Errorf("failed to upload un-encrypted private file to S3: %w", err)
+				if uploadErr != nil {
+					return fmt.Errorf("failed to upload un-encrypted private file to S3: %w", uploadErr)
 				}
 
-				s3Location, err = url.PathUnescape(result.Location)
-				if err != nil {
+				s3Location, uploadErr = url.PathUnescape(result.Location)
+				if uploadErr != nil {
 					logData["location"] = result.Location
 					return NewError(
-						fmt.Errorf("failed to unescape S3 path location: %w", err),
+						fmt.Errorf("failed to unescape S3 path location: %w", uploadErr),
 						logData,
 					)
 				}
 				return nil
 			}
 		} else {
-			psk, err := h.generator.NewPSK()
-			if err != nil {
-				return "", 0, "", NewError(
-					fmt.Errorf("failed to generate a PSK for encryption: %w", err),
+			psk, pskErr := h.generator.NewPSK()
+			if pskErr != nil {
+				err = NewError(
+					fmt.Errorf("failed to generate a PSK for encryption: %w", pskErr),
 					logData,
 				)
+				return "", 0, "", err
 			}
 
 			vaultPath := h.generateVaultPathForFile(h.cfg.VaultPath, filename)
 			vaultKey := "key"
 			log.Info(ctx, "writing key to vault", log.Data{"vault_path": vaultPath})
 
-			if err := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); err != nil {
-				return "", 0, "", NewError(
-					fmt.Errorf("failed to write key to vault: %w", err),
+			if vaultErr := h.vaultClient.WriteKey(vaultPath, vaultKey, hex.EncodeToString(psk)); vaultErr != nil {
+				err = NewError(
+					fmt.Errorf("failed to write key to vault: %w", vaultErr),
 					logData,
 				)
+				return "", 0, "", err
 			}
 
 			// stream consumer/uploader for encrypted private files
@@ -336,20 +338,20 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				}
 				log.Info(ctx, "uploading encrypted private file to S3", logData)
 
-				result, err := h.s3Private.UploadWithPSK(&s3manager.UploadInput{
+				result, uploadErr := h.s3Private.UploadWithPSK(&s3manager.UploadInput{
 					Body:   file,
 					Bucket: &bucketName,
 					Key:    &filename,
 				}, psk)
-				if err != nil {
-					return fmt.Errorf("failed to upload encrypted private file to S3: %w", err)
+				if uploadErr != nil {
+					return fmt.Errorf("failed to upload encrypted private file to S3: %w", uploadErr)
 				}
 
-				s3Location, err = url.PathUnescape(result.Location)
-				if err != nil {
+				s3Location, uploadErr = url.PathUnescape(result.Location)
+				if uploadErr != nil {
 					logData["location"] = result.Location
 					return NewError(
-						fmt.Errorf("failed to unescape S3 path location: %w", err),
+						fmt.Errorf("failed to unescape S3 path location: %w", uploadErr),
 						logData,
 					)
 				}
@@ -358,12 +360,13 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 		}
 	}
 
-	rowCount, err := h.ctblr.StaticDatasetQueryStreamCSV(ctx, req, consume)
+	rowCount, err = h.ctblr.StaticDatasetQueryStreamCSV(ctx, req, consume)
 	if err != nil {
-		return "", 0, "", &Error{
+		err = &Error{
 			err:     fmt.Errorf("failed to stream csv data: %w", err),
 			logData: logData,
 		}
+		return "", 0, "", err
 	}
 
 	return s3Location, rowCount, filename, nil

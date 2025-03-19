@@ -8,7 +8,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/service"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"io"
 	"sync"
 )
 
@@ -18,25 +17,25 @@ var _ service.CantabularClient = &CantabularClientMock{}
 
 // CantabularClientMock is a mock implementation of service.CantabularClient.
 //
-// 	func TestSomethingThatUsesCantabularClient(t *testing.T) {
+//	func TestSomethingThatUsesCantabularClient(t *testing.T) {
 //
-// 		// make and configure a mocked service.CantabularClient
-// 		mockedCantabularClient := &CantabularClientMock{
-// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
-// 				panic("mock out the Checker method")
-// 			},
-// 			CheckerAPIExtFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
-// 				panic("mock out the CheckerAPIExt method")
-// 			},
-// 			StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
-// 				panic("mock out the StaticDatasetQueryStreamCSV method")
-// 			},
-// 		}
+//		// make and configure a mocked service.CantabularClient
+//		mockedCantabularClient := &CantabularClientMock{
+//			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+//				panic("mock out the Checker method")
+//			},
+//			CheckerAPIExtFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+//				panic("mock out the CheckerAPIExt method")
+//			},
+//			StaticDatasetQueryStreamCSVFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (int32, error) {
+//				panic("mock out the StaticDatasetQueryStreamCSV method")
+//			},
+//		}
 //
-// 		// use mockedCantabularClient in code that requires service.CantabularClient
-// 		// and then make assertions.
+//		// use mockedCantabularClient in code that requires service.CantabularClient
+//		// and then make assertions.
 //
-// 	}
+//	}
 type CantabularClientMock struct {
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
@@ -45,7 +44,7 @@ type CantabularClientMock struct {
 	CheckerAPIExtFunc func(ctx context.Context, state *healthcheck.CheckState) error
 
 	// StaticDatasetQueryStreamCSVFunc mocks the StaticDatasetQueryStreamCSV method.
-	StaticDatasetQueryStreamCSVFunc func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error)
+	StaticDatasetQueryStreamCSVFunc func(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (int32, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -70,7 +69,7 @@ type CantabularClientMock struct {
 			// Req is the req argument value.
 			Req cantabular.StaticDatasetQueryRequest
 			// Consume is the consume argument value.
-			Consume func(ctx context.Context, r io.Reader) error
+			Consume cantabular.Consumer
 		}
 	}
 	lockChecker                     sync.RWMutex
@@ -98,7 +97,8 @@ func (mock *CantabularClientMock) Checker(contextMoqParam context.Context, check
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
-//     len(mockedCantabularClient.CheckerCalls())
+//
+//	len(mockedCantabularClient.CheckerCalls())
 func (mock *CantabularClientMock) CheckerCalls() []struct {
 	ContextMoqParam context.Context
 	CheckState      *healthcheck.CheckState
@@ -133,7 +133,8 @@ func (mock *CantabularClientMock) CheckerAPIExt(ctx context.Context, state *heal
 
 // CheckerAPIExtCalls gets all the calls that were made to CheckerAPIExt.
 // Check the length with:
-//     len(mockedCantabularClient.CheckerAPIExtCalls())
+//
+//	len(mockedCantabularClient.CheckerAPIExtCalls())
 func (mock *CantabularClientMock) CheckerAPIExtCalls() []struct {
 	Ctx   context.Context
 	State *healthcheck.CheckState
@@ -149,14 +150,14 @@ func (mock *CantabularClientMock) CheckerAPIExtCalls() []struct {
 }
 
 // StaticDatasetQueryStreamCSV calls StaticDatasetQueryStreamCSVFunc.
-func (mock *CantabularClientMock) StaticDatasetQueryStreamCSV(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume func(ctx context.Context, r io.Reader) error) (int32, error) {
+func (mock *CantabularClientMock) StaticDatasetQueryStreamCSV(ctx context.Context, req cantabular.StaticDatasetQueryRequest, consume cantabular.Consumer) (int32, error) {
 	if mock.StaticDatasetQueryStreamCSVFunc == nil {
 		panic("CantabularClientMock.StaticDatasetQueryStreamCSVFunc: method is nil but CantabularClient.StaticDatasetQueryStreamCSV was just called")
 	}
 	callInfo := struct {
 		Ctx     context.Context
 		Req     cantabular.StaticDatasetQueryRequest
-		Consume func(ctx context.Context, r io.Reader) error
+		Consume cantabular.Consumer
 	}{
 		Ctx:     ctx,
 		Req:     req,
@@ -170,16 +171,17 @@ func (mock *CantabularClientMock) StaticDatasetQueryStreamCSV(ctx context.Contex
 
 // StaticDatasetQueryStreamCSVCalls gets all the calls that were made to StaticDatasetQueryStreamCSV.
 // Check the length with:
-//     len(mockedCantabularClient.StaticDatasetQueryStreamCSVCalls())
+//
+//	len(mockedCantabularClient.StaticDatasetQueryStreamCSVCalls())
 func (mock *CantabularClientMock) StaticDatasetQueryStreamCSVCalls() []struct {
 	Ctx     context.Context
 	Req     cantabular.StaticDatasetQueryRequest
-	Consume func(ctx context.Context, r io.Reader) error
+	Consume cantabular.Consumer
 } {
 	var calls []struct {
 		Ctx     context.Context
 		Req     cantabular.StaticDatasetQueryRequest
-		Consume func(ctx context.Context, r io.Reader) error
+		Consume cantabular.Consumer
 	}
 	mock.lockStaticDatasetQueryStreamCSV.RLock()
 	calls = mock.calls.StaticDatasetQueryStreamCSV

@@ -15,22 +15,22 @@ var _ handler.Generator = &GeneratorMock{}
 
 // GeneratorMock is a mock implementation of handler.Generator.
 //
-// 	func TestSomethingThatUsesGenerator(t *testing.T) {
+//	func TestSomethingThatUsesGenerator(t *testing.T) {
 //
-// 		// make and configure a mocked handler.Generator
-// 		mockedGenerator := &GeneratorMock{
-// 			NewPSKFunc: func() ([]byte, error) {
-// 				panic("mock out the NewPSK method")
-// 			},
-// 			TimestampFunc: func() time.Time {
-// 				panic("mock out the Timestamp method")
-// 			},
-// 		}
+//		// make and configure a mocked handler.Generator
+//		mockedGenerator := &GeneratorMock{
+//			NewPSKFunc: func() ([]byte, error) {
+//				panic("mock out the NewPSK method")
+//			},
+//			TimestampFunc: func() time.Time {
+//				panic("mock out the Timestamp method")
+//			},
+//		}
 //
-// 		// use mockedGenerator in code that requires handler.Generator
-// 		// and then make assertions.
+//		// use mockedGenerator in code that requires handler.Generator
+//		// and then make assertions.
 //
-// 	}
+//	}
 type GeneratorMock struct {
 	// NewPSKFunc mocks the NewPSK method.
 	NewPSKFunc func() ([]byte, error)
@@ -66,7 +66,8 @@ func (mock *GeneratorMock) NewPSK() ([]byte, error) {
 
 // NewPSKCalls gets all the calls that were made to NewPSK.
 // Check the length with:
-//     len(mockedGenerator.NewPSKCalls())
+//
+//	len(mockedGenerator.NewPSKCalls())
 func (mock *GeneratorMock) NewPSKCalls() []struct {
 } {
 	var calls []struct {
@@ -92,7 +93,8 @@ func (mock *GeneratorMock) Timestamp() time.Time {
 
 // TimestampCalls gets all the calls that were made to Timestamp.
 // Check the length with:
-//     len(mockedGenerator.TimestampCalls())
+//
+//	len(mockedGenerator.TimestampCalls())
 func (mock *GeneratorMock) TimestampCalls() []struct {
 } {
 	var calls []struct {

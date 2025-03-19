@@ -16,22 +16,22 @@ var _ service.VaultClient = &VaultClientMock{}
 
 // VaultClientMock is a mock implementation of service.VaultClient.
 //
-// 	func TestSomethingThatUsesVaultClient(t *testing.T) {
+//	func TestSomethingThatUsesVaultClient(t *testing.T) {
 //
-// 		// make and configure a mocked service.VaultClient
-// 		mockedVaultClient := &VaultClientMock{
-// 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
-// 				panic("mock out the Checker method")
-// 			},
-// 			WriteKeyFunc: func(path string, key string, value string) error {
-// 				panic("mock out the WriteKey method")
-// 			},
-// 		}
+//		// make and configure a mocked service.VaultClient
+//		mockedVaultClient := &VaultClientMock{
+//			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
+//				panic("mock out the Checker method")
+//			},
+//			WriteKeyFunc: func(path string, key string, value string) error {
+//				panic("mock out the WriteKey method")
+//			},
+//		}
 //
-// 		// use mockedVaultClient in code that requires service.VaultClient
-// 		// and then make assertions.
+//		// use mockedVaultClient in code that requires service.VaultClient
+//		// and then make assertions.
 //
-// 	}
+//	}
 type VaultClientMock struct {
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
@@ -82,7 +82,8 @@ func (mock *VaultClientMock) Checker(contextMoqParam context.Context, checkState
 
 // CheckerCalls gets all the calls that were made to Checker.
 // Check the length with:
-//     len(mockedVaultClient.CheckerCalls())
+//
+//	len(mockedVaultClient.CheckerCalls())
 func (mock *VaultClientMock) CheckerCalls() []struct {
 	ContextMoqParam context.Context
 	CheckState      *healthcheck.CheckState
@@ -119,7 +120,8 @@ func (mock *VaultClientMock) WriteKey(path string, key string, value string) err
 
 // WriteKeyCalls gets all the calls that were made to WriteKey.
 // Check the length with:
-//     len(mockedVaultClient.WriteKeyCalls())
+//
+//	len(mockedVaultClient.WriteKeyCalls())
 func (mock *VaultClientMock) WriteKeyCalls() []struct {
 	Path  string
 	Key   string

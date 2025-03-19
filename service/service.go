@@ -52,7 +52,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	if svc.Producer, err = GetKafkaProducer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
-	if svc.S3PrivateClient, svc.S3PublicClient, err = GetS3Clients(cfg); err != nil {
+	if svc.S3PrivateClient, svc.S3PublicClient, err = GetS3Clients(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to initialise s3 clients: %w", err)
 	}
 	if !cfg.EncryptionDisabled {

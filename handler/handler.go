@@ -21,7 +21,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v4"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // InstanceComplete is the handle for the InstanceCompleteHandler event
@@ -258,7 +258,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 			}
 			log.Info(ctx, "uploading published file to S3", logData)
 
-			result, uploadErr := h.s3Public.UploadWithContext(ctx, &s3manager.UploadInput{
+			result, uploadErr := h.s3Public.Upload(ctx, &s3.PutObjectInput{
 				Body:   file,
 				Bucket: &bucketName,
 				Key:    &filename,
@@ -290,7 +290,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				}
 				log.Info(ctx, "uploading un-encrypted private file to S3", logData)
 
-				result, uploadErr := h.s3Private.UploadWithContext(ctx, &s3manager.UploadInput{
+				result, uploadErr := h.s3Private.Upload(ctx, &s3.PutObjectInput{
 					Body:   file,
 					Bucket: &bucketName,
 					Key:    &filename,
@@ -338,7 +338,7 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 				}
 				log.Info(ctx, "uploading encrypted private file to S3", logData)
 
-				result, uploadErr := h.s3Private.UploadWithPSK(&s3manager.UploadInput{
+				result, uploadErr := h.s3Private.UploadWithPSK(ctx, &s3.PutObjectInput{
 					Body:   file,
 					Bucket: &bucketName,
 					Key:    &filename,
@@ -373,15 +373,15 @@ func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportSta
 }
 
 // GetS3ContentLength obtains an S3 file size (in number of bytes) by calling Head Object
-func (h *InstanceComplete) GetS3ContentLength(_ context.Context, _ *event.ExportStart, isPublished bool, filename string) (int, error) {
+func (h *InstanceComplete) GetS3ContentLength(ctx context.Context, _ *event.ExportStart, isPublished bool, filename string) (int, error) {
 	if isPublished {
-		headOutput, err := h.s3Public.Head(filename)
+		headOutput, err := h.s3Public.Head(ctx, filename)
 		if err != nil {
 			return 0, fmt.Errorf("public s3 head object error: %w", err)
 		}
 		return int(*headOutput.ContentLength), nil
 	}
-	headOutput, err := h.s3Private.Head(filename)
+	headOutput, err := h.s3Private.Head(ctx, filename)
 	if err != nil {
 		return 0, fmt.Errorf("private s3 head object error: %w", err)
 	}

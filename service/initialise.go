@@ -13,12 +13,13 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v4"
 	dphttp "github.com/ONSdigital/dp-net/v2/http"
-	dps3 "github.com/ONSdigital/dp-s3/v2"
+	dps3 "github.com/ONSdigital/dp-s3/v3"
 	vault "github.com/ONSdigital/dp-vault"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -102,31 +103,40 @@ var GetFilterAPIClient = func(cfg *config.Config) FilterAPIClient {
 }
 
 // GetS3Clients creates the private and public S3 Clients using the same AWS session
-var GetS3Clients = func(cfg *config.Config) (private, public S3Client, err error) {
+var GetS3Clients = func(ctx context.Context, cfg *config.Config) (private, public S3Client, err error) {
 	if cfg.LocalObjectStore != "" {
-		s3Config := &aws.Config{
-			Credentials:      credentials.NewStaticCredentials(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
-			Endpoint:         aws.String(cfg.LocalObjectStore),
-			Region:           aws.String(cfg.AWSRegion),
-			DisableSSL:       aws.Bool(true),
-			S3ForcePathStyle: aws.Bool(true),
-		}
-
-		s, err := session.NewSession(s3Config)
+		awsConfig, err := awsConfig.LoadDefaultConfig(ctx,
+			awsConfig.WithRegion(cfg.AWSRegion),
+			awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.MinioAccessKey, cfg.MinioSecretKey, "")),
+		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to create aws session: %w", err)
+			return nil, nil, fmt.Errorf("failed to create aws config: %w", err)
 		}
-		return dps3.NewClientWithSession(cfg.PrivateUploadBucketName, s),
-			dps3.NewClientWithSession(cfg.PublicUploadBucketName, s),
-			nil
+
+		privateClient := dps3.NewClientWithConfig(cfg.PrivateUploadBucketName, awsConfig, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(cfg.LocalObjectStore)
+			o.UsePathStyle = true
+		})
+
+		publicClient := dps3.NewClientWithConfig(cfg.PublicUploadBucketName, awsConfig, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(cfg.LocalObjectStore)
+			o.UsePathStyle = true
+		})
+
+		return privateClient, publicClient, nil
 	}
 
-	private, err = dps3.NewClient(cfg.AWSRegion, cfg.PrivateUploadBucketName)
+	awsConfig, err := awsConfig.LoadDefaultConfig(ctx,
+		awsConfig.WithRegion(cfg.AWSRegion),
+	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create S3 Client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create aws config: %w", err)
 	}
-	public = dps3.NewClientWithSession(cfg.PublicUploadBucketName, private.Session())
-	return private, public, nil
+
+	privateClient := dps3.NewClientWithConfig(cfg.PrivateUploadBucketName, awsConfig)
+	publicClient := dps3.NewClientWithConfig(cfg.PublicUploadBucketName, awsConfig)
+
+	return privateClient, publicClient, nil
 }
 
 // GetVault creates a VaultClient

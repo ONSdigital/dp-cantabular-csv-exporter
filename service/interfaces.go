@@ -11,10 +11,10 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/config"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v4"
-	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -67,11 +67,11 @@ type FilterAPIClient interface {
 }
 
 type S3Client interface {
-	Head(key string) (*s3.HeadObjectOutput, error)
-	UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
-	UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
+	Head(ctx context.Context, key string) (*s3.HeadObjectOutput, error)
+	Upload(ctx context.Context, input *s3.PutObjectInput, options ...func(*manager.Uploader)) (*manager.UploadOutput, error)
+	UploadWithPSK(ctx context.Context, input *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error)
 	BucketName() string
-	Session() *session.Session
+	Config() aws.Config
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 

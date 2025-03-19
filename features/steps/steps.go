@@ -13,8 +13,9 @@ import (
 	"github.com/ONSdigital/dp-cantabular-csv-exporter/schema"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	assistdog "github.com/ONSdigital/dp-assistdog"
 	"github.com/cucumber/godog"
@@ -325,7 +326,7 @@ func (c *Component) theFollowingPrivateFileCanBeSeenInMinio(fileName string) err
 // If it is not available it keeps checking following an exponential backoff up to MinioCheckRetries times.
 func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string) error {
 	var b []byte
-	f := aws.NewWriteAtBuffer(b)
+	f := manager.NewWriteAtBuffer(b)
 
 	// probe bucket with backoff to give time for event to be processed
 	retries := MinioCheckRetries
@@ -334,7 +335,7 @@ func (c *Component) theFollowingFileCanBeSeenInMinio(fileName, bucketName string
 	var err error
 
 	for {
-		if numBytes, err = c.S3Downloader.Download(f, &s3.GetObjectInput{
+		if numBytes, err = c.S3Downloader.Download(c.ctx, f, &s3.GetObjectInput{
 			Bucket: aws.String(bucketName),
 			Key:    aws.String(fileName),
 		}); err == nil || retries <= 0 {
@@ -381,7 +382,7 @@ func (c *Component) theFollowingFilteredFileCanBeSeenInMinio(fileName, bucketNam
 	})
 
 	for {
-		listObjectOutput, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
+		listObjectOutput, err := c.s3Client.ListObjects(c.ctx, &s3.ListObjectsInput{
 			Bucket: aws.String(bucketName),
 		})
 		if err != nil {

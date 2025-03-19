@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -212,12 +212,12 @@ func TestUploadPrivateUnEncryptedCSVFile(t *testing.T) {
 				So(rowCount, ShouldEqual, testRowCount)
 			})
 
-			Convey("Then the expected UploadWithContext call is executed", func() {
-				So(sPrivate.UploadWithContextCalls(), ShouldHaveLength, 1)
-				So(sPrivate.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
-				So(*sPrivate.UploadWithContextCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*sPrivate.UploadWithContextCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(sPrivate.UploadWithContextCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+			Convey("Then the expected Upload call is executed", func() {
+				So(sPrivate.UploadCalls(), ShouldHaveLength, 1)
+				So(sPrivate.UploadCalls()[0].Ctx, ShouldResemble, ctx)
+				So(*sPrivate.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPrivate.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPrivate.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
@@ -443,12 +443,12 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 				So(filename, ShouldEqual, "datasets/test-dataset-id-test-edition-test-version.csv") // No filter id, thus time stamp not added
 			})
 
-			Convey("Then the expected UploadWithContext call is executed", func() {
-				So(sPublic.UploadWithContextCalls(), ShouldHaveLength, 1)
-				So(sPublic.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
-				So(*sPublic.UploadWithContextCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
-				So(*sPublic.UploadWithContextCalls()[0].Input.Bucket, ShouldResemble, testBucket)
-				So(sPublic.UploadWithContextCalls()[0].Input.Body, ShouldResemble, testCsvBody)
+			Convey("Then the expected Upload call is executed", func() {
+				So(sPublic.UploadCalls(), ShouldHaveLength, 1)
+				So(sPublic.UploadCalls()[0].Ctx, ShouldResemble, ctx)
+				So(*sPublic.UploadCalls()[0].Input.Key, ShouldResemble, expectedS3Key)
+				So(*sPublic.UploadCalls()[0].Input.Bucket, ShouldResemble, testBucket)
+				So(sPublic.UploadCalls()[0].Input.Body, ShouldResemble, testCsvBody)
 			})
 		})
 	})
@@ -503,12 +503,12 @@ func TestUploadPublishedCSVFile(t *testing.T) {
 
 func TestGetS3ContentLength(t *testing.T) {
 	var ContentLength int64 = testNumBytes
-	headOk := func(key string) (*s3.HeadObjectOutput, error) {
+	headOk := func(ctx context.Context, key string) (*s3.HeadObjectOutput, error) {
 		return &s3.HeadObjectOutput{
 			ContentLength: &ContentLength,
 		}, nil
 	}
-	headErr := func(key string) (*s3.HeadObjectOutput, error) {
+	headErr := func(ctx context.Context, key string) (*s3.HeadObjectOutput, error) {
 		return nil, errS3
 	}
 
@@ -767,8 +767,8 @@ func cantabularUnhappy() mock.CantabularClientMock {
 func s3ClientHappy(encryptionEnabled bool) mock.S3ClientMock {
 	if encryptionEnabled {
 		return mock.S3ClientMock{
-			UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
-				return &s3manager.UploadOutput{
+			UploadWithPSKFunc: func(ctx context.Context, input *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error) {
+				return &manager.UploadOutput{
 					Location: testS3Location,
 				}, nil
 			},
@@ -778,8 +778,8 @@ func s3ClientHappy(encryptionEnabled bool) mock.S3ClientMock {
 		}
 	}
 	return mock.S3ClientMock{
-		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-			return &s3manager.UploadOutput{
+		UploadFunc: func(ctx context.Context, input *s3.PutObjectInput, options ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
+			return &manager.UploadOutput{
 				Location: testS3Location,
 			}, nil
 		},
@@ -808,7 +808,7 @@ func vaultUnhappy() mock.VaultClientMock {
 func s3ClientUnhappy(encryptionEnabled bool) mock.S3ClientMock {
 	if encryptionEnabled {
 		return mock.S3ClientMock{
-			UploadWithPSKFunc: func(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+			UploadWithPSKFunc: func(ctx context.Context, input *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error) {
 				return nil, errS3
 			},
 			BucketNameFunc: func() string {
@@ -817,7 +817,7 @@ func s3ClientUnhappy(encryptionEnabled bool) mock.S3ClientMock {
 		}
 	}
 	return mock.S3ClientMock{
-		UploadWithContextFunc: func(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+		UploadFunc: func(ctx context.Context, input *s3.PutObjectInput, options ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
 			return nil, errS3
 		},
 		BucketNameFunc: func() string {

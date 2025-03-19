@@ -102,7 +102,7 @@ var GetFilterAPIClient = func(cfg *config.Config) FilterAPIClient {
 	return filter.New(cfg.FilterAPIURL)
 }
 
-// GetS3Clients creates the private and public S3 Clients using the same AWS session
+// GetS3Clients creates the private and public S3 Clients using the same AWS Config
 var GetS3Clients = func(ctx context.Context, cfg *config.Config) (private, public S3Client, err error) {
 	if cfg.LocalObjectStore != "" {
 		awsConfig, err := awsConfig.LoadDefaultConfig(ctx,

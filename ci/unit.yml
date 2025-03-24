@@ -6,7 +6,7 @@ image_resource:
   type: docker-image
   source:
     repository: golang
-    tag: 1.24.1
+    tag: 1.24.1-bullseye
 
 inputs:
   - name: dp-cantabular-csv-exporter

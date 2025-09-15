@@ -2,9 +2,6 @@ module github.com/ONSdigital/dp-cantabular-csv-exporter
 
 go 1.24
 
-// to avoid 'sonatype-2021-4899' non-CVE Vulnerability
-exclude github.com/gorilla/sessions v1.2.1
-
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.266.0
 	github.com/ONSdigital/dp-assistdog v0.0.1
@@ -37,7 +34,6 @@ require (
 	github.com/ONSdigital/dp-mongodb-in-memory v1.8.1 // indirect
 	github.com/ONSdigital/dp-net/v3 v3.3.0 // indirect
 	github.com/Shopify/sarama v1.38.1 // indirect
-	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/alicebob/miniredis/v2 v2.35.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.31 // indirect

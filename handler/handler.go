@@ -234,6 +234,8 @@ func (h *InstanceComplete) ValidateInstance(i dataset.Instance) (bool, error) {
 // If the data is published, the S3 file will be stored in the public bucket
 // If the data is private, the S3 file will be stored in the private bucket (encrypted or un-encrypted depending on EncryptionDisabled flag)
 // Returns S3 file URL, file size [bytes], number of rows, and any error that happens.
+//
+//nolint:gocognit // pre-existing complexity
 func (h *InstanceComplete) UploadCSVFile(ctx context.Context, e *event.ExportStart, req cantabular.StaticDatasetQueryRequest, isPublished, isCustom bool) (s3Location string, rowCount int32, filename string, err error) {
 	if e.InstanceID == "" {
 		err = errors.New("empty instance id not allowed")
